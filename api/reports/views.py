@@ -124,7 +124,10 @@ def xlsx_model(request):
         # print(result_directions)
         # print(intermediate_structure_result)
         fields = {"Случай": "", "Пациент": "", "Пол": "", "Дата рождения": "", "Возраст": "", "Адрес": ""}
-        fields.update({i: "" for i in order_custom_field.values()})
+        custom_fields = {v: "" for k, v in order_custom_field.items()}
+        fields.update(custom_fields)
+        print("custom_fields")
+        print(custom_fields)
         final_result = []
         for k, v in intermediate_structure_result.items():
             print(k)
@@ -137,13 +140,27 @@ def xlsx_model(request):
             intermediate_result["Дата рождения"] = v.get("birthday")
             intermediate_result["Возраст"] = v.get("age")
             intermediate_result["Адрес"] = v.get("address")
-            for data in v.get("protocol_directions").values():
+            for direction_num, data_direction in v.get("protocol_directions").items():
                 title_field = ""
-                if data.get("input_value"):
-                    title_field = order_custom_field.get(data["input_static_param_id"])
-                elif data.get("fraction_value"):
-                    title_field = order_custom_field.get(data["fraction_static_param_id"])
-                if intermediate_result.get(title_field):
-                    pass # сделай вторую строку для текущего параметра текущей истории
+                print("-----")
+                for current_data in data_direction:
+                    print(current_data)
+                    group_id_block_param = None
+                    if current_data.get("input_value"):
+                        title_field = order_custom_field.get(current_data["input_static_param_id"])
+                        group_id_block_param = together_params_by_params.get(current_data["input_static_param_id"])
+                    elif current_data.get("fraction_value"):
+                        title_field = order_custom_field.get(current_data["fraction_static_param_id"])
+                        group_id_block_param = together_params_by_params.get(current_data["fraction_static_param_id"])
+                    param_ids_in_group_block = together_params_by_group.get(group_id_block_param)
+                    used_block_in_order_custom_field = [v for k, v in order_custom_field.items() if k in param_ids_in_group_block]
+                    # проверить были ли значения полей заполнены уже БЛОКА-ВМЕСТЕ ранее
+                    later_value = []
+                    if len(used_block_in_order_custom_field) > 0:
+                        later_value = [k for k in used_block_in_order_custom_field if intermediate_result.get(k)]
+                    if len(later_value) > 0 or intermediate_result.get(title_field):
+                        pass # сделай вторую строку для текущего параметра текущей истории
+                    else:
+                        pass # добавить в текущее поле
 
     return JsonResponse({"results": "file-xls-model", "link": "open-xls", "result": result_directions})
