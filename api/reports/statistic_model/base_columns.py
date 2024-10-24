@@ -8,7 +8,7 @@ def custom_research_data(query_sql):
     step = 0
     tmp_result = {
         "permanent_field": {
-            "Случай": "",
+            "Случай ": "",
             "Протокол": "",
             "Пациент": "",
             "Пол": "",
@@ -20,25 +20,27 @@ def custom_research_data(query_sql):
     }
     custom_fields = []
     for i in query_sql:
-        if prev_direction != i.direction_id and step != 0:
+        if prev_direction != i.hosp_direction and step != 0:
             result.append(tmp_result.copy())
-        if prev_direction != i.direction_number:
-            tmp_result = {
-                "permanent_field": {
-                    "Случай": f"{i.hosp_direction}",
-                    "Протокол": f"{i.direction_id}",
-                    "Пациент": f"{i.family} {i.name} {i.patronymic}",
-                    "Пол": i.patient_sex,
-                    "Дата рождения": i.born,
-                    "Возраст": i.ind_age,
-                    "Адрес": i.patient_fact_address if i.patient_fact_address else i.patient_main_address,
-                }
+        tmp_result = {
+            "permanent_field": {
+                "Случай": f"{i.hosp_direction}",
+                "Пациент": f"{i.family} {i.name} {i.patronymic}",
+                "Пол": i.patient_sex,
+                "Дата рождения": i.born,
+                "Возраст": i.ind_age,
+                "Адрес": i.patient_fact_address if i.patient_fact_address else i.patient_main_address,
             }
-        tmp_result["custom_field"][i.field_title] = i.field_value
+        }
+        if tmp_result["custom_field"].get(i.field_title):
+            tmp_result["custom_field"]
+
+        else:
+            tmp_result["custom_field"][i.field_title] = i.field_value
         if i.field_title not in custom_fields:
             custom_fields.append(i.field_title)
         step += 1
-        prev_direction = i.direction_id
+        prev_direction = i.hosp_direction
     result.append(tmp_result.copy())
     fields = ["Случай", "Протокол", "Пациент", "Пол", "Дата рождения", "Возраст", "Адрес"]
     fields.extend(custom_fields)

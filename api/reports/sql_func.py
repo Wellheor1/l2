@@ -86,20 +86,23 @@ def get_field_results(directions, input_field, fraction_field):
         cursor.execute(
             """ 
         SELECT
-        dn.id as direction_id,
+        dn.id as protocol_direction_id,
         to_char(directions_issledovaniya.time_confirmation AT TIME ZONE %(tz)s, 'DD.MM.YYYY HH24:MI') AS time_confirm,
         dp.value as input_value, 
         dpif.title as field_title,
-        dpif.statistic_pattern_param_id as input_static_param,
+        dpif.statistic_pattern_param_id as input_static_param_id,
         dr.value as fraction_value,
-        df.statistic_pattern_param_id as fraction_static_param,
+        df.statistic_pattern_param_id as fraction_static_param_id,
         dn.parent_id as parrent_iss,
-        pd.napravleniye_id as hosp_direction,
-        ci.family,
-        ci.name,
-        ci.patronymic,
-        to_char(ci.birthday, 'DD.MM.YYYY') as born,
-        to_char(EXTRACT(YEAR from age(directions_issledovaniya.time_confirmation, ci.birthday)), '999') as ind_age
+        pd.napravleniye_id as hospital_direction,
+        ci.sex,
+        ci.family as patient_family,
+        ci.name as patient_name,
+        ci.patronymic as patient_patronymic,
+        to_char(ci.birthday, 'DD.MM.YYYY') as patient_birthday,
+        to_char(EXTRACT(YEAR from age(directions_issledovaniya.time_confirmation, ci.birthday)), '999') as patient_age,
+        cc.main_address as patient_main_address,
+        cc.fact_address as patient_fact_address
         
         FROM directions_issledovaniya
         LEFT JOIN directions_napravleniya dn on directions_issledovaniya.napravleniye_id = dn.id 
