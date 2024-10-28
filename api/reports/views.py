@@ -117,7 +117,7 @@ def xlsx_model(request):
                     "input_value": i.input_value,
                     "fraction_static_param_id": i.fraction_static_param_id,
                     "fraction_value": i.fraction_value,
-                    "time_confirm": i.time_confirm
+                    "time_confirm": i.time_confirm,
                 }
             )
 
