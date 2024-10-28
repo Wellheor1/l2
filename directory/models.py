@@ -1084,7 +1084,7 @@ class PatternParam(models.Model):
     @staticmethod
     def get_pattern_params():
         params = PatternParam.objects.all().order_by("title").values("title", "pk")
-        result = [{"label": p["title"], "id": p["pk"]} for p in params]
+        result = [{"id": -1, "label": "Пусто"}, *[{"label": p["title"], "id": p["pk"]} for p in params]]
         return result
 
 
@@ -1103,6 +1103,42 @@ class StatisticPatternParamSet(models.Model):
     def get_statistic_param(statistic_pattern_id):
         params = StatisticPatternParamSet.objects.filter(statistic_pattern_id=statistic_pattern_id)
         return {p.statistic_param_id: {"title": p.statistic_param.title, "isDynamic": p.statistic_param.is_dynamic_param} for p in params}
+
+
+class GroupPatternParams(models.Model):
+    title = models.CharField(max_length=400, unique=True, help_text="Название группы-блока параметра вместе")
+
+    def __str__(self):
+        return f"{self.title}"
+
+    class Meta:
+        verbose_name = "Статистическая модель - группа-блок"
+        verbose_name_plural = "Статистическая модель - группы-блоки"
+
+
+class PatternParamTogether(models.Model):
+    statistic_param = models.ForeignKey(PatternParam, default=None, null=True, blank=True, help_text="Параметр статистической модели отчет", on_delete=models.CASCADE)
+    group_pattern_param = models.ForeignKey(GroupPatternParams, default=None, null=True, blank=True, help_text="Статистическая модель", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.statistic_param}-{self.group_pattern_param}"
+
+    class Meta:
+        verbose_name = "Статистическая модель - группа-блок и параметры ВМЕСТЕ"
+        verbose_name_plural = "Статистическая модель - группы-блоки и параметры ВМЕСТЕ"
+
+    @staticmethod
+    def get_together_param(statistic_pattern_ids):
+        groups_data = PatternParamTogether.objects.filter(statistic_param_id__in=statistic_pattern_ids)
+        result_by_group = {}
+        result_by_param = {g.statistic_param_id: g.group_pattern_param_id for g in groups_data}
+
+        for g in groups_data:
+            if not result_by_group.get(g.group_pattern_param_id):
+                result_by_group[g.group_pattern_param_id] = []
+            result_by_group[g.group_pattern_param_id].append(g.statistic_param_id)
+
+        return {"by_group": result_by_group, "by_param": result_by_param}
 
 
 class ParaclinicInputGroups(models.Model):
