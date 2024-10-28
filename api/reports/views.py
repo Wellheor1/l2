@@ -163,15 +163,17 @@ def xlsx_model(request):
                         field_data[-1][title_field] = value_field
                         field_data[-1]["proto_direction"] = direction_num
                 prev_direction_num = direction_num
-            final_result.append({
-                "Случай": k,
-                "Пациент": v.get('patient_fio'),
-                "Пол": v.get("sex"),
-                "Дата рождения": v.get("birthday"),
-                "Возраст": v.get("age"),
-                "Адрес": v.get("address"),
-                "field_data": field_data.copy()
-            })
+            final_result.append(
+                {
+                    "Случай": k,
+                    "Пациент": v.get('patient_fio'),
+                    "Пол": v.get("sex"),
+                    "Дата рождения": v.get("birthday"),
+                    "Возраст": v.get("age"),
+                    "Адрес": v.get("address"),
+                    "field_data": field_data.copy(),
+                }
+            )
 
         permanent_head_data = [
             'Случай',
