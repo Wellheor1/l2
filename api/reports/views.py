@@ -6,7 +6,6 @@ from api.reports import structure_sheet
 from api.reports import sql_func
 from api.reports import handle_func
 from api.reports.sql_func import get_pair_direction_iss, get_simple_directions_for_hosp_stationar, get_field_results
-from api.reports.statistic_model import base_columns
 from api.reports.statistic_model.save_file_model import data_model_save_to_file
 from directory.models import StatisticPatternParamSet, ParaclinicInputField, Fractions, PatternParam, PatternParamTogether
 from laboratory.settings import SEARCH_PAGE_STATISTIC_PARAMS
