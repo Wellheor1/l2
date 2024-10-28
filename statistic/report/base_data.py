@@ -84,3 +84,22 @@ def fill_xls_check_research_exam_data(ws1, value_data):
             column += 1
             ws1.cell(row=r, column=column).value = v
     return ws1
+
+
+def fill_xls_model_statistic_data(ws1, final_data, permanent_head_data, custom_fields):
+    style_border1 = NamedStyle(name="style_border1")
+    bd = Side(style='thin', color="000000")
+    style_border1.border = Border(left=bd, top=bd, right=bd, bottom=bd)
+    style_border1.font = Font(bold=False, size=11)
+    style_border1.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+
+    r = 5
+    for row_data in final_data:
+        r += 1
+        for current_col in range(0, len(permanent_head_data)):
+            ws1.cell(row=r, column=current_col + 1).value = row_data.get(permanent_head_data[current_col])
+        for custom_field in row_data.get("field_data"):
+            for current_col in range(len(permanent_head_data), len(custom_fields) + len(permanent_head_data)):
+                ws1.cell(row=r, column=current_col + 1).value = custom_field.get(custom_fields[current_col - len(permanent_head_data)])
+            r += 1
+    return ws1

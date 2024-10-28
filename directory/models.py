@@ -1084,7 +1084,7 @@ class PatternParam(models.Model):
     @staticmethod
     def get_pattern_params():
         params = PatternParam.objects.all().order_by("title").values("title", "pk")
-        result = [{"label": p["title"], "id": p["pk"]} for p in params]
+        result = [{"id": -1, "label": "Пусто"}, *[{"label": p["title"], "id": p["pk"]} for p in params]]
         return result
 
 

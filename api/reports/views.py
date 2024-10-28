@@ -6,6 +6,8 @@ from api.reports import structure_sheet
 from api.reports import sql_func
 from api.reports import handle_func
 from api.reports.sql_func import get_pair_direction_iss, get_simple_directions_for_hosp_stationar, get_field_results
+from api.reports.statistic_model import base_columns
+from api.reports.statistic_model.save_file_model import data_model_save_to_file
 from directory.models import StatisticPatternParamSet, ParaclinicInputField, Fractions, PatternParam, PatternParamTogether
 from laboratory.settings import SEARCH_PAGE_STATISTIC_PARAMS
 from django.http import JsonResponse
@@ -93,7 +95,6 @@ def xlsx_model(request):
         result_directions = get_field_results(tuple(res_dir), tuple(input_field_statistic_param), tuple(laboratory_fractions_statistic_param))
         pattern_params = PatternParam.objects.filter(id__in=list(statistic_param_data.keys())).order_by("order").values("pk", "title")
         order_custom_field = {i.get('pk'): i.get('title') for i in pattern_params}
-        print(order_custom_field)
         together_params = PatternParamTogether.get_together_param(list(order_custom_field.keys()))
         together_params_by_group = together_params.get("by_group")
         together_params_by_params = together_params.get("by_param")
@@ -121,46 +122,70 @@ def xlsx_model(request):
                 }
             )
 
-        # print(result_directions)
-        # print(intermediate_structure_result)
-        fields = {"Случай": "", "Пациент": "", "Пол": "", "Дата рождения": "", "Возраст": "", "Адрес": ""}
         custom_fields = {v: "" for k, v in order_custom_field.items()}
-        fields.update(custom_fields)
-        print("custom_fields")
-        print(custom_fields)
+
         final_result = []
         for k, v in intermediate_structure_result.items():
-            print(k)
-            print(v)
-            print("--")
-            intermediate_result = fields.copy()
-            intermediate_result["Случай"] = k
-            intermediate_result["Пациент"] = v.get('patient_fio')
-            intermediate_result["Пол"] = v.get("sex")
-            intermediate_result["Дата рождения"] = v.get("birthday")
-            intermediate_result["Возраст"] = v.get("age")
-            intermediate_result["Адрес"] = v.get("address")
+            field_data = [custom_fields.copy()]
+            prev_direction_num = None
             for direction_num, data_direction in v.get("protocol_directions").items():
-                title_field = ""
-                print("-----")
                 for current_data in data_direction:
-                    print(current_data)
                     group_id_block_param = None
+                    value_field = None
+                    title_field = None
                     if current_data.get("input_value"):
                         title_field = order_custom_field.get(current_data["input_static_param_id"])
                         group_id_block_param = together_params_by_params.get(current_data["input_static_param_id"])
+                        value_field = current_data.get("input_value")
                     elif current_data.get("fraction_value"):
                         title_field = order_custom_field.get(current_data["fraction_static_param_id"])
                         group_id_block_param = together_params_by_params.get(current_data["fraction_static_param_id"])
-                    param_ids_in_group_block = together_params_by_group.get(group_id_block_param)
-                    used_block_in_order_custom_field = [v for k, v in order_custom_field.items() if k in param_ids_in_group_block]
+                        value_field = current_data.gey("fraction_value")
+                    param_ids_in_group_block = []
+                    if group_id_block_param:
+                        param_ids_in_group_block = together_params_by_group.get(group_id_block_param)
+                    used_block_in_order_custom_field = []
+                    if len(param_ids_in_group_block) > 0:
+                        used_block_in_order_custom_field = [field_v for field_k, field_v in order_custom_field.items() if field_k in param_ids_in_group_block]
                     # проверить были ли значения полей заполнены уже БЛОКА-ВМЕСТЕ ранее
                     later_value = []
-                    if len(used_block_in_order_custom_field) > 0:
-                        later_value = [k for k in used_block_in_order_custom_field if intermediate_result.get(k)]
-                    if len(later_value) > 0 or intermediate_result.get(title_field):
-                        pass # сделай вторую строку для текущего параметра текущей истории
-                    else:
-                        pass # добавить в текущее поле
+                    if len(used_block_in_order_custom_field) > 0 and prev_direction_num != direction_num:
+                        later_value = [used for used in used_block_in_order_custom_field if used in field_data[-1].values()]
+                    if (prev_direction_num != direction_num and len(later_value) > 0) or field_data[-1].get(title_field):
+                        # сделай вторую строку для текущего параметра текущей истории
+                        field_data.append(custom_fields.copy())
 
-    return JsonResponse({"results": "file-xls-model", "link": "open-xls", "result": result_directions})
+                        field_data[-1][title_field] = value_field
+                        field_data[-1]["proto_direction"] = direction_num
+                    else:
+                        # добавить в начальную строку текущее поле
+                        if len(field_data) == 0:
+                            field_data.append(custom_fields.copy())
+                        field_data[-1][title_field] = value_field
+                        field_data[-1]["proto_direction"] = direction_num
+                prev_direction_num = direction_num
+            final_result.append({
+                "Случай": k,
+                "Пациент": v.get('patient_fio'),
+                "Пол": v.get("sex"),
+                "Дата рождения": v.get("birthday"),
+                "Возраст": v.get("age"),
+                "Адрес": v.get("address"),
+                "field_data": field_data.copy()
+            })
+
+        permanent_head_data = [
+            'Случай',
+            'Пациент',
+            'Пол',
+            'Дата рождения',
+            'Возраст',
+            'Адрес',
+        ]
+        all_head_data = [*permanent_head_data, *custom_fields.keys()]
+        head_data_dict = {i: i for i in all_head_data}
+
+        results = data_model_save_to_file(final_result, head_data_dict, "Гиршпрунга", permanent_head_data, list(custom_fields.keys()))
+        link = "open-xls"
+
+        return JsonResponse({"ok": True, "results": results, "link": link})
