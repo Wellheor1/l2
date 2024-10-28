@@ -106,7 +106,7 @@ def xlsx_model(request):
                     "birthday": i.patient_birthday,
                     "age": i.patient_age,
                     "address": i.patient_fact_address if i.patient_fact_address else i.patient_main_address,
-                    "protocol_directions": {}
+                    "protocol_directions": {},
                 }
             if not intermediate_structure_result[i.hospital_direction]["protocol_directions"].get(i.protocol_direction_id):
                 intermediate_structure_result[i.hospital_direction]["protocol_directions"][i.protocol_direction_id] = []
