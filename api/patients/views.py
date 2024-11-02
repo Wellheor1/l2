@@ -9,6 +9,7 @@ import simplejson as json
 from django.contrib.auth.decorators import login_required
 from django.core.validators import validate_email
 
+from api.models import Application
 from api.patients.common_func import get_card_control_param
 from ecp_integration.integration import search_patient_ecp_by_person_id
 from laboratory.decorators import group_required
@@ -345,7 +346,7 @@ def patients_search_card(request):
 
     if not inc_archive:
         cards = cards.filter(is_archive=False)
-    if request.user.doctorprofile.hospital.strict_data_ownership:
+    if not isinstance(request.user, Application) and request.user.doctorprofile.hospital.strict_data_ownership:
         cards = cards.filter(owner=request.user.doctorprofile.hospital)
     row: Card
     for row in (
