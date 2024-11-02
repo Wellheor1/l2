@@ -2963,6 +2963,7 @@ def get_companies(request):
         {
             "pk": company.pk,
             "title": company.title,
+            "inn": company.inn if isinstance(company, Company) else None
         }
         for company in companies
     ]
