@@ -304,11 +304,7 @@ def form_03(request_data):
     должность(position), дата мед. осмотра(examination_date), подразделение(department)
 
     """
-    price_id = request_data.get("entity_id")
     file = request_data.get("file")
-    price = PriceName.objects.filter(pk=price_id).first()
-    if not price:
-        return {"ok": False, "result": [], "message": "Такого прайса нет"}
     wb = load_workbook(filename=file)
     ws = wb[wb.sheetnames[0]]
     starts = False
