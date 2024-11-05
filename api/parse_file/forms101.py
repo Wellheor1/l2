@@ -63,10 +63,10 @@ def find_and_replace(text, symbol1, symbol2):
     result = []
     for i in range(len(text)):
         if text[i] == symbol1:
-            current_text = text[0:i] + symbol2 + text[i + 1:]
+            current_text = text[0:i] + symbol2 + text[i + 1 :]
             result.append(current_text)
         elif text[i] == symbol2:
-            current_text = text[0:i] + symbol1 + text[i + 1:]
+            current_text = text[0:i] + symbol1 + text[i + 1 :]
             result.append(current_text)
     return result
 
@@ -174,10 +174,7 @@ def form_01(request_data):
     other_need_data = request_data.get("other_need_data")
     user = request_data.get("user")
     company_inn = other_need_data.get("companyInn")
-    columns = [
-        {"field": 'fio', "key": 'fio', "title": 'ФИО', "align": 'center', "width": 250},
-        {"field": 'reason', "key": 'reason', "title": 'Причина ошибки'}
-    ]
+    columns = [{"field": 'fio', "key": 'fio', "title": 'ФИО', "align": 'center', "width": 250}, {"field": 'reason', "key": 'reason', "title": 'Причина ошибки'}]
     wb = load_workbook(filename=file)
     ws = wb[wb.sheetnames[0]]
     starts = False

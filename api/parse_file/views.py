@@ -78,7 +78,6 @@ def http_func(data, user):
     return endpoint(http_obj)
 
 
-
 @csrf_exempt
 def load_file(request):
     link = ""
@@ -705,7 +704,7 @@ def upload_file(request):
         tb = traceback.format_exc()
         exception_string = f"{e}"
         stdout.write(tb)
-        Log.log(selected_form,240000, user.doctorprofile, {"exception_string": exception_string, "traceback": tb})
+        Log.log(selected_form, 240000, user.doctorprofile, {"exception_string": exception_string, "traceback": tb})
         return JsonResponse({"ok": False, "result": [], "message": "Ошибка обработки файла"})
     return JsonResponse({"ok": result["ok"], "result": result["result"], "message": result["message"]})
 
