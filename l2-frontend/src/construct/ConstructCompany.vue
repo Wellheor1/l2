@@ -171,7 +171,7 @@
         <input
           v-model.trim="searchCompany"
           class="form-control nbr search"
-          placeholder="Фильтр по названию..."
+          placeholder="Фильтр по названию|ИНН"
         >
         <div class="scroll">
           <table class="table table-bordered">
@@ -429,9 +429,10 @@ export default {
     filteredCompany() {
       return this.companies.filter(company => {
         const companyTitle = company.title.toLowerCase();
+        const companyInn = company.inn.toLowerCase();
         const searchTerm = this.searchCompany.toLowerCase();
 
-        return companyTitle.includes(searchTerm);
+        return companyTitle.includes(searchTerm) || companyInn.includes(searchTerm);
       });
     },
     filteredDepartments() {
