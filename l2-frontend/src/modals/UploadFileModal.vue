@@ -84,7 +84,7 @@ const props = defineProps({
     required: false,
   },
   otherNeedData: {
-    type: Object || Array || String || Number,
+    type: Object || Array,
     required: false,
   },
 });
