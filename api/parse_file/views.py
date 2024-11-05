@@ -4,6 +4,7 @@ import io
 import logging
 import re
 import tempfile
+import traceback
 from copy import deepcopy
 from sys import stdout
 
@@ -29,6 +30,7 @@ from ecp_integration.integration import fill_slot_from_xlsx
 from hospitals.models import Hospitals
 from laboratory.settings import CONTROL_AGE_MEDEXAM, DAYS_AGO_SEARCH_RESULT, ALLOWED_FORMS_FILE
 from results.sql_func import check_lab_instrumental_results_by_cards_and_period
+from slog.models import Log
 from statistic.views import commercial_offer_xls_save_file, data_xls_save_file, data_xls_save_headers_file
 from users.models import AssignmentResearches, DoctorProfile
 from clients.models import Individual, HarmfulFactor, PatientHarmfullFactor, Card, CardBase, DocumentType, Document
@@ -904,25 +906,27 @@ def get_parts_fio(fio_data):
 
 @login_required()
 def upload_file(request):
-    # todo - Логирование загрузки файлов
+    file = request.FILES["file"]
+    request_data = request.POST
+    selected_form = request_data.get("selectedForm")
+    entity_id = request_data.get("entityId")
+    other_need_data = request_data.get("otherNeedData")
+    user = request.user
+    data = {"file": file, "selected_form": selected_form, "entity_id": entity_id, "other_need_data": other_need_data}
     try:
-        file = request.FILES["file"]
-        request_data = request.POST
-        selected_form = request_data.get("selectedForm")
-        entity_id = request_data.get("entityId")
-        other_need_data = request_data.get("otherNeedData")
-        data = {"file": file, "selected_form": selected_form, "entity_id": entity_id, "other_need_data": other_need_data}
         function = import_string(f"api.parse_file.forms{selected_form[0:3]}.form_{selected_form[4:6]}")
         result = function(
             request_data={
                 **data,
-                "user": request.user,
+                "user": user,
                 "hospital": request.user.doctorprofile.get_hospital() if hasattr(request.user, "doctorprofile") else Hospitals.get_default_hospital(),
             }
         )
     except Exception as e:
+        tb = traceback.format_exc()
         exception_string = f"{e}"
-        stdout.write(exception_string)
+        stdout.write(tb)
+        Log.log(selected_form,240000, user, {"exception_string": exception_string, "traceback": tb})
         return JsonResponse({"ok": False, "result": [], "message": exception_string})
     return JsonResponse({"ok": result["ok"], "result": result["result"], "message": result["message"]})
 
