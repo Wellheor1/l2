@@ -225,7 +225,6 @@ const submitFileUpload = async () => {
     const { ok, message, result } = await api('parse-file/upload-file', null, null, null, formData);
     await store.dispatch(actions.DEC_LOADING);
     if (ok) {
-      console.log(result);
       const { colData, data } = result;
       columns.value = colData;
       tableData.value = data;
