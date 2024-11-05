@@ -153,7 +153,12 @@
             </div>
             <div>
               <ul class="nav navbar">
-                <LoadFile :company-inn="editorCompany.inn" />
+                <UploadFileModal
+                  tag="li"
+                  :types-file="['XLSX']"
+                  :forms-file="['101.01']"
+                  :other-need-data="{ companyInn: editorCompany.inn }"
+                />
               </ul>
             </div>
           </div>
@@ -369,13 +374,19 @@ import ruRu from '@/locales/ve';
 import VueTippyTd from '@/construct/VueTippyTd.vue';
 import * as actions from '@/store/action-types';
 import LoadFile from '@/ui-cards/LoadFile.vue';
+import UploadFileModal from '@/modals/UploadFileModal.vue';
 
 VeLocale.use(ruRu);
 
 export default {
   name: 'ConstructCompany',
   components: {
-    LoadFile, VueTippyTd, VeTable, VePagination, Treeselect,
+    UploadFileModal,
+    LoadFile,
+    VueTippyTd,
+    VeTable,
+    VePagination,
+    Treeselect,
   },
   data() {
     return {
