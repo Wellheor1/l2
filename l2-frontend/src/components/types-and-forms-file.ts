@@ -37,6 +37,7 @@ export default function typesAndForms() {
     XLSX: {
       100.01: { id: '100.01', label: 'Загрузка цен по прайсу' },
       100.02: { id: '100.02', label: 'Загрузка посещений' },
+      101.01: { id: '101.01', label: 'Загрузка списка на мед. осмотр' },
     },
   });
   const addForms = (type: string, forms = null, allowedForms: string[] = null) => {
