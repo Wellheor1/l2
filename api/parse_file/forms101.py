@@ -212,10 +212,10 @@ def form_01(request_data):
             fio_data, family_data, name_data, patronymic_data = None, None, None, None
             if cells[fio] and cells[fio] != "None":
                 fio_data = cells[fio].split(" ")
-                family_data = fio_data[0]
-                name_data = fio_data[1]
+                family_data = fio_data[0].strip()
+                name_data = fio_data[1].strip()
                 if len(fio_data) > 2:
-                    patronymic_data = fio_data[2]
+                    patronymic_data = fio_data[2].strip()
             birthday_data = cells[birthday].split(" ")[0]
             code_harmful_data = cells[code_harmful].split(",")
             exam_data = cells[examination_date].split(" ")[0]
