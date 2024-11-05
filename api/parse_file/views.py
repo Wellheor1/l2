@@ -910,7 +910,7 @@ def upload_file(request):
     request_data = request.POST
     selected_form = request_data.get("selectedForm")
     entity_id = request_data.get("entityId")
-    other_need_data = request_data.get("otherNeedData")
+    other_need_data = json.loads(request_data.get("otherNeedData"))
     user = request.user
     data = {"file": file, "selected_form": selected_form, "entity_id": entity_id, "other_need_data": other_need_data}
     try:
