@@ -174,11 +174,11 @@ def form_01(request_data):
     file = request_data.get("file")
     other_need_data = request_data.get("other_need_data")
     user = request_data.get("user")
+    company_inn = other_need_data.get("companyInn", None)
     wb = load_workbook(filename=file)
     ws = wb[wb.sheetnames[0]]
     starts = False
     incorrect_patients = []
-    company_inn = other_need_data.get("companyInn", None)
     snils, fio, birthday, gender, inn_company, code_harmful, position, examination_date, department = (
         None,
         None,
