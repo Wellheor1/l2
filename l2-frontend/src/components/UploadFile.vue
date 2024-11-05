@@ -67,7 +67,7 @@
           :columns="columns"
           :table-data="tableData"
           :cell-selection-option="cellSelectionOption"
-          :max-height="449"
+          :max-height="486"
         />
         <div
           v-show="tableData.length === 0"
