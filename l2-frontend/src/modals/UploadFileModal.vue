@@ -14,14 +14,14 @@
       show-footer="true"
       ignore-body
       white-bg="true"
-      max-width="710px"
+      :max-width="props.showResults ? '1000px' : '710px'"
       width="100%"
       margin-left-right="auto"
       @close="open = false"
     >
       <span slot="header">{{ titleLocal }}</span>
       <div slot="body">
-        <div class="body">
+        <div :class="props.showResults ? 'body-high' : 'body'">
           <UploadFile
             :types-file="props.typesFile"
             :forms-file="props.formsFile"
@@ -116,5 +116,8 @@ const uploadSuccess = () => {
 }
 .body {
   height: 300px;
+}
+.body-high {
+  height: 600px;
 }
 </style>

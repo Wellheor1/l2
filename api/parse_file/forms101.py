@@ -176,7 +176,7 @@ def form_01(request_data):
     user = request_data.get("user")
     company_inn = other_need_data.get("companyInn")
     columns = [
-        {"field": 'fio', "key": 'fio', "title": 'ФИО', "align": 'left', "width": 150},
+        {"field": 'fio', "key": 'fio', "title": 'ФИО', "align": 'center', "width": 250},
         {"field": 'reason', "key": 'reason', "title": 'Причина ошибки'}
     ]
     wb = load_workbook(filename=file)

@@ -66,8 +66,8 @@
         <VeTable
           :columns="columns"
           :table-data="tableDataPagination"
-          row-key-field-name="card_id"
           :cell-selection-option="cellSelectionOption"
+          :max-height="449"
         />
         <div
           v-show="tableData.length === 0"
@@ -75,7 +75,7 @@
         >
           Нет записей
         </div>
-        <div class="flex flex-space-between">
+        <div class="white_bg">
           <VePagination
             :total="tableData.length"
             :page-index="page"
@@ -308,5 +308,8 @@ const handleFileUpload = () => {
 .empty-list {
   width: 85px;
   margin: 20px auto;
+}
+.white_bg {
+  background-color: #FFF;
 }
 </style>
