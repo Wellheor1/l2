@@ -158,6 +158,7 @@
                   :types-file="['XLSX']"
                   :forms-file="['101.01']"
                   :other-need-data="{ companyInn: editorCompany.inn }"
+                  :show-results="true"
                 />
               </ul>
             </div>

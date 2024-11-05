@@ -28,6 +28,7 @@
             :upload-result="props.uploadResult"
             :entity-id="props.entityId"
             :other-need-data="props.otherNeedData"
+            :show-results="props.showResults"
             @uploadSuccess="uploadSuccess"
           />
         </div>
@@ -85,6 +86,10 @@ const props = defineProps({
   },
   otherNeedData: {
     type: Object || Array,
+    required: false,
+  },
+  showResults: {
+    type: Boolean,
     required: false,
   },
 });

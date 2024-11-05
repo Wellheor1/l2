@@ -175,6 +175,10 @@ def form_01(request_data):
     other_need_data = request_data.get("other_need_data")
     user = request_data.get("user")
     company_inn = other_need_data.get("companyInn")
+    columns = [
+        {"field": 'fio', "key": 'fio', "title": 'ФИО', "align": 'left', "width": 150},
+        {"field": 'reason', "key": 'reason', "title": 'Причина ошибки'}
+    ]
     wb = load_workbook(filename=file)
     ws = wb[wb.sheetnames[0]]
     starts = False
@@ -239,5 +243,8 @@ def form_01(request_data):
             patient_updated = add_factors_data(patient_card, cells[position], harmful_factors_data, exam_data, company_inn, department_data)
             if not patient_updated["ok"]:
                 incorrect_patients.append({"fio": cells[fio], "reason": f"Сохранение не удалось, ошибка: {patient_updated['message']}"})
-
-    return {"ok": True, "result": incorrect_patients, "message": ""}
+    result = {
+        "colData": columns,
+        "data": incorrect_patients,
+    }
+    return {"ok": True, "result": result, "message": ""}
