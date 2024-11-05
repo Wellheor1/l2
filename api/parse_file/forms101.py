@@ -10,7 +10,6 @@ from clients.models import Card, Individual, HarmfulFactor, PatientHarmfullFacto
 from contracts.models import Company, CompanyDepartment, MedicalExamination
 from integration_framework.views import check_enp
 
-
 def get_background_token():
     application = Application.objects.filter(active=True, is_background_worker=True).first()
     if application:
