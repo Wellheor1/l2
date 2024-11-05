@@ -160,7 +160,7 @@ def add_factors_data(patient_card: Card, position: str, factors_data: list, exam
         return {"ok": False, "message": e}
 
 
-def form_03(request_data):
+def form_01(request_data):
     """
     Загрузка списка на мед. осмотр
 
