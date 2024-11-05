@@ -121,7 +121,7 @@ const props = defineProps({
     required: false,
   },
   otherNeedData: {
-    type: Object || Array || String || Number,
+    type: Object || Array,
     required: false,
   },
   simpleMode: {
@@ -196,7 +196,7 @@ const submitFileUpload = async () => {
     formData.append('file', file.value);
     formData.append('selectedForm', selectedForm.value);
     formData.append('entityId', props.entityId ? String(props.entityId) : null);
-    formData.append('otherNeedData', props.otherNeedData ? props.otherNeedData : null);
+    formData.append('otherNeedData', props.otherNeedData ? JSON.stringify(props.otherNeedData) : null);
     await store.dispatch(actions.INC_LOADING);
     const { ok, message } = await api('parse-file/upload-file', null, null, null, formData);
     await store.dispatch(actions.DEC_LOADING);
