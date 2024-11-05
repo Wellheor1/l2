@@ -78,7 +78,6 @@ def http_func(data, user):
     return endpoint(http_obj)
 
 
-
 @csrf_exempt
 def load_file(request):
     link = ""
