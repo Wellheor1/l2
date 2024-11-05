@@ -373,7 +373,6 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 import ruRu from '@/locales/ve';
 import VueTippyTd from '@/construct/VueTippyTd.vue';
 import * as actions from '@/store/action-types';
-import LoadFile from '@/ui-cards/LoadFile.vue';
 import UploadFileModal from '@/modals/UploadFileModal.vue';
 
 VeLocale.use(ruRu);
@@ -382,7 +381,6 @@ export default {
   name: 'ConstructCompany',
   components: {
     UploadFileModal,
-    LoadFile,
     VueTippyTd,
     VeTable,
     VePagination,
