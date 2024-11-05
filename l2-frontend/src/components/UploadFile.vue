@@ -65,7 +65,7 @@
       <div v-if="props.showResults && tableData.length > 0">
         <VeTable
           :columns="columns"
-          :table-data="tableDataPagination"
+          :table-data="tableData"
           :cell-selection-option="cellSelectionOption"
           :max-height="449"
         />
@@ -74,16 +74,6 @@
           class="empty-list"
         >
           Нет записей
-        </div>
-        <div class="white_bg">
-          <VePagination
-            :total="tableData.length"
-            :page-index="page"
-            :page-size="pageSize"
-            :page-size-option="pageSizeOptions"
-            @on-page-number-change="pageNumberChange"
-            @on-page-size-change="pageSizeChange"
-          />
         </div>
       </div>
     </template>
@@ -108,27 +98,21 @@
 // todo - slot на вывод результата, для удобного вывода каждому)
 // todo - дефолтный вывод результата - таблица, строчка
 import {
-  computed,
   getCurrentInstance, onMounted, PropType, ref, watch,
 } from 'vue';
 import {
-  VeLocale,
-  VePagination,
   VeTable,
 } from 'vue-easytable';
 import 'vue-easytable/libs/theme-default/index.css';
 import Treeselect from '@riophae/vue-treeselect';
 
 import '@riophae/vue-treeselect/dist/vue-treeselect.css';
-import ruRu from '@/locales/ve';
 import RadioFieldById from '@/fields/RadioFieldById.vue';
 import { useStore } from '@/store';
 import * as actions from '@/store/action-types';
 import api from '@/api';
 
 import typesAndForms, { formsFile, typesFile } from './types-and-forms-file';
-
-VeLocale.use(ruRu);
 
 const {
   getTypes, getForms, getFileFilters, unsupportedFileForms,
@@ -174,16 +158,6 @@ const tableData = ref([]);
 const cellSelectionOption = ref({
   enable: false,
 });
-const page = ref(1);
-const pageSize = ref(25);
-const pageSizeOptions = ref([25, 50, 100]);
-const pageNumberChange = (number: number) => {
-  page.value = number;
-};
-const pageSizeChange = (size: number) => {
-  pageSize.value = size;
-};
-const tableDataPagination = computed(() => tableData.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value));
 const fileFilter = ref('');
 
 const currentFileTypes = ref<typesFile[]>([]);
