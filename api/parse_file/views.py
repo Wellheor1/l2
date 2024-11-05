@@ -927,7 +927,7 @@ def upload_file(request):
         exception_string = f"{e}"
         stdout.write(tb)
         Log.log(selected_form,240000, user.doctorprofile, {"exception_string": exception_string, "traceback": tb})
-        return JsonResponse({"ok": False, "result": [], "message": "Ошибка загрузки файла"})
+        return JsonResponse({"ok": False, "result": [], "message": "Ошибка обработки файла"})
     return JsonResponse({"ok": result["ok"], "result": result["result"], "message": result["message"]})
 
 
