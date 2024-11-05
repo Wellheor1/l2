@@ -172,11 +172,13 @@ def form_01(request_data):
 
     """
     file = request_data.get("file")
+    other_need_data = request_data.get("other_need_data")
+    user = request_data.get("user")
     wb = load_workbook(filename=file)
     ws = wb[wb.sheetnames[0]]
     starts = False
     incorrect_patients = []
-    company_inn = request.POST.get("companyInn", None)
+    company_inn = other_need_data.get("companyInn", None)
     snils, fio, birthday, gender, inn_company, code_harmful, position, examination_date, department = (
         None,
         None,
@@ -228,7 +230,7 @@ def form_01(request_data):
             if fio_data is None and snils_data is None:
                 incorrect_patients.append({"fio": f"Строка: {index}", "reason": "Отсутствует данные"})
                 continue
-            patient_card = search_patient(snils_data, request.user, family_data, name_data, patronymic_data, birthday_data)
+            patient_card = search_patient(snils_data, user, family_data, name_data, patronymic_data, birthday_data)
             if patient_card is None:
                 patient_card = create_patient(family_data, name_data, patronymic_data, birthday_data, gender_data)
             harmful_factors_data, incorrect_factor = find_factors(code_harmful_data)
