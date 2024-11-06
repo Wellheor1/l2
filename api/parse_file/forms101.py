@@ -162,13 +162,14 @@ def add_factors_data(patient_card: Card, position: str, factors_data: list, exam
 def normalize_med_exam_data(snils: str, fio: str, birthday: str, gender: str, inn_company: str, code_harmful: str, position: str, examination_date: str, department: str):
     result = {
         "snils": None,
+        "fio": None,
         "family": None,
         "name": None,
         "patronymic": None,
         "birthday": None,
         "gender": None,
         "inn_company": None,
-        "code_harmful": None,
+        "codes_harmful": None,
         "position": None,
         "examination_date": None,
         "department": None,
@@ -178,6 +179,7 @@ def normalize_med_exam_data(snils: str, fio: str, birthday: str, gender: str, in
     if fio and fio != "None":
         fio_data = fio.split(" ")
         fio_data = [value for value in fio_data if value]
+        result["fio"] = " ".join(fio_data)
         result["family"] = fio_data[0]
         result["name"] = fio_data[1]
         if len(fio_data) > 2:
@@ -189,13 +191,47 @@ def normalize_med_exam_data(snils: str, fio: str, birthday: str, gender: str, in
     if inn_company and inn_company != "None":
         result["inn_company"] = inn_company
     if code_harmful and code_harmful != "None":
-        result["code_harmful"] = code_harmful.split(",")
+        result["codes_harmful"] = code_harmful.split(",")
     if position and position != "None":
         result["position"] = position
     if examination_date and examination_date != "None":
         result["examination_date"] = examination_date.split(" ")[0]
     if department and department != "None":
         result["department"] = department
+    return result
+
+
+def create_error_data(fio, snils, reason):
+    fio_local = fio if fio else snils
+    if not fio_local:
+        fio_local = "Неизвестно"
+    result = {"fio": fio_local, "reason": reason}
+    return result
+
+
+def check_date(date):
+    if not date:
+        return False
+    try:
+        datetime.datetime.strptime(date, '%Y-%m-%d')
+    except ValueError as e:
+        return False
+    return True
+
+
+def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
+    result = {"ok": True, "data": {}}
+    fio = normalize_data["fio"]
+    snils = normalize_data["snils"]
+    if not fio and not snils:
+        result = {"ok": False, "data": create_error_data(fio, snils, "Нет ФИО и СНИЛС"),}
+    elif normalize_data["inn_company"] != inn_company:
+        result = {"ok": False, "data": create_error_data(fio, snils, "ИНН организации не совпадает")}
+    elif not check_date(normalize_data["birthday"]):
+        result = {"ok": False, "data": create_error_data(fio, snils, "Дата рождения: неверная/несуществующая дата")}
+    elif not check_date(normalize_data["examination_date"]):
+        result = {"ok": False, "data": create_error_data(fio, snils, "Дата мед. осмотра: неверная/несуществующая дата")}
+
     return result
 
 
@@ -254,39 +290,22 @@ def form_01(request_data):
             position = cells[position_idx].strip()
             examination_date = cells[examination_date_idx].strip()
             department = cells[department_idx].strip()
+
             normalize_row = normalize_med_exam_data(snils, fio, birthday, gender, inn_company, code_harmful, position, examination_date, department)
-            if company_inn != cells[inn_company_idx].strip():
-                incorrect_patients.append({"fio": cells[fio_idx], "reason": "ИНН организации не совпадает"})
+            check_result = validate_med_exam_data(normalize_row, company_inn)
+            if not check_result["ok"]:
+                incorrect_patients.append(check_result["data"])
                 continue
-            snils_data = cells[snils_idx].replace("-", "").replace(" ", "")
-            fio_data, family_data, name_data, patronymic_data = None, None, None, None
-            if cells[fio_idx] and cells[fio_idx] != "None":
-                fio_data = cells[fio_idx].split(" ")
-                family_data = fio_data[0].strip()
-                name_data = fio_data[1].strip()
-                if len(fio_data) > 2:
-                    patronymic_data = fio_data[2].strip()
-            birthday_data = cells[birthday_idx].split(" ")[0]
-            code_harmful_data = cells[code_harmful_idx].split(",")
-            exam_data = cells[examination_date_idx].split(" ")[0]
-            try:
-                datetime.datetime.strptime(birthday_data, '%Y-%m-%d')
-                datetime.datetime.strptime(exam_data, '%Y-%m-%d')
-            except ValueError as e:
-                incorrect_patients.append({"fio": cells[fio_idx], "reason": f"Неверный формат даты/несуществующая дата в файле: {e}"})
-                continue
-            gender_data = cells[gender_idx][0]
-            department_data = cells[department_idx]
-            if fio_data is None and snils_data is None:
-                incorrect_patients.append({"fio": f"Строка: {index}", "reason": "Отсутствует данные"})
-                continue
-            patient_card = search_patient(snils_data, user, family_data, name_data, patronymic_data, birthday_data)
+            if check_result["ok"] and check_result["data"]:
+                incorrect_patients.append(check_result["data"])
+
+            patient_card = search_patient(normalize_row["snils"], user, normalize_row["family"], normalize_row["name"], normalize_row["patronymic"], normalize_row["birthday"])
             if patient_card is None:
-                patient_card = create_patient(family_data, name_data, patronymic_data, birthday_data, gender_data)
-            harmful_factors_data, incorrect_factor = find_factors(code_harmful_data)
+                patient_card = create_patient(normalize_row["family"], normalize_row["name"], normalize_row["patronymic"], normalize_row["birthday"], normalize_row["gender"])
+            harmful_factors_data, incorrect_factor = find_factors(normalize_row["codes_harmful"])
             if incorrect_factor:
-                incorrect_patients.append({"fio": cells[fio_idx], "reason": f"Неверные факторы: {incorrect_factor}"})
-            patient_updated = add_factors_data(patient_card, cells[position_idx], harmful_factors_data, exam_data, company_inn, department_data)
+                incorrect_patients.append({"fio": normalize_row["fio"], "reason": f"Неверные факторы: {incorrect_factor}"})
+            patient_updated = add_factors_data(patient_card, normalize_row["position"], harmful_factors_data, normalize_row["examination_date"], company_inn, normalize_row["department"])
             if not patient_updated["ok"]:
                 incorrect_patients.append({"fio": cells[fio_idx], "reason": f"Сохранение не удалось, ошибка: {patient_updated['message']}"})
     result = {
