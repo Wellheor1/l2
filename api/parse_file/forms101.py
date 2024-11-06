@@ -63,10 +63,10 @@ def find_and_replace(text, symbol1, symbol2):
     result = []
     for i in range(len(text)):
         if text[i] == symbol1:
-            current_text = text[0:i] + symbol2 + text[i + 1 :]
+            current_text = text[0:i] + symbol2 + text[i + 1:]
             result.append(current_text)
         elif text[i] == symbol2:
-            current_text = text[0:i] + symbol1 + text[i + 1 :]
+            current_text = text[0:i] + symbol1 + text[i + 1:]
             result.append(current_text)
     return result
 
@@ -159,6 +159,46 @@ def add_factors_data(patient_card: Card, position: str, factors_data: list, exam
         return {"ok": False, "message": e}
 
 
+def normalize_med_exam_data(snils: str, fio: str, birthday: str, gender: str, inn_company: str, code_harmful: str, position: str, examination_date: str, department: str):
+    result = {
+        "snils": None,
+        "family": None,
+        "name": None,
+        "patronymic": None,
+        "birthday": None,
+        "gender": None,
+        "inn_company": None,
+        "code_harmful": None,
+        "position": None,
+        "examination_date": None,
+        "department": None,
+    }
+    if snils and snils != "None":
+        result["snils"] = snils.replace("-", "").replace(" ", "")
+    if fio and fio != "None":
+        fio_data = fio.split(" ")
+        fio_data = [value for value in fio_data if value]
+        result["family"] = fio_data[0]
+        result["name"] = fio_data[1]
+        if len(fio_data) > 2:
+            result["patronymic"] = fio_data[2]
+    if birthday and birthday != "None":
+        result["birthday"] = birthday.split(" ")[0]
+    if gender and gender != "None":
+        result["gender"] = gender[0]
+    if inn_company and inn_company != "None":
+        result["inn_company"] = inn_company
+    if code_harmful and code_harmful != "None":
+        result["code_harmful"] = code_harmful.split(",")
+    if position and position != "None":
+        result["position"] = position
+    if examination_date and examination_date != "None":
+        result["examination_date"] = examination_date.split(" ")[0]
+    if department and department != "None":
+        result["department"] = department
+    return result
+
+
 def form_01(request_data):
     """
     Загрузка списка на мед. осмотр
@@ -179,7 +219,7 @@ def form_01(request_data):
     ws = wb[wb.sheetnames[0]]
     starts = False
     incorrect_patients = []
-    snils, fio, birthday, gender, inn_company, code_harmful, position, examination_date, department = (
+    snils_idx, fio_idx, birthday_idx, gender_idx, inn_company_idx, code_harmful_idx, position_idx, examination_date_idx, department_idx = (
         None,
         None,
         None,
@@ -194,39 +234,49 @@ def form_01(request_data):
         cells = [str(x.value) for x in row]
         if not starts:
             if "код вредности" in cells:
-                snils = cells.index("снилс")
-                fio = cells.index("фио")
-                birthday = cells.index("дата рождения")
-                gender = cells.index("пол")
-                inn_company = cells.index("инн организации")
-                code_harmful = cells.index("код вредности")
-                position = cells.index("должность")
-                examination_date = cells.index("дата мед. осмотра")
-                department = cells.index("подразделение")
+                snils_idx = cells.index("снилс")
+                fio_idx = cells.index("фио")
+                birthday_idx = cells.index("дата рождения")
+                gender_idx = cells.index("пол")
+                inn_company_idx = cells.index("инн организации")
+                code_harmful_idx = cells.index("код вредности")
+                position_idx = cells.index("должность")
+                examination_date_idx = cells.index("дата мед. осмотра")
+                department_idx = cells.index("подразделение")
                 starts = True
         else:
-            if company_inn != cells[inn_company].strip():
-                incorrect_patients.append({"fio": cells[fio], "reason": "ИНН организации не совпадает"})
+            snils = cells[snils_idx].strip()
+            fio = cells[fio_idx].strip()
+            birthday = cells[birthday_idx].strip()
+            gender = cells[gender_idx].strip()
+            inn_company = cells[inn_company_idx].strip()
+            code_harmful = cells[code_harmful_idx].strip()
+            position = cells[position_idx].strip()
+            examination_date = cells[examination_date_idx].strip()
+            department = cells[department_idx].strip()
+            normalize_row = normalize_med_exam_data(snils, fio, birthday, gender, inn_company, code_harmful, position, examination_date, department)
+            if company_inn != cells[inn_company_idx].strip():
+                incorrect_patients.append({"fio": cells[fio_idx], "reason": "ИНН организации не совпадает"})
                 continue
-            snils_data = cells[snils].replace("-", "").replace(" ", "")
+            snils_data = cells[snils_idx].replace("-", "").replace(" ", "")
             fio_data, family_data, name_data, patronymic_data = None, None, None, None
-            if cells[fio] and cells[fio] != "None":
-                fio_data = cells[fio].split(" ")
+            if cells[fio_idx] and cells[fio_idx] != "None":
+                fio_data = cells[fio_idx].split(" ")
                 family_data = fio_data[0].strip()
                 name_data = fio_data[1].strip()
                 if len(fio_data) > 2:
                     patronymic_data = fio_data[2].strip()
-            birthday_data = cells[birthday].split(" ")[0]
-            code_harmful_data = cells[code_harmful].split(",")
-            exam_data = cells[examination_date].split(" ")[0]
+            birthday_data = cells[birthday_idx].split(" ")[0]
+            code_harmful_data = cells[code_harmful_idx].split(",")
+            exam_data = cells[examination_date_idx].split(" ")[0]
             try:
                 datetime.datetime.strptime(birthday_data, '%Y-%m-%d')
                 datetime.datetime.strptime(exam_data, '%Y-%m-%d')
             except ValueError as e:
-                incorrect_patients.append({"fio": cells[fio], "reason": f"Неверный формат даты/несуществующая дата в файле: {e}"})
+                incorrect_patients.append({"fio": cells[fio_idx], "reason": f"Неверный формат даты/несуществующая дата в файле: {e}"})
                 continue
-            gender_data = cells[gender][0]
-            department_data = cells[department]
+            gender_data = cells[gender_idx][0]
+            department_data = cells[department_idx]
             if fio_data is None and snils_data is None:
                 incorrect_patients.append({"fio": f"Строка: {index}", "reason": "Отсутствует данные"})
                 continue
@@ -235,10 +285,10 @@ def form_01(request_data):
                 patient_card = create_patient(family_data, name_data, patronymic_data, birthday_data, gender_data)
             harmful_factors_data, incorrect_factor = find_factors(code_harmful_data)
             if incorrect_factor:
-                incorrect_patients.append({"fio": cells[fio], "reason": f"Неверные факторы: {incorrect_factor}"})
-            patient_updated = add_factors_data(patient_card, cells[position], harmful_factors_data, exam_data, company_inn, department_data)
+                incorrect_patients.append({"fio": cells[fio_idx], "reason": f"Неверные факторы: {incorrect_factor}"})
+            patient_updated = add_factors_data(patient_card, cells[position_idx], harmful_factors_data, exam_data, company_inn, department_data)
             if not patient_updated["ok"]:
-                incorrect_patients.append({"fio": cells[fio], "reason": f"Сохранение не удалось, ошибка: {patient_updated['message']}"})
+                incorrect_patients.append({"fio": cells[fio_idx], "reason": f"Сохранение не удалось, ошибка: {patient_updated['message']}"})
     result = {
         "colData": columns,
         "data": incorrect_patients,
