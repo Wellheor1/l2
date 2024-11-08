@@ -238,6 +238,7 @@ const clearFile = () => {
 };
 
 const submitFileUpload = async () => {
+  tableData.value = [];
   try {
     const formData = new FormData();
     formData.append('file', file.value);
