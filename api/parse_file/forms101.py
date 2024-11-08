@@ -248,8 +248,8 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
 def check_need_col(cols: list, need_cols: set):
     other_need_cols = set(set(cols) - need_cols)
     if len(other_need_cols) + len(need_cols) != len(cols):
-        return True
-    return False
+        return False
+    return True
 
 
 def form_01(request_data):
