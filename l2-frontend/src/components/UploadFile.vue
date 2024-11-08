@@ -19,16 +19,28 @@
         v-if="selectedType"
         class="margin-item"
       >
-        <div v-if="currentFileForms.length > 0">
+        <div
+          v-if="currentFileForms.length > 0"
+          class="flex"
+        >
           <Treeselect
             v-model="selectedForm"
             :options="currentFileForms"
             placeholder="Выберите структуру файла"
           />
           <i
-            v-tippy
+            v-tippy="{
+              arrow: true,
+              reactive: true,
+              interactive: true,
+              animation: 'fade',
+              duration: 0,
+              theme: 'light',
+              placement: 'top',
+              trigger: 'click',
+            }"
             :title="currentFormsInfo"
-            class="fa fa-info"
+            class="fa fa-info-circle info"
           />
         </div>
         <h5
@@ -294,5 +306,11 @@ const handleFileUpload = () => {
 }
 .white_bg {
   background-color: #FFF;
+}
+.flex {
+  display: flex;
+}
+.info {
+  padding: 12px 12px
 }
 </style>
