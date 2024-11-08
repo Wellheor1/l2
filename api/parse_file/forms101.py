@@ -224,13 +224,15 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
     fio = normalize_data["fio"]
     snils = normalize_data["snils"]
     if not fio and not snils:
-        result = {"ok": False, "data": create_error_data(fio, snils, "Нет ФИО и СНИЛС")}
+        result = {"ok": False, "data": create_error_data(fio, snils, "Нет ФИО и СНИЛС"), "empty": True}
     elif normalize_data["inn_company"] != inn_company:
         result = {"ok": False, "data": create_error_data(fio, snils, "ИНН организации не совпадает")}
     elif not check_date(normalize_data["birthday"]):
         result = {"ok": False, "data": create_error_data(fio, snils, "Дата рождения: неверная/несуществующая дата")}
     elif not check_date(normalize_data["examination_date"]):
         result = {"ok": False, "data": create_error_data(fio, snils, "Дата мед. осмотра: неверная/несуществующая дата")}
+    elif not normalize_data["department"]:
+        result = {"ok": False, "data": create_error_data(fio, snils, "Подразделение не указано")}
 
     return result
 
@@ -293,6 +295,8 @@ def form_01(request_data):
 
             normalize_row = normalize_med_exam_data(snils, fio, birthday, gender, inn_company, code_harmful, position, examination_date, department)
             check_result = validate_med_exam_data(normalize_row, company_inn)
+            if not check_result["ok"] and check_result["empty"]:
+                continue
             if not check_result["ok"]:
                 incorrect_patients.append(check_result["data"])
                 continue
