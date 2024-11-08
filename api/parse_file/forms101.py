@@ -224,7 +224,7 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
     fio = normalize_data["fio"]
     snils = normalize_data["snils"]
     if not fio and not snils:
-        result = {"ok": False, "data": create_error_data(fio, snils, "Нет ФИО и СНИЛС"),}
+        result = {"ok": False, "data": create_error_data(fio, snils, "Нет ФИО и СНИЛС")}
     elif normalize_data["inn_company"] != inn_company:
         result = {"ok": False, "data": create_error_data(fio, snils, "ИНН организации не совпадает")}
     elif not check_date(normalize_data["birthday"]):
