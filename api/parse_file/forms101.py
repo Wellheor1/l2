@@ -236,6 +236,8 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
         errors.append("Дата мед. осмотра: неверная/несуществующая дата")
     if not normalize_data["department"]:
         errors.append("Подразделение не указано")
+    if not normalize_data["gender"].lower() in ["м", "ж"]:
+        errors.append("Пол указан не верно")
 
     if errors:
         result = {"ok": False, "data": {"fio": fio_local, "reason": ", ".join(errors)}, "empty": False}
