@@ -289,7 +289,7 @@ def form_01(request_data):
         if not starts:
             if "код вредности" in cells:
                 if not check_need_col(cells, need_col_name):
-                    return {"ok": True, "result": {}, "message": "Нет обязательных полей"}
+                    return {"ok": False, "result": {}, "message": "Нет обязательных полей"}
                 snils_idx = cells.index("снилс")
                 fio_idx = cells.index("фио")
                 birthday_idx = cells.index("дата рождения")
