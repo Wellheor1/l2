@@ -295,7 +295,7 @@ def form_01(request_data):
 
             normalize_row = normalize_med_exam_data(snils, fio, birthday, gender, inn_company, code_harmful, position, examination_date, department)
             check_result = validate_med_exam_data(normalize_row, company_inn)
-            if not check_result["ok"] and check_result["empty"]:
+            if not check_result["ok"] and check_result.get("empty"):
                 continue
             if not check_result["ok"]:
                 incorrect_patients.append(check_result["data"])
