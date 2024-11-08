@@ -269,7 +269,7 @@ def form_01(request_data):
     other_need_data = request_data.get("other_need_data")
     user = request_data.get("user")
     company_inn = other_need_data.get("companyInn")
-    columns = [{"field": 'fio', "key": 'fio', "title": 'ФИО', "align": 'center', "width": 250}, {"field": 'reason', "key": 'reason', "title": 'Причина ошибки'}]
+    columns = [{"field": 'fio', "key": 'fio', "title": 'ФИО', "align": 'left', "width": 250}, {"field": 'reason', "key": 'reason', "title": 'Причина ошибки'}]
     wb = load_workbook(filename=file)
     ws = wb[wb.sheetnames[0]]
     starts = False
