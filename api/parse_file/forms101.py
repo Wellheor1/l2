@@ -223,16 +223,22 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
     result = {"ok": True, "data": {}}
     fio = normalize_data["fio"]
     snils = normalize_data["snils"]
-    if not fio and not snils:
-        result = {"ok": False, "data": create_error_data(fio, snils, "Нет ФИО и СНИЛС"), "empty": True}
-    elif normalize_data["inn_company"] != inn_company:
-        result = {"ok": False, "data": create_error_data(fio, snils, "ИНН организации не совпадает")}
-    elif not check_date(normalize_data["birthday"]):
-        result = {"ok": False, "data": create_error_data(fio, snils, "Дата рождения: неверная/несуществующая дата")}
-    elif not check_date(normalize_data["examination_date"]):
-        result = {"ok": False, "data": create_error_data(fio, snils, "Дата мед. осмотра: неверная/несуществующая дата")}
-    elif not normalize_data["department"]:
-        result = {"ok": False, "data": create_error_data(fio, snils, "Подразделение не указано")}
+    fio_local = fio if fio else snils
+    errors = []
+    if not fio_local:
+        result = {"ok": False, "data": {}, "empty": True}
+        return result
+    if normalize_data["inn_company"] != inn_company:
+        errors.append("ИНН организации не совпадает")
+    if not check_date(normalize_data["birthday"]):
+        errors.append("Дата рождения: неверная/несуществующая дата")
+    if not check_date(normalize_data["examination_date"]):
+        errors.append("Дата мед. осмотра: неверная/несуществующая дата")
+    if not normalize_data["department"]:
+        errors.append("Подразделение не указано")
+
+    if errors:
+        result = {"ok": False, "data": {"fio": fio_local, "reason": ", ".join(errors)}, "empty": False}
 
     return result
 
