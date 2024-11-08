@@ -317,12 +317,12 @@ class MedicalExamination(models.Model):
                     "date": i.examination_date.strftime("%d.%m.%Y"),
                 }
                 harmful_factor_data = []
-                if i.sex == "м" and male:
+                if i.sex == "м":
                     for k in sorted(male.keys()):
                         if i.age_year < k:
                             harmful_factor_data.append(male[k])
                             break
-                elif i.sex == "ж" and female:
+                elif i.sex == "ж":
                     for k in sorted(female.keys()):
                         if i.age_year < k:
                             harmful_factor_data.append(female[k])
