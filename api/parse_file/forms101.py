@@ -245,6 +245,13 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
     return result
 
 
+def check_need_col(cols: list, need_cols: set):
+    other_need_cols = set(set(cols) - need_cols)
+    if len(other_need_cols) + len(need_cols) != len(cols):
+        return True
+    return False
+
+
 def form_01(request_data):
     """
     Загрузка списка на мед. осмотр
@@ -281,9 +288,7 @@ def form_01(request_data):
         cells = [str(x.value) for x in row]
         if not starts:
             if "код вредности" in cells:
-                cells_set = set(cells)
-                other_col_set = set(cells_set - need_col_name)
-                if len(other_col_set) + len(need_col_name) != len(cells_set):
+                if not check_need_col(cells, need_col_name):
                     return {"ok": True, "result": {}, "message": "Нет обязательных полей"}
                 snils_idx = cells.index("снилс")
                 fio_idx = cells.index("фио")
