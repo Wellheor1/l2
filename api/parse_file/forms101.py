@@ -238,6 +238,8 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
         errors.append("Подразделение не указано")
     if not normalize_data["gender"] in ["м", "ж"]:
         errors.append("Пол указан не верно")
+    if len(normalize_data["position"]) > 128:
+        errors.append("Должность больше 128 символов")
 
     if errors:
         result = {"ok": False, "data": {"fio": fio_local, "reason": ", ".join(errors)}, "empty": False}
@@ -283,7 +285,7 @@ def form_01(request_data):
         None,
         None,
     )
-    need_col_name = {"фио", "дата рождения", "пол", "инн организации", "код вредности", "должность", "дата мед. осмотра", "подразделение"}
+    need_col_name = {"снилс", "фио", "дата рождения", "пол", "инн организации", "код вредности", "должность", "дата мед. осмотра", "подразделение"}
     for index, row in enumerate(ws.rows, 1):
         cells = [str(x.value) for x in row]
         if not starts:
