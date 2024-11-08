@@ -276,10 +276,15 @@ def form_01(request_data):
         None,
         None,
     )
+    need_col_name = {"фио", "дата рождения", "пол", "инн организации", "код вредности", "должность", "дата мед. осмотра", "подразделение"}
     for index, row in enumerate(ws.rows, 1):
         cells = [str(x.value) for x in row]
         if not starts:
             if "код вредности" in cells:
+                cells_set = set(cells)
+                other_col_set = set(cells_set - need_col_name)
+                if len(other_col_set) + len(need_col_name) != len(cells_set):
+                    return {"ok": True, "result": {}, "message": "Нет обязательных полей"}
                 snils_idx = cells.index("снилс")
                 fio_idx = cells.index("фио")
                 birthday_idx = cells.index("дата рождения")
