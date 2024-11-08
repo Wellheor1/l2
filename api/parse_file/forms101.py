@@ -187,7 +187,7 @@ def normalize_med_exam_data(snils: str, fio: str, birthday: str, gender: str, in
     if birthday and birthday != "None":
         result["birthday"] = birthday.split(" ")[0]
     if gender and gender != "None":
-        result["gender"] = gender[0]
+        result["gender"] = gender[0].lower()
     if inn_company and inn_company != "None":
         result["inn_company"] = inn_company
     if code_harmful and code_harmful != "None":
@@ -236,7 +236,7 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
         errors.append("Дата мед. осмотра: неверная/несуществующая дата")
     if not normalize_data["department"]:
         errors.append("Подразделение не указано")
-    if not normalize_data["gender"].lower() in ["м", "ж"]:
+    if not normalize_data["gender"] in ["м", "ж"]:
         errors.append("Пол указан не верно")
 
     if errors:
