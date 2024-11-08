@@ -19,12 +19,18 @@
         v-if="selectedType"
         class="margin-item"
       >
-        <Treeselect
-          v-if="currentFileForms.length > 0"
-          v-model="selectedForm"
-          :options="currentFileForms"
-          placeholder="Выберите структуру файла"
-        />
+        <div v-if="currentFileForms.length > 0">
+          <Treeselect
+            v-model="selectedForm"
+            :options="currentFileForms"
+            placeholder="Выберите структуру файла"
+          />
+          <i
+            v-tippy
+            :title="currentFormsInfo"
+            class="fa fa-info"
+          />
+        </div>
         <h5
           v-else-if="noSupportedFileForms"
           class="text-center"
@@ -113,7 +119,7 @@ import api from '@/api';
 import typesAndForms, { formsFile, typesFile } from './types-and-forms-file';
 
 const {
-  getTypes, getForms, getFileFilters, unsupportedFileForms,
+  getTypes, getForms, getFileFilters, unsupportedFileForms, getFormsInfo,
 } = typesAndForms();
 
 const store = useStore();
@@ -164,7 +170,7 @@ const selectedType = ref(null);
 const allowedForms = ref([]);
 const currentFileForms = ref<formsFile[]>([]);
 const selectedForm = ref(null);
-
+const currentFormsInfo = ref('');
 const allowedFormsForOrganization = async () => {
   await store.dispatch(actions.INC_LOADING);
   const { result } = await api('parse-file/get-allowed-forms');
@@ -201,6 +207,11 @@ const changeType = () => {
 watch(selectedType, () => {
   if (props.simpleMode) {
     changeType();
+  }
+});
+watch(selectedForm, () => {
+  if (selectedForm.value) {
+    currentFormsInfo.value = getFormsInfo(selectedForm.value);
   }
 });
 
@@ -262,7 +273,6 @@ const handleFileUpload = () => {
     root.$emit('msg', 'error', `Файл не ${selectedType.value}`);
   }
 };
-
 </script>
 
 <style scoped lang="scss">
