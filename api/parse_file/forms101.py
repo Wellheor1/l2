@@ -214,7 +214,7 @@ def check_date(date):
         return False
     try:
         datetime.datetime.strptime(date, '%Y-%m-%d')
-    except ValueError as e:
+    except ValueError:
         return False
     return True
 
