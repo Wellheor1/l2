@@ -114,7 +114,7 @@
       id="tp"
       :class="props.showResults ? 'tp-high' : 'tp'"
     >
-      {{ currentFormsInfo }}
+      {{ currentFormsInfo ? currentFormsInfo : 'Нет дополнительной информации' }}
     </div>
   </div>
 </template>
