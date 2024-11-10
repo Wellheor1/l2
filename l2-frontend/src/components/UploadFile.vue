@@ -30,16 +30,16 @@
           />
           <i
             v-tippy="{
+              html: '#tp',
               arrow: true,
               reactive: true,
               interactive: true,
               animation: 'fade',
               duration: 0,
               theme: 'light',
-              placement: 'top',
+              placement: 'bottom',
               trigger: 'click',
             }"
-            :title="currentFormsInfo"
             class="fa fa-info-circle info"
           />
         </div>
@@ -109,6 +109,13 @@
         >
       </div>
     </template>
+
+    <div
+      id="tp"
+      class="tp"
+    >
+      {{ currentFormsInfo }}
+    </div>
   </div>
 </template>
 
@@ -320,5 +327,8 @@ const handleFileUpload = () => {
 }
 .info {
   padding: 12px 12px
+}
+.tp {
+  width: 300px;
 }
 </style>
