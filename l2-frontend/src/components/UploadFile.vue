@@ -28,20 +28,6 @@
             :options="currentFileForms"
             placeholder="Выберите структуру файла"
           />
-          <i
-            v-tippy="{
-              html: '#tp',
-              arrow: true,
-              reactive: true,
-              interactive: true,
-              animation: 'fade',
-              duration: 0,
-              theme: 'light',
-              placement: 'bottom',
-              trigger: 'click',
-            }"
-            class="fa fa-info-circle info"
-          />
         </div>
         <h5
           v-else-if="noSupportedFileForms"
@@ -58,8 +44,22 @@
       </div>
       <div
         v-if="selectedForm"
-        class="margin-item"
+        class="margin-item flex"
       >
+        <i
+          v-tippy="{
+            html: '#tp',
+            arrow: true,
+            reactive: true,
+            interactive: true,
+            animation: 'fade',
+            duration: 0,
+            theme: 'light',
+            placement: 'bottom',
+            trigger: 'click',
+          }"
+          class="fa fa-info-circle info"
+        />
         <input
           ref="fileInput"
           style="margin-top: 15px"
@@ -71,7 +71,7 @@
       </div>
       <div
         v-if="fileIsSelected"
-        class="margin-item"
+        class="margin-item flex"
       >
         <button
           class="btn btn-blue-nb"
@@ -112,7 +112,7 @@
 
     <div
       id="tp"
-      class="tp"
+      :class="props.showResults ? 'tp-high' : 'tp'"
     >
       {{ currentFormsInfo }}
     </div>
@@ -326,9 +326,12 @@ const handleFileUpload = () => {
   display: flex;
 }
 .info {
-  padding: 12px 12px
+  padding: 18px 12px
 }
 .tp {
-  width: 300px;
+  width: 788px;
+}
+.tp-high {
+  width: 978px;
 }
 </style>
