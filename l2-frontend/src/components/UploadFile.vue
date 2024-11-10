@@ -113,6 +113,7 @@
 </template>
 
 <script setup lang="ts">
+// todo uploadResult - выводить только функции для загрузки результатов исследований (для лаборатории и т.д)
 import {
   getCurrentInstance, onMounted, PropType, ref, watch,
 } from 'vue';
@@ -138,10 +139,12 @@ const store = useStore();
 
 const root = getCurrentInstance().proxy.$root;
 const props = defineProps({
+  // тип файлов - xlsx, pdf и т.д
   typesFile: {
     type: Array as PropType<string[]>,
     required: false,
   },
+  // Конкретные формы файлов, xlsx для загрузки списков на мед. осмотр и т.д
   formsFile: {
     type: Array as PropType<string[]>,
     required: false,
@@ -150,18 +153,22 @@ const props = defineProps({
     type: Boolean,
     required: false,
   },
+  // id сущности необходимой для функции обработчика
   entityId: {
     type: Number,
     required: false,
   },
+  // Любые другие данные необходимые для функции обработчика
   otherNeedData: {
     type: Object || Array,
     required: false,
   },
+  // режим для работы без модального окна, только одна форма файла
   simpleMode: {
     type: Boolean,
     required: false,
   },
+  // Режим для вывода результов, меняет размеры и разрешает вывод в таблицу
   showResults: {
     type: Boolean,
     required: false,
