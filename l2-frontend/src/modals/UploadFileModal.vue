@@ -14,20 +14,21 @@
       show-footer="true"
       ignore-body
       white-bg="true"
-      max-width="710px"
+      :max-width="props.showResults ? '1000px' : '710px'"
       width="100%"
       margin-left-right="auto"
       @close="open = false"
     >
       <span slot="header">{{ titleLocal }}</span>
       <div slot="body">
-        <div class="body">
+        <div :class="props.showResults ? 'body-high' : 'body'">
           <UploadFile
             :types-file="props.typesFile"
             :forms-file="props.formsFile"
             :upload-result="props.uploadResult"
             :entity-id="props.entityId"
             :other-need-data="props.otherNeedData"
+            :show-results="props.showResults"
             @uploadSuccess="uploadSuccess"
           />
         </div>
@@ -84,7 +85,11 @@ const props = defineProps({
     required: false,
   },
   otherNeedData: {
-    type: Object || Array || String || Number,
+    type: Object || Array,
+    required: false,
+  },
+  showResults: {
+    type: Boolean,
     required: false,
   },
 });
@@ -111,5 +116,8 @@ const uploadSuccess = () => {
 }
 .body {
   height: 300px;
+}
+.body-high {
+  height: 600px;
 }
 </style>

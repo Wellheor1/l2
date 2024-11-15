@@ -37,7 +37,12 @@ export default function typesAndForms() {
     XLSX: {
       100.01: { id: '100.01', label: 'Загрузка цен по прайсу' },
       100.02: { id: '100.02', label: 'Загрузка посещений' },
+      101.01: { id: '101.01', label: 'Загрузка списка на мед. осмотр' },
     },
+  });
+  const fileFormsInfo = ref({
+    101.01: 'Необходимые поля: "снилс", "фио", "дата рождения", "пол", "инн организации", "код вредности", "должность", '
+      + '"дата мед. осмотра", "подразделение"',
   });
   const addForms = (type: string, forms = null, allowedForms: string[] = null) => {
     const result: formsFile[] = [];
@@ -58,7 +63,13 @@ export default function typesAndForms() {
     });
     return result.length === 0;
   };
-
+  const getFormsInfo = (formsKey: string) => {
+    const info = fileFormsInfo.value[formsKey];
+    if (info) {
+      return info;
+    }
+    return '';
+  };
   const getForms = (type: string, forms: string[] = null, onlyResult = false, allowedForms: string[] = null): formsFile[] => {
     let result: formsFile[] = [];
     if (!allowedForms) {
@@ -76,6 +87,6 @@ export default function typesAndForms() {
     return result;
   };
   return {
-    getTypes, getForms, getFileFilters, unsupportedFileForms,
+    getTypes, getForms, getFileFilters, unsupportedFileForms, getFormsInfo,
   };
 }

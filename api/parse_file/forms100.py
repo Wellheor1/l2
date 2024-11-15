@@ -3,7 +3,6 @@ import json
 
 import requests
 from openpyxl.reader.excel import load_workbook
-
 from contracts.models import PriceName, PriceCoast
 from directory.models import Researches
 from laboratory.settings import RMIS_MIDDLE_SERVER_ADDRESS, RMIS_MIDDLE_SERVER_TOKEN
