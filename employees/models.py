@@ -534,8 +534,8 @@ class TimeTrackingStatus(models.Model):
 class EmployeeWorkingHoursSchedule(models.Model):
     time_tracking_document = models.ForeignKey(TimeTrackingDocument, null=True, blank=True, default=None, db_index=True, on_delete=models.SET_NULL)
     employee_position = models.ForeignKey(EmployeePosition, null=True, blank=True, db_index=True, default=None, on_delete=models.SET_NULL)
-    start = models.DateTimeField(verbose_name='Начало рабочего времени', help_text='дата-время начала')
-    end = models.DateTimeField(verbose_name='Конец рабочего времени', help_text='дата-время окончания')
+    start = models.DateTimeField(verbose_name='Начало рабочего времени', help_text='дата-время начала', null=True, blank=True)
+    end = models.DateTimeField(verbose_name='Конец рабочего времени', help_text='дата-время окончания', null=True, blank=True)
     day = models.DateField(verbose_name='Дата учета времени', null=True, blank=True, default=None, db_index=True, help_text='дата')
     work_day_status = models.ForeignKey(WorkDayStatus, null=True, blank=True, default=None, db_index=True, on_delete=models.SET_NULL, verbose_name='Тип')
     user_saved = models.ForeignKey('users.DoctorProfile', on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Профиль пользователя сохранившего запись')
