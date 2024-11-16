@@ -185,7 +185,9 @@ const updateTime = async () => {
     const { ok, message } = await api('/working-time/update-time', {
       startWork: startWork.value,
       endWork: endWork.value,
-      typeTimeOff: selectedTimeOff.value,
+      type: selectedTimeOff.value,
+      employeePositionId: props.employeePositionId,
+      date: props.date,
     });
     await store.dispatch(actions.DEC_LOADING);
     if (ok) {

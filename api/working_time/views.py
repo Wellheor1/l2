@@ -25,6 +25,10 @@ def get_work_time(request):
 @group_required('График рабочего времени')
 def update_time(request):
     request_data = json.loads(request.body)
-    print(request_data)
-    result = {"ok": True, "message": ""}
+    start_work = request_data["startWork"]
+    end_work = request_data["endWork"]
+    type_work = request_data["type"]
+    employee_position_id = request_data["employeePositionId"]
+    date = request_data["date"]
+    result = EmployeeWorkingHoursSchedule.update_time(start_work, end_work, type_work, employee_position_id, date)
     return JsonResponse(result)

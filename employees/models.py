@@ -479,6 +479,17 @@ class TimeTrackingDocument(models.Model):
             department_id=department_pk,
         ).save()
 
+    @staticmethod
+    def get_time_tracking_document(date_str, department_id):
+        date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        year = date.year
+        month = date.month
+        first_date_month = datetime.date(year, month, 1)
+        length_month = calendar.monthrange(year, month)[1]
+        last_date_month = datetime.date(year, month, length_month)
+        document = TimeTrackingDocument.objects.filter(month__gte=first_date_month, month__lte=last_date_month, department_id=department_id).last()
+        return document
+
 
 class TypeCheckTimeTrackingDocument(models.Model):
     title = models.CharField(max_length=255, verbose_name='Наименование')
@@ -527,8 +538,8 @@ class TimeTrackingStatus(models.Model):
     raw_data = models.TextField(blank=True, null=True, help_text="Данные документа")
 
     class Meta:
-        verbose_name = "График-документ"
-        verbose_name_plural = "График-документы"
+        verbose_name = "График-документ-сохраненный"
+        verbose_name_plural = "График-документы-сохраненный"
 
 
 class EmployeeWorkingHoursSchedule(models.Model):
@@ -583,11 +594,31 @@ class EmployeeWorkingHoursSchedule(models.Model):
         return result
 
     @staticmethod
-    def update_time(start_work, end_work, type, employee_position_id):
-        print(start_work)
-        print(end_work)
-        print(type)
+    def update_time(start_work, end_work, type_work, employee_position_id, date):
 
+        employee_position = EmployeePosition.objects.filter(pk=employee_position_id).first()
+        document = TimeTrackingDocument.get_time_tracking_document(date, employee_position.department_id)
+        current_hours: EmployeeWorkingHoursSchedule = EmployeeWorkingHoursSchedule.objects.filter(time_tracking_document_id=document.pk, employee_position_id=employee_position_id,
+                                                                                                  day=date).first()
+        if current_hours:
+            if type_work:
+                current_hours.work_day_status = type_work
+                current_hours.start = None
+                current_hours.end = None
+            else:
+                current_hours.work_day_status = None
+                current_hours.start = start_work
+                current_hours.end = end_work
+            current_hours.save()
+        else:
+            if type_work:
+                current_hours = EmployeeWorkingHoursSchedule(time_tracking_document_id=document.pk, employee_position_id=employee_position_id, day=date, start=None, end=None,
+                                                             work_day_status_id=type_work)
+            else:
+                current_hours = EmployeeWorkingHoursSchedule(time_tracking_document_id=document.pk, employee_position_id=employee_position_id, day=date, start=start_work,
+                                                             end=end_work, work_day_status_id=None)
+            current_hours.save()
+            print('dsd')
         return {"ok": True, "message": ""}
 
 
