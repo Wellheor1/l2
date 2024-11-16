@@ -93,12 +93,8 @@ const filteredEmployees = computed(() => employeesWorkTime.value.filter(employee
   return employeesFio.includes(searchTerm);
 }));
 
-const changeWorkTime = async (workTime: object) => {
-  const {
-    start, end, rowIndex, columnKey,
-  } = workTime;
-  filteredEmployees.value[rowIndex][columnKey] = { startWorkTime: start, endWorkTime: end };
-  root.$emit('msg', 'ok', 'Обновлено');
+const changeWorkTime = async () => {
+  await getEmployeesWorkTime();
 };
 
 const columns = ref([]);

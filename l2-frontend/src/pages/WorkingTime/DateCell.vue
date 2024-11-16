@@ -180,9 +180,14 @@ const updateTime = async () => {
     root.$emit('msg', 'error', reason);
   } else {
     await store.dispatch(actions.INC_LOADING);
-    const { ok, message } = await api('/working-time/update-time');
+    const { ok, message } = await api('/working-time/update-time', {
+      startWork: startWork.value,
+      endWork: endWork.value,
+      typeTimeOff: selectedTimeOff.value,
+    });
     await store.dispatch(actions.DEC_LOADING);
     if (ok) {
+      emit('changeWorkTime');
       root.$emit('msg', 'ok', 'Обновлено');
     } else {
       root.$emit('msg', 'error', message);
