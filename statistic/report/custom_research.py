@@ -21,7 +21,7 @@ def custom_research_data(query_sql):
                 "Пол": i.patient_sex,
                 "Дата рождения": i.patient_birthday,
                 "Возраст": i.patient_age,
-                "Адрес": i.patient_main_address,
+                "Адрес": i.patient_fact_address if i.patient_fact_address else i.patient_main_address,
                 "Исполнитель": i.doc_fio,
                 "Код врача": i.personal_code,
             }
@@ -99,7 +99,10 @@ def custom_research_fill_data(ws1, result_query, row=6):
                 except:
                     is_dict = False
             if not is_dict:
-                ws1.cell(row=r, column=column).value = i.get(title, '')
+                try:
+                    ws1.cell(row=r, column=column).value = i.get(title, '')
+                except:
+                    ws1.cell(row=r, column=column).value = '-'
                 ws1.cell(row=r, column=column).style = style_border1
             else:
                 for i in table_data.get("rows"):

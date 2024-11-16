@@ -34,9 +34,20 @@
       >
         {{ selected_type.title }}
       </button>
-      <div class="top-inner">
+      <div
+        class="top-inner"
+        :class="departments_of_type.length > 7 ? 'top-inner-right' : '' "
+      >
         <div
-          v-for="row in departments_of_type"
+          v-if="l2_all_service"
+          class="top-inner-select all-dep"
+          :class="{ active: dep === 'all' }"
+          @click="select_dep('all')"
+        >
+          <span> {{ 'Все' }}</span>
+        </div>
+        <div
+          v-for="row in departments_of_type.slice(0, 7)"
           :key="row.pk"
           v-tippy="{ placement: 'bottom', arrow: true }"
           class="top-inner-select"
@@ -51,6 +62,32 @@
             </span>
           </span>
         </div>
+      </div>
+      <div class="btn-group depart-other">
+        <button
+          v-if="departments_of_type.length > 7"
+          class="btn btn-blue-nb btn-ell dropdown-toggle depart-other depart-other-btn"
+          type="button"
+          data-toggle="dropdown"
+        >
+          <span class="caret" />
+          {{ dep_i > 6 && dep !== 'all' ? departments_of_type[dep_i]?.title : 'Ещё' }}
+        </button>
+        <ul
+          v-if="departments_of_type.length > 7"
+          class="dropdown-menu depart-other-dropdown"
+          style="margin-top: 1px"
+        >
+          <li
+            v-for="row in departments_of_type.slice(7)"
+            :key="row.pk"
+          >
+            <a
+              href="#"
+              @click.prevent="select_dep(row.pk)"
+            >{{ row.title }}</a>
+          </li>
+        </ul>
       </div>
     </div>
     <div
@@ -84,7 +121,7 @@
             v-for="row in selectedSubcategoryObj.researches || []"
             :key="row.pk"
             class="research-select"
-            :class="{ active: research_selected(row.pk), highlight_search: highlight_search(row) }"
+            :class="{ active: research_selected(row.pk) }"
             :research="row"
             @click.native="select_research(row.pk)"
           />
@@ -95,7 +132,7 @@
           v-for="row in researches_display"
           :key="row.pk"
           class="research-select"
-          :class="{ active: research_selected(row.pk), highlight_search: highlight_search(row) }"
+          :class="[{ active: research_selected(row.pk) }, l2_research_col ? `research-select-col--${l2_research_col}` : '']"
           :research="row"
           @click.native="select_research(row.pk)"
         />
@@ -181,7 +218,7 @@
         <input
           id="fndsrc"
           ref="fndsrc"
-          v-model="search"
+          v-model.trim="search"
           v-tippy="{
             html: '#founded-n',
             trigger: 'mouseenter focus input',
@@ -356,6 +393,12 @@ export default {
     l2_without_lab_and_paraclinic() {
       return this.$store.getters.modules.l2_without_lab_and_paraclinic;
     },
+    l2_research_col() {
+      return this.$store.getters.modules.l2_research_select_col;
+    },
+    l2_all_service() {
+      return this.$store.getters.modules.l2_all_service;
+    },
     types() {
       let result = this.$store.getters.allTypes.filter(
         (row) => row.pk !== '0'
@@ -466,7 +509,14 @@ export default {
       return this.$store.getters.templates;
     },
     researches_display() {
-      return this.researches_dep_display();
+      return this.researches_dep_display().filter((research) => {
+        const searchTerm = this.search.toLowerCase();
+        const researchTitle = research.full_title?.toLowerCase();
+        const researchShortTitle = research.title?.toLowerCase();
+        const researchInternalCode = research.internal_code?.toLowerCase();
+        return researchTitle.includes(searchTerm) || researchShortTitle.includes(searchTerm)
+          || researchInternalCode.includes(searchTerm);
+      });
     },
     founded_n() {
       let r = 'Не найдено';
@@ -925,6 +975,10 @@ export default {
   overflow: hidden;
 }
 
+.top-inner-right {
+  right: 120px;
+}
+
 .top-inner-select,
 .research-select {
   align-self: stretch;
@@ -1064,5 +1118,39 @@ export default {
   border-radius: 0;
   padding: 7px 5px;
   font-size: 13px;
+}
+.all-dep {
+  width: 30px;
+  flex: none;
+}
+.research-select-col {
+  &--1 {
+    width: 100%;
+  }
+  &--2 {
+    width: 50%;
+  }
+  &--3 {
+    width: 33.3%;
+  }
+}
+.depart-other {
+  float: right;
+  width: 120px;
+  text-align: right !important;
+  box-shadow: none !important;
+  border-radius: 0;
+}
+.depart-other-btn {
+  float: left;
+  font-size: 12px;
+  height: 34px;
+}
+.depart-other-dropdown {
+  position: relative;
+  float: right;
+  text-align: right;
+  max-height: 250px;
+  overflow-y: auto;
 }
 </style>

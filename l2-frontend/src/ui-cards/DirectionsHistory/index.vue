@@ -60,12 +60,39 @@
           </ul>
         </div>
         <button
+          v-if="modules.showStatement"
+          v-tippy
+          class="btn btn-blue-nb btn-ell nbr"
+          title="Передать курьеру"
+          @click="openStatementModal"
+        >
+          <i class="fa-regular fa-paper-plane" />
+        </button>
+        <button
+          v-if="modules.showBarcodeButtonInDirectionHistory"
+          v-tippy
+          class="btn btn-blue-nb btn-ell nbr"
+          title="Акт"
+          @click="printAct"
+        >
+          <i class="fa-regular fa-file-lines" />
+        </button>
+        <button
           v-tippy
           class="btn btn-blue-nb btn-ell nbr"
           title="Обновить"
           @click="load_history_safe_fast"
         >
           <i class="glyphicon glyphicon-refresh" />
+        </button>
+        <button
+          v-if="modules.showBarcodeButtonInDirectionHistory && checked.length > 0"
+          v-tippy
+          class="btn btn-blue-nb btn-ell nbr"
+          title="Ш/К"
+          @click="printBarcodes"
+        >
+          <i class="fa fa-barcode" />
         </button>
       </div>
     </div>
@@ -86,6 +113,9 @@
             </th>
             <th v-if="active_type === 7">
               № случ.
+            </th>
+            <th v-else-if="active_type === 8">
+              № компл.
             </th>
             <th v-else-if="active_type !== 5 && active_type !== 6">
               № напр.
@@ -186,7 +216,8 @@
                 <AuxResearch
                   :main-direction="row.pk"
                   :aux-research="row.aux_researches"
-                /></span>
+                />
+              </span>
             </td>
             <td
               class="researches"
@@ -195,6 +226,19 @@
                 (row.register_number !== '' ? ' (' + row.register_number + ')': '')
               "
             >
+              <span v-if="row.lab && !row.has_hosp && roleCanUseGetBipmaterial">
+                <a
+                  v-tippy
+                  href="#"
+                  title="Забор биоматериала"
+                  @click.prevent="getTubes(row.pk)"
+                >
+                  <i
+                    class="fa-solid fa-vial"
+                    style="color: #6f6f72"
+                  />
+                </a>
+              </span>
               {{ row.researches }}
             </td>
             <td
@@ -231,7 +275,7 @@
             </td>
             <td class="button-td">
               <div
-                v-if="!row.is_application && active_type !== 5 && active_type !== 6"
+                v-if="!row.is_application && active_type !== 5 && active_type !== 6 && active_type !== 8"
                 class="button-td-inner"
                 :class="[
                   {
@@ -297,14 +341,21 @@
                   <i class="fa fa-barcode" /> браслета
                 </button>
                 <button
-                  v-if="row.status <= 1 && !row.has_hosp"
+                  v-if="modules.showCancelButton && row.status <= 1 && !row.has_hosp"
                   class="btn btn-blue-nb"
                   @click="cancel_direction(row.pk)"
                 >
                   Отмена
                 </button>
                 <button
-                  v-else-if="!row.has_hosp"
+                  v-if="!modules.showCancelButton && row.status <= 1 && !row.has_hosp"
+                  class="btn btn-blue-nb"
+                  @click="printCurrentBarcodes(row.pk)"
+                >
+                  Ш/к
+                </button>
+                <button
+                  v-else-if="!row.has_hosp && row.status === 2"
                   class="btn btn-blue-nb"
                   @click="show_results(row)"
                 >
@@ -337,6 +388,23 @@
                   @click="print_contract(row.pk, patient_pk)"
                 >
                   Договор
+                </button>
+              </div>
+              <div
+                v-else-if="active_type===8"
+                class="button-td-inner"
+              >
+                <button
+                  class="btn btn-blue-nb"
+                  @click="show_results(row)"
+                >
+                  Результаты
+                </button>
+                <button
+                  class="btn btn-blue-nb"
+                  @click="print_direction_for_complex(row.pk)"
+                >
+                  Направления
                 </button>
               </div>
               <div
@@ -387,6 +455,14 @@
       :active_type="active_type"
       :kk="kk"
     />
+    <ChequeModal
+      v-if="showChequeModal"
+      :directions-ids="checked"
+      @closeModal="closeChequeModal"
+    />
+    <StatementModal
+      v-if="showStatementModal"
+    />
   </div>
 </template>
 
@@ -399,6 +475,8 @@ import { Research } from '@/types/research';
 import AuxResearch from '@/ui-cards/AuxResearch.vue';
 import directionsPoint from '@/api/directions-point';
 import * as actions from '@/store/action-types';
+import ChequeModal from '@/ui-cards/CashRegisters/ChequeModal.vue';
+import StatementModal from '@/ui-cards/Statement/StatementModal.vue';
 
 import SelectPickerM from '../../fields/SelectPickerM.vue';
 import DateRange from '../DateRange.vue';
@@ -418,7 +496,12 @@ function truncate(s, n, useWordBoundary) {
 export default {
   name: 'DirectionsHistory',
   components: {
-    SelectPickerM, DateRange, Bottom, AuxResearch,
+    ChequeModal,
+    SelectPickerM,
+    DateRange,
+    Bottom,
+    AuxResearch,
+    StatementModal,
   },
   props: {
     patient_pk: {
@@ -445,12 +528,17 @@ export default {
       required: false,
       default: null,
     },
+    daysSubtract: {
+      type: Number,
+      required: false,
+      default: 90,
+    },
   },
   data() {
     return {
       date_range: [
         moment()
-          .subtract(6, 'month')
+          .subtract(this.daysSubtract, 'day')
           .format('DD.MM.YY'),
         moment().format('DD.MM.YY'),
       ],
@@ -463,6 +551,7 @@ export default {
         { pk: 5, title: 'Договоры пациента' },
         { pk: 6, title: 'Регистратура пациента', module: 'rmisQueue' },
         { pk: 7, title: 'Случаи пациента' },
+        { pk: 8, title: 'Комплексы пациента' },
       ],
       active_type: this.onlyType || 3,
       checked_obj: {},
@@ -479,6 +568,8 @@ export default {
         1: 'Материал в лаборатории',
         2: 'Результаты подтверждены',
       },
+      showChequeModal: false,
+      showStatementModal: false,
     };
   },
   computed: {
@@ -492,6 +583,14 @@ export default {
     role_can_use_stationar() {
       for (const g of this.$store.getters.user_data.groups || []) {
         if (g === 'Врач стационара') {
+          return true;
+        }
+      }
+      return false;
+    },
+    roleCanUseGetBipmaterial() {
+      for (const g of this.$store.getters.user_data.groups || []) {
+        if (g === 'Заборщик биоматериала') {
           return true;
         }
       }
@@ -519,6 +618,9 @@ export default {
     modules() {
       return {
         rmisQueue: this.$store.getters.modules.l2_rmis_queue,
+        showBarcodeButtonInDirectionHistory: this.$store.getters.modules.l2_show_barcode_button_in_direction_history,
+        showStatement: this.$store.getters.modules.l2_show_statement,
+        showCancelButton: this.$store.getters.modules.show_cancel_button,
       };
     },
   },
@@ -567,6 +669,10 @@ export default {
     }
     this.$root.$on(`researches-picker:directions_created${this.kk}`, () => this.load_history_debounced());
     this.$root.$on(`researches-picker:refresh${this.kk}`, this.load_history_safe_fast);
+    this.$root.$on('cheque:open_form', this.openChequeModal);
+    this.$root.$on('hide_statement_data', () => {
+      this.showStatementModal = false;
+    });
   },
   methods: {
     async serachDicom(pk) {
@@ -630,12 +736,17 @@ export default {
     show_results(row) {
       if (row.has_descriptive) {
         this.$root.$emit('print:results', [row.pk]);
+      } else if (row.isComplex) {
+        this.$root.$emit('print:results', [row.pk], row.isComplex);
       } else {
         this.$root.$emit('show_results', row.pk);
       }
     },
     print_direction(pk) {
       this.$root.$emit('print:directions', [pk]);
+    },
+    print_direction_for_complex(pk) {
+      this.$root.$emit('print:complex:directions', [pk]);
     },
     print_hosp(pk) {
       this.$root.$emit('print:hosp', [pk]);
@@ -715,6 +826,28 @@ export default {
       } else if (!this.in_checked(pk)) {
         this.checked.push(pk);
       }
+    },
+    printBarcodes() {
+      this.$root.$emit('print:barcodes', this.checked);
+    },
+    printAct() {
+      const dateStart = moment(this.date_range[0], 'DD.MM.YY').format('DD.MM.YYYY');
+      window.open(`/forms/pdf?type=114.01&date=${dateStart}`, '_blank');
+    },
+    printCurrentBarcodes(pk) {
+      this.$root.$emit('print:barcodes', [pk]);
+    },
+    getTubes(directionId) {
+      window.open(`/ui/biomaterial/get#{%22pk%22:${directionId}}`, '_blank');
+    },
+    openChequeModal() {
+      this.showChequeModal = true;
+    },
+    closeChequeModal() {
+      this.showChequeModal = false;
+    },
+    openStatementModal() {
+      this.showStatementModal = true;
     },
   },
 };

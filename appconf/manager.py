@@ -65,7 +65,10 @@ class SettingManager:
 
     @staticmethod
     def forms_url():
-        return 'https://forms.yandex.ru/u/6327b35ab4d9a1750ea721f2/'
+        link_review = ''
+        if SettingManager.get("show_review", default='true', default_type='b'):
+            link_review = 'https://forms.yandex.ru/u/6327b35ab4d9a1750ea721f2/'
+        return link_review
 
     @staticmethod
     def get_eds_base_url():
@@ -107,6 +110,10 @@ class SettingManager:
     def inc_dynamic_directory_version():
         current_version = SettingManager.get_dynamic_directory_version()
         SettingManager.set_value("dynamic_directory_version", str(current_version + 1), default_type='i')
+
+    @staticmethod
+    def rmis_upload_hours_interval():
+        return SettingManager.get("rmis_upload_hours_interval", default='1', default_type='i')
 
     @staticmethod
     def l2_modules() -> dict:
@@ -180,6 +187,16 @@ class SettingManager:
                     "schedule_in_protocol",
                     "feed",
                     "equipment_load_file",
+                    "show_button_barcode",
+                    "show_button_set_document",
+                    "show_button_summ",
+                    "show_button_without_print",
+                    "research_select_col",
+                    "code_price",
+                    "all_service",
+                    "show_barcode_button_in_direction_history",
+                    "show_statement",
+                    "cash",
                 ]
             },
             "consults_module": SettingManager.get("consults_module", default='false', default_type='b'),
@@ -190,15 +207,17 @@ class SettingManager:
             "medbook_auto_start": SettingManager.get_medbook_auto_start(),
             "descriptive_rich_text": SettingManager.get("descriptive_rich_text", default='false', default_type='b'),
             "number_generator_field": SettingManager.get("number_generator_field", default='false', default_type='b'),
+            "show_manual_select_get_time": SettingManager.get("show_manual_select_get_time", default='false', default_type='b'),
             "tfoms_attachment_field": SettingManager.get("tfoms_attachment_field", default='false', default_type='b'),
             "auto_clinical_examination_direct": SettingManager.get("auto_clinical_examination_direct", default='false', default_type='b'),
             "legal_authenticator": SettingManager.get("legal_authenticator", default='false', default_type='b'),
             "change_password": SettingManager.get("change_password", default='false', default_type='b'),
             "limit_age_patient_registration": SettingManager.get("limit_age_patient_registration", default='false', default_type='b'),
+            "days_subtract": SettingManager.get("days_subtract", default='90', default_type='i'),
+            "show_cancel_button": SettingManager.get("show_cancel_button", default='true', default_type='b'),
             "forms_url": SettingManager.forms_url(),
         }
         cache.set(k, simplejson.dumps(result), 60 * 60 * 8)
-
         return result
 
     @staticmethod

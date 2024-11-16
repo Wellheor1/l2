@@ -72,6 +72,12 @@
         <thead>
           <tr>
             <td colspan="5">
+              <FileAdd
+                v-if="research.enabled_add_files"
+                :iss_pk="pk"
+                :count_files="countFiles"
+                :max-count-files="1"
+              />
               <strong>
                 {{ research.title }}
               </strong>
@@ -320,10 +326,12 @@ import Ref from '@/pages/LaboratoryResults/Ref.vue';
 import TextInputField from '@/pages/LaboratoryResults/TextInputField.vue';
 import BloodTypeField from '@/pages/LaboratoryResults/BloodTypeField.vue';
 import RefSettings from '@/pages/LaboratoryResults/RefSettings.vue';
+import FileAdd from '@/ui-cards/FileAdd.vue';
 
 export default {
   name: 'ResultsForm',
   components: {
+    FileAdd,
     RefSettings,
     TextInputField,
     BloodTypeField,
@@ -336,6 +344,7 @@ export default {
       confirmed: false,
       saved: false,
       allow_reset_confirm: false,
+      countFiles: 0,
       showRefSettings: false,
       pk: null,
       research: {},
@@ -432,6 +441,7 @@ export default {
       this.result = data.result;
       this.confirmed = data.confirmed;
       this.saved = data.saved;
+      this.countFiles = data.count_files;
       this.laborants = data.laborants;
       this.co_executor = data.co_executor;
       this.co_executor2 = data.co_executor2;
@@ -594,5 +604,8 @@ export default {
       padding: 2px 2px 2px 8px;
     }
   }
+}
+::v-deep .file-btn {
+  border-radius: 0;
 }
 </style>

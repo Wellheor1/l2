@@ -8,8 +8,9 @@ from typing import Optional, Union
 import pytz_deprecation_shim as pytz
 
 from api.models import ManageDoctorProfileAnalyzer, Analyzer
+from cash_registers.models import Shift
 from directions.views import create_case_by_cards
-from directory.models import Researches, SetResearch, SetOrderResearch, PatientControlParam
+from directory.models import Researches, SetResearch, SetOrderResearch, PatientControlParam, StatisticPattern
 from doctor_schedule.models import ScheduleResource
 from ecp_integration.integration import get_reserves_ecp, get_slot_ecp
 from laboratory.settings import (
@@ -637,6 +638,7 @@ def current_user_info(request):
         "modules": SettingManager.l2_modules(),
         "user_services": [],
         "loading": False,
+        "cashRegisterShift": {"cashRegisterId": None, "shiftId": None},
     }
     if ret["auth"]:
         request.user.doctorprofile.mark_as_online()
@@ -683,6 +685,8 @@ def current_user_info(request):
                 ret["groups"].append("Admin")
             ret["eds_allowed_sign"] = doctorprofile.get_eds_allowed_sign() if ret["modules"].get("l2_eds") else []
             ret["can_edit_all_department"] = doctorprofile.all_hospitals_users_control
+            shift_data = Shift.get_open_shift_by_operator(request.user.doctorprofile.id)
+            ret["cashRegisterShift"] = {"cashRegisterId": shift_data["cash_register_id"], "shiftId": shift_data["shift_id"]}
 
             try:
                 connections.close_all()
@@ -796,7 +800,7 @@ def directive_from(request):
                 queryset=(
                     users.DoctorProfile.objects.filter(user__groups__name__in=["Лечащий врач", "Врач параклиники"])
                     .distinct("fio", "pk")
-                    .filter(Q(hospital=hospital) | Q(hospital__isnull=True))
+                    .filter(Q(hospital=hospital) | Q(hospital__isnull=True), dismissed=False)
                     .order_by("fio")
                 ),
             )
@@ -1459,6 +1463,7 @@ def user_view(request):
             "resource_schedule": resource_researches,
             "notControlAnketa": False,
             "additionalInfo": "{}",
+            "dismissed": False,
         }
     else:
         doc: users.DoctorProfile = users.DoctorProfile.objects.get(pk=pk)
@@ -1517,6 +1522,7 @@ def user_view(request):
             "replace_doctor_cda": doc.replace_doctor_cda_id if doc.replace_doctor_cda_id else -1,
             "department_doctors": [{"id": x.pk, "label": f"{x.get_fio()}"} for x in department_doctors],
             "additionalInfo": doc.additional_info,
+            "dismissed": doc.dismissed,
         }
 
     return JsonResponse({"user": data})
@@ -1551,6 +1557,7 @@ def user_save_view(request):
     not_control_anketa = ud.get("notControlAnketa", False)
     date_stop_external_access = ud.get("date_stop_external_access")
     additional_info = ud.get("additionalInfo", "{}")
+    dismissed = ud.get("dismissed", False)
 
     if date_stop_external_access == "":
         date_stop_external_access = None
@@ -1668,6 +1675,7 @@ def user_save_view(request):
             doc.date_stop_certificate = date_stop_certificate
             doc.replace_doctor_cda_id = replace_doctor_cda
             doc.additional_info = additional_info
+            doc.dismissed = dismissed
             if rmis_login:
                 doc.rmis_login = rmis_login
                 if rmis_password:
@@ -2542,7 +2550,11 @@ def search_param(request):
     direction_number = int(data.get("directionNumber") or -1)
 
     date_examination_start = data.get("dateExaminationStart") or "1900-01-01"
+    if date_examination_start != "1900-01-01":
+        date_examination_start = f"{date_examination_start} 00:00:00"
+
     date_examination_end = data.get("dateExaminationEnd") or "1900-01-01"
+    date_examination_end = f"{date_examination_end} 23:59:59"
 
     doc_confirm = data.get("docConfirm") or -1
 
@@ -2650,19 +2662,39 @@ def statistic_params_search(request):
     return JsonResponse({"rows": result, "hasParam": has_param})
 
 
+def statistic_pattern_search(request):
+    user_groups = [str(x) for x in request.user.groups.all()]
+    result = []
+    su = request.user.is_superuser
+
+    statistic_pattern = StatisticPattern.objects.filter(hide=False)
+    statistic_pattern_result = [{"id": i.pk, "label": i.title} for i in statistic_pattern]
+    if su:
+        result.extend(statistic_pattern_result)
+    else:
+        for el in statistic_pattern_result:
+            if el.get("title") in user_groups:
+                result.extend(el)
+
+    return JsonResponse({"rows": result})
+
+
 @login_required
 @group_required("Конструктор: Настройка организации")
 def get_prices(request):
     request_data = json.loads(request.body)
     prices = None
     if request_data.get("searchTypesObject") == "Работодатель":
-        prices = [{"id": price.pk, "label": price.title} for price in PriceName.objects.filter(subcontract=False, external_performer=False).order_by("title")]
+        prices = PriceName.objects.filter(subcontract=False, external_performer=False).order_by("title")
     elif request_data.get("searchTypesObject") == "Заказчик":
-        prices = [{"id": price.pk, "label": price.title} for price in PriceName.objects.filter(subcontract=True).order_by("title")]
+        prices = PriceName.objects.filter(subcontract=True).order_by("title")
     elif request_data.get("searchTypesObject") == "Внешний исполнитель":
-        prices = [{"id": price.pk, "label": price.title} for price in PriceName.objects.filter(external_performer=True).order_by("title")]
+        prices = PriceName.objects.filter(external_performer=True).order_by("title")
+    if not request_data.get("showArchive"):
+        prices = prices.filter(active_status=True)
+    result = [{"id": price.pk, "label": price.title if price.active_status else f"{price.title} - Архив"} for price in prices]
 
-    return JsonResponse({"data": prices})
+    return JsonResponse({"data": result})
 
 
 @login_required
@@ -2679,23 +2711,26 @@ def get_price_data(request):
 def update_price(request):
     request_data = json.loads(request.body)
     current_price = None
+    price_unique = PriceName.check_unique(request_data["title"], request_data["code"], request_data["id"])
+    if not price_unique:
+        return status_response(False, "Такое название или символьный код уже есть")
     if request_data["id"] == -1:
         if request_data.get("typePrice") == "Работодатель":
             current_price = PriceName(
                 title=request_data["title"], symbol_code=request_data["code"], date_start=request_data["start"], date_end=request_data["end"], company_id=request_data["company"],
-                contract_number=request_data.get("contractNumber")
+                contract_number=request_data.get("contractNumber"), active_status=True
             )
         elif request_data.get("typePrice") == "Заказчик":
             hospital = Hospitals.objects.filter(pk=int(request_data["company"])).first()
             current_price = PriceName(
                 title=request_data["title"], symbol_code=request_data["code"], date_start=request_data["start"], date_end=request_data["end"], hospital=hospital, subcontract=True,
-                contract_number=request_data.get("contractNumber")
+                contract_number=request_data.get("contractNumber"), active_status=True
             )
         elif request_data.get("typePrice") == "Внешний исполнитель":
             hospital = Hospitals.objects.filter(pk=int(request_data["company"])).first()
             current_price = PriceName(
                 title=request_data["title"], symbol_code=request_data["code"], date_start=request_data["start"], date_end=request_data["end"], hospital=hospital, external_performer=True,
-                contract_number=request_data.get("contractNumber")
+                contract_number=request_data.get("contractNumber"), active_status=True
             )
         if current_price:
             current_price.save()
@@ -2712,6 +2747,7 @@ def update_price(request):
         current_price.date_start = request_data["start"]
         current_price.date_end = request_data["end"]
         current_price.contract_number = request_data["contractNumber"]
+        current_price.active_status = True if not request_data["hide"] else False
         if request_data.get("typePrice") == "Работодатель":
             current_price.company_id = request_data["company"]
         elif request_data.get("typePrice") == "Заказчик" or request_data.get("typePrice") == "Внешний исполнитель":
@@ -2756,28 +2792,9 @@ def copy_price(request):
 
 @login_required
 @group_required("Конструктор: Настройка организации")
-def check_price_active(request):
-    request_data = json.loads(request.body)
-    current_price = PriceName.objects.get(pk=request_data["id"])
-    return status_response(current_price.active_status)
-
-
-@login_required
-@group_required("Конструктор: Настройка организации")
-def get_coasts_researches_in_price(request):
-    request_data = json.loads(request.body)
-    coast_research = [
-        {"id": data.pk, "research": {"title": data.research.title, "id": data.research.pk}, "coast": f"{data.coast}", "numberService": data.number_services_by_contract}
-        for data in PriceCoast.objects.filter(price_name_id=request_data["id"]).prefetch_related("research").order_by("research__title")
-    ]
-    return JsonResponse({"data": coast_research})
-
-
-@login_required
-@group_required("Конструктор: Настройка организации")
 def update_coast_research_in_price(request):
     request_data = json.loads(request.body)
-    current_coast_research = PriceCoast.objects.get(id=request_data["coastResearchId"])
+    current_coast_research = PriceCoast.objects.filter(id=request_data["coastResearchId"]).select_related('price_name').first()
     if not current_coast_research.price_name.active_status:
         return JsonResponse({"ok": False, "message": "Прайс неактивен"})
     elif float(request_data["coast"]) <= 0:
@@ -2808,19 +2825,13 @@ def update_coast_research_in_price(request):
 @group_required("Конструктор: Настройка организации")
 def get_research_list(request):
     researches = Researches.objects.all().order_by("title")
-    res_list = {
-        "Лаборатория": {},
-        "Параклиника": {},
-        "Консультации": {"Общие": []},
-        "Формы": {"Общие": []},
-        "Лечение": {"Общие": []},
-        "Морфология": {"Микробиология": [], "Гистология": [], "Цитология": []},
-        "Стоматология": {"Общие": []},
-        "Комплексные услуги": {"Общие": []},
-    }
+    res_list = Researches.gen_non_excluded_categories()
+
     lab_podr = get_lab_podr()
     lab_podr = [podr[0] for podr in lab_podr]
     for research in researches:
+        if not Researches.check_exclude(research):
+            continue
         is_hide = ""
         if research.hide:
             is_hide = "- (скрыто)"
@@ -2952,6 +2963,7 @@ def get_companies(request):
         {
             "pk": company.pk,
             "title": company.title,
+            "inn": company.inn if isinstance(company, Company) else None
         }
         for company in companies
     ]
@@ -3403,3 +3415,10 @@ def get_date_medical_examination(request):
     request_data = json.loads(request.body)
     current_exam = MedicalExamination.get_date(request_data["card_pk"])
     return JsonResponse({"data": current_exam})
+
+
+@login_required
+def get_departments_with_exclude(request):
+    request_data = json.loads(request.body)
+    departments = Podrazdeleniya.get_all_departments(request_data.get("exclude_type"))
+    return JsonResponse({"data": departments})

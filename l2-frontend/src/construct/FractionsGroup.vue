@@ -1,9 +1,28 @@
 <template>
   <div class="tube-group">
-    <ColorTitled
-      :title="props.tube.title"
-      :color="props.tube.color"
-    />
+    <div class="fraction-detail">
+      <div>
+        <ColorTitled
+          :title="props.tube.title"
+          :color="props.tube.color"
+        />
+      </div>
+      <button
+        v-tippy
+        class="height-button-change-tube"
+        title="Изменить пробирку"
+        :disabled="selectedTubeTypeId===-1"
+        @click="changeTube()"
+      >
+        Изменить
+      </button>
+      <Treeselect
+        v-model="selectedTubeTypeId"
+        :options="props.tubesData"
+        :multiple="false"
+        class="treeselect-wide treeselect-26px"
+      />
+    </div>
     <table class="table">
       <colgroup>
         <col style="width: 60px">
@@ -112,7 +131,7 @@
             <button
               :disabled="!fraction.title"
               :class="fraction.title ? 'transparent-button' : 'transparent-button-disabled'"
-              @click="edit(fraction.order)"
+              @click="edit(fraction.id)"
             >
               <i class="fa fa-pencil" />
             </button>
@@ -135,7 +154,7 @@
 
 <script setup lang="ts">
 import {
-  computed, getCurrentInstance, PropType,
+  computed, getCurrentInstance, PropType, ref,
 } from 'vue';
 import Treeselect, { ASYNC_SEARCH } from '@riophae/vue-treeselect';
 
@@ -161,8 +180,12 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  tubesData: {
+    type: Array,
+    required: true,
+  },
 });
-const emit = defineEmits(['updateOrder', 'edit', 'addFraction']);
+const emit = defineEmits(['updateOrder', 'edit', 'addFraction', 'changeTube']);
 
 const sortedFractions = computed(() => {
   const res = [...props.tube.fractions];
@@ -199,8 +222,8 @@ const updateOrder = (fractionIdx: number, fractionOrder: number, action: string)
   }
 };
 
-const edit = (fractionOrder: number) => {
-  emit('edit', { fractionOrder, tubeIdx: props.tubeidx });
+const edit = (fractionId: number) => {
+  emit('edit', { fractionId, tubeIdx: props.tubeidx });
 };
 
 const getFsli = async ({ action, searchQuery, callback }) => {
@@ -229,6 +252,18 @@ const addFraction = () => {
   } else {
     root.$emit('msg', 'error', 'Есть пустые фракции');
   }
+};
+
+const selectedTubeTypeId = ref(-1);
+
+const changeTube = async () => {
+  const fractionsIds = props.tube.fractions.map(t => t.id);
+  await api('construct/laboratory/change-tube-for-fractions', {
+    oldTube: props.tube.id,
+    newTube: selectedTubeTypeId.value,
+    fractionsIds,
+  });
+  emit('changeTube');
 };
 </script>
 
@@ -348,5 +383,15 @@ const addFraction = () => {
 .hide-background {
   background-image: linear-gradient(#6c7a89, #56616c);
   color: #fff;
+}
+
+.fraction-detail {
+  display: grid;
+  background-color: #fff;
+  grid-template-columns: 2fr 0.1fr 2fr;
+}
+
+.height-button-change-tube {
+  height: 26px;
 }
 </style>

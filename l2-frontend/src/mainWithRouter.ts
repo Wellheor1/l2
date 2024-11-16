@@ -53,6 +53,7 @@ const router = new Router({
         ],
         showCardReader: true,
         showExtendedPatientSearch: true,
+        showShiftModal: true,
       },
     },
     {
@@ -268,7 +269,7 @@ const router = new Router({
     },
     {
       path: '/ui/case-control',
-      name: 'cases',
+      name: 'cases-control',
       component: () => import('@/pages/CaseControl/index.vue'),
       meta: {
         title: 'Случаи обслуживания',
@@ -743,6 +744,20 @@ const router = new Router({
       },
     },
     {
+      path: '/ui/chambers',
+      name: 'ManageChamber',
+      component: () => import('@/pages/ManageChambers/index.vue'),
+      meta: {
+        title: 'Палаты',
+        groups: [
+          'Оператор лечащего врача',
+          'Лечащий врач',
+        ],
+        module: 'l2_hosp',
+        fullPageLayout: true,
+      },
+    },
+    {
       path: '/ui/turnovers',
       name: 'Turnovers',
       component: () => import('@/pages/Turnovers/Turnovers.vue'),
@@ -758,6 +773,16 @@ const router = new Router({
       meta: {
         title: 'Счет на оплату',
         groups: ['Счет: проект'],
+      },
+    },
+    {
+      path: '/ui/document-manager',
+      name: 'document-manager',
+      component: () => import('@/pages/DocumentManagement/DocumentManager.vue'),
+      meta: {
+        title: 'ДОУ',
+        fullPageLayout: true,
+        groups: ['ДОУ: просмотр документов'],
       },
     },
     {

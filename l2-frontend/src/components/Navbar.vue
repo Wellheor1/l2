@@ -63,6 +63,12 @@
           </li>
         </ul>
         <ExtendedPatientSearch v-if="meta.showExtendedPatientSearch" />
+        <ul
+          v-if="l2CashEnabled && meta.showShiftModal"
+          class="nav navbar-nav"
+        >
+          <ShiftButton />
+        </ul>
         <CardReader v-if="meta.showCardReader" />
         <Favorites v-if="meta.showHospFavorites" />
         <OperationPlans v-if="meta.showOperationPlans" />
@@ -184,6 +190,7 @@ import Component from 'vue-class-component';
 import { mapGetters } from 'vuex';
 
 import NavbarDropdownContent from '@/components/NavbarDropdownContent.vue';
+import ShiftButton from '@/ui-cards/CashRegisters/ShiftButton.vue';
 
 @Component({
   computed: mapGetters([
@@ -196,6 +203,7 @@ import NavbarDropdownContent from '@/components/NavbarDropdownContent.vue';
     'hasNewVersion',
   ]),
   components: {
+    ShiftButton,
     NavbarDropdownContent,
     CardReader: () => import('@/ui-cards/CardReader.vue'),
     ExtendedPatientSearch: () => import('@/ui-cards/ExtendedPatientSearch/index.vue'),
@@ -259,6 +267,10 @@ export default class Navbar extends Vue {
 
   get chatsEnabled() {
     return this.$store.getters.chatsEnabled;
+  }
+
+  get l2CashEnabled() {
+    return this.$store.getters.modules.l2_cash;
   }
 
   // eslint-disable-next-line class-methods-use-this

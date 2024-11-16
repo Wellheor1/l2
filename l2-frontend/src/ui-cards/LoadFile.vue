@@ -214,11 +214,6 @@ export default {
       type: String,
       default: 'li',
     },
-    companyInn: {
-      type: String,
-      default: '',
-      required: false,
-    },
     fileFilter: {
       type: String,
       default: null,
@@ -335,7 +330,6 @@ export default {
         this.results = [];
         const formData = new FormData();
         formData.append('file', this.file);
-        formData.append('companyInn', this.companyInn);
         formData.append('isGenCommercialOffer', this.isGenCommercialOffer);
         formData.append('selectedPrice', this.selectedPrice);
         formData.append('isWritePatientEcp', this.isWritePatientEcp);

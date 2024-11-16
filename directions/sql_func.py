@@ -99,3 +99,223 @@ def get_researches_by_number_directions(direction_numbers):
         )
         rows = namedtuplefetchall(cursor)
     return rows
+
+
+def get_tube_registration(d_start, d_end, doctorprofile_id):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            directions_tubesregistration.id as tube_id,
+            directions_tubesregistration.number as tube_number,
+            directions_tubesregistration.daynum as tube_daynum,
+            directions_tubesregistration.defect_text as tube_defect_text,
+            directions_tubesregistration.is_defect as tube_is_defect,
+            di.napravleniye_id as direction_number,
+            dn.external_executor_hospital_id,
+            dn.external_order_id,
+            dr.title as research_title,
+            pp.title as department_title,
+            plan_org.title as plan_external_perform_org,
+            externalordre_hosp.title as hosp_external_order_api,
+            himself_input_external_hosp.title as himself_input_external_hosp_title,
+            restubes.title as tube_title,
+            restubes.color as tube_color
+            
+            FROM directions_tubesregistration
+            LEFT JOIN directions_issledovaniya_tubes dit on directions_tubesregistration.id = dit.tubesregistration_id
+            LEFT JOIN directory_releationsft drft on drft.id = directions_tubesregistration.type_id
+            LEFT JOIN researches_tubes restubes on drft.tube_id = restubes.id 
+            LEFT JOIN directions_issledovaniya di on dit.issledovaniya_id = di.id
+            LEFT JOIN directions_napravleniya dn on di.napravleniye_id = dn.id
+            LEFT JOIN directory_researches dr on di.research_id = dr.id
+            LEFT JOIN podrazdeleniya_podrazdeleniya pp on dr.podrazdeleniye_id = pp.id
+            LEFT JOIN hospitals_hospitals plan_org on dr.plan_external_performing_organization_id = plan_org.id
+            LEFT JOIN directions_registeredorders dregorder on dn.external_order_id = dregorder.id
+            LEFT JOIN hospitals_hospitals externalordre_hosp on dregorder.organization_id = externalordre_hosp.id
+            LEFT JOIN hospitals_hospitals himself_input_external_hosp on dn.hospital_id=himself_input_external_hosp.id
+            
+            WHERE directions_tubesregistration.doc_recive_id = %(doctorprofile_id)s
+            AND directions_tubesregistration.time_recive AT TIME ZONE %(tz)s BETWEEN %(d_start)s AND %(d_end)s
+            ORDER BY directions_tubesregistration.daynum DESC
+            """,
+            params={'doctorprofile_id': doctorprofile_id, 'd_start': d_start, 'd_end': d_end, 'tz': TIME_ZONE},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_tube_by_number(tube_number):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            directions_tubesregistration.id as tube_id,
+            directions_tubesregistration.number as tube_number,
+            di.napravleniye_id as direction_number,
+            dr.id as research_id,
+            dr.internal_code as research_internal_code,
+            di.id as issledovaniye_id          
+            FROM directions_tubesregistration
+            LEFT JOIN directions_issledovaniya_tubes dit on directions_tubesregistration.id = dit.tubesregistration_id
+            LEFT JOIN directory_releationsft drft on drft.id = directions_tubesregistration.type_id
+            LEFT JOIN researches_tubes restubes on drft.tube_id = restubes.id 
+            LEFT JOIN directions_issledovaniya di on dit.issledovaniya_id = di.id
+            LEFT JOIN directions_napravleniya dn on di.napravleniye_id = dn.id
+            LEFT JOIN directory_researches dr on di.research_id = dr.id
+            WHERE directions_tubesregistration.number = %(tube_number)s
+            """,
+            params={'tube_number': tube_number},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_data_by_directions_id(direction_ids):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            directions_tubesregistration.id as tube_id,
+            directions_tubesregistration.number as tube_number,
+            di.napravleniye_id as direction_number,
+            dr.title as research_title,
+            himself_input_external_hosp.title as himself_input_external_hosp_title,
+            restubes.title as tube_title,
+            restubes.color as tube_color,
+            ci.family as patient_family,
+            ci.name as patient_name,
+            ci.patronymic as patient_patronymic,
+            ci.sex as patient_sex,
+            cc.id as patient_card_id,
+            to_char(ci.birthday AT TIME ZONE %(tz)s, 'DD.MM.YY') as patient_birthday,
+            to_char(dn.data_sozdaniya AT TIME ZONE %(tz)s, 'DD.MM.YY HH24:MI') as direction_create,
+            dr.internal_code as research_internal_code,
+            dlm.title as laboratory_material,
+            to_char(directions_tubesregistration.time_get AT TIME ZONE %(tz)s, 'DD.MM -  HH24:MI') as tube_registration_time
+            FROM directions_tubesregistration
+            LEFT JOIN directions_issledovaniya_tubes dit on directions_tubesregistration.id = dit.tubesregistration_id
+            LEFT JOIN directory_releationsft drft on drft.id = directions_tubesregistration.type_id
+            LEFT JOIN researches_tubes restubes on drft.tube_id = restubes.id
+            LEFT JOIN directions_issledovaniya di on dit.issledovaniya_id = di.id
+            LEFT JOIN directions_napravleniya dn on di.napravleniye_id = dn.id
+            LEFT JOIN directory_researches dr on di.research_id = dr.id
+            LEFT JOIN directory_laboratorymaterial dlm on dr.laboratory_material_id=dlm.id
+            LEFT JOIN hospitals_hospitals himself_input_external_hosp on dn.hospital_id=himself_input_external_hosp.id
+            LEFT JOIN clients_card cc on dn.client_id = cc.id
+            LEFT JOIN clients_individual ci on cc.individual_id = ci.id
+            WHERE di.napravleniye_id in %(direction_ids)s
+            ORDER BY di.napravleniye_id, directions_tubesregistration.id
+            """,
+            params={'direction_ids': direction_ids, 'tz': TIME_ZONE},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_patient_complex_research_data(date_start, date_end, patient_card_id):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            directions_complexresearchaccountperson.id as complex_account_id,
+            dr.title as research_title,
+            directions_complexresearchaccountperson.iss_list,
+            directions_complexresearchaccountperson.researches_title_list,
+            to_char(directions_complexresearchaccountperson.create_at AT TIME ZONE %(tz)s, 'DD.MM.YY') as create_date,
+            di.time_confirmation as iss_time_confirm,
+            di.id as iss_id
+            FROM directions_complexresearchaccountperson
+            LEFT JOIN directory_researches dr on directions_complexresearchaccountperson.complex_research_id = dr.id
+            LEFT JOIN directions_issledovaniya di on directions_complexresearchaccountperson.id = di.complex_research_account_id
+            WHERE directions_complexresearchaccountperson.create_at AT TIME ZONE %(tz)s BETWEEN %(date_start)s AND %(date_end)s and 
+            directions_complexresearchaccountperson.patient_card_id = %(patient_card_id)s
+            ORDER BY complex_account_id DESC, di.id
+            """,
+            params={'date_start': date_start, 'date_end': date_end, 'patient_card_id': patient_card_id, 'tz': TIME_ZONE},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_directions_by_complex_id(complex_ids):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            DISTINCT ON (di.napravleniye_id) napravleniye_id,
+            di.time_confirmation as iss_time_confirmation
+            FROM directions_complexresearchaccountperson
+            LEFT JOIN directions_issledovaniya di on directions_complexresearchaccountperson.id = di.complex_research_account_id
+            WHERE directions_complexresearchaccountperson.id in %(complex_ids)s
+            """,
+            params={'complex_ids': complex_ids},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_directions_by_who_create(doctor_pks, d_s, d_e):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            id as napravleniye_id            
+            FROM directions_napravleniya
+            WHERE doc_who_create_id in %(doctor_pks)s and data_sozdaniya AT TIME ZONE %(tz)s BETWEEN %(d_start)s AND %(d_end)s
+            """,
+            params={'doctor_pks': doctor_pks, 'd_start': d_s, 'd_end': d_e, 'tz': TIME_ZONE},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_directions_for_send_ecp_by_researches(researches, d_s, d_e):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            directions_napravleniya.id as napravleniye_id,
+            di.id as iss_id,
+            to_char(directions_napravleniya.rmis_direction_date AT TIME ZONE %(tz)s, 'DD.MM.YYYY') as rmis_direction_date,
+            rmis_number,
+            ud.rmis_login as rmis_login,
+            ud.rmis_password as rmis_password
+            FROM directions_napravleniya
+            LEFT JOIN directions_issledovaniya di on directions_napravleniya.id = di.napravleniye_id
+            LEFT JOIN users_doctorprofile ud on di.doc_confirmation_id=ud.id
+            WHERE 
+            di.time_confirmation AT TIME ZONE %(tz)s BETWEEN %(d_start)s AND %(d_end)s
+            AND directions_napravleniya.result_rmis_send = false
+            AND directions_napravleniya.rmis_direction_date is not Null
+            AND di.research_id in %(researches)s 
+            """,
+            params={'researches': researches, 'd_start': d_s, 'd_end': d_e, 'tz': TIME_ZONE},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_directions_for_send_ecp_by_dirs(researches, dirs):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+            directions_napravleniya.id as napravleniye_id,
+            di.id as iss_id,
+            to_char(directions_napravleniya.rmis_direction_date AT TIME ZONE %(tz)s, 'DD.MM.YYYY') as rmis_direction_date,
+            rmis_number,
+            ud.rmis_login as rmis_login,
+            ud.rmis_password as rmis_password
+            FROM directions_napravleniya
+            LEFT JOIN directions_issledovaniya di on directions_napravleniya.id = di.napravleniye_id
+            LEFT JOIN users_doctorprofile ud on di.doc_confirmation_id=ud.id
+            WHERE 
+            directions_napravleniya.id in %(dirs)s            
+            AND directions_napravleniya.rmis_direction_date is not Null
+            AND di.research_id in %(researches)s 
+            """,
+            params={'researches': researches, 'dirs': dirs, 'tz': TIME_ZONE},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows

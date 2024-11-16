@@ -487,7 +487,7 @@
               </div>
             </div>
             <div
-              class="col-xs-4 left-padding right-padding"
+              class="col-xs-3 left-padding right-padding"
             >
               <div
                 class="input-group"
@@ -501,6 +501,24 @@
                     v-model="user.notControlAnketa"
                     type="checkbox"
                   > Не контролировать АНКЕТУ
+                </label>
+              </div>
+            </div>
+            <div
+              class="col-xs-1 left-padding right-padding"
+            >
+              <div
+                class="input-group"
+                style="width: 100%"
+              >
+                <label
+                  class="input-group-addon"
+                  style="height: 34px; text-align: left"
+                >
+                  <input
+                    v-model="user.dismissed"
+                    type="checkbox"
+                  > Уволен
                 </label>
               </div>
             </div>
@@ -525,6 +543,20 @@
                 title="Редактировать"
                 @click="change_setup_forbidden"
               />
+            </button>
+            <button
+              class="btn btn-blue-nb sidebar-btn"
+              style="font-size: 13px"
+              @click="restrictedOfPrice"
+            >
+              Ограничить услуги по прайсу
+            </button>
+            <button
+              class="btn btn-blue-nb sidebar-btn"
+              style="font-size: 13px"
+              @click="cancelRestricted"
+            >
+              Убрать ограничение
             </button>
           </div>
           <div
@@ -1038,6 +1070,7 @@ export default {
         replace_doctor_cda: -1,
         department_doctors: [],
         additionalInfo: '{}',
+        dismissed: false,
       },
       selected_hospital: -1,
       open_pk: -2,
@@ -1206,6 +1239,31 @@ export default {
     },
     change_setup_forbidden() {
       this.setup_forbidden = !this.setup_forbidden;
+    },
+    async restrictedOfPrice() {
+      await this.$store.dispatch(actions.INC_LOADING);
+      const { ok } = await this.$api('users/update-restricted-directions', {
+        userPk: this.user.doc_pk,
+        hospitalPk: this.selected_hospital,
+      });
+      await this.$store.dispatch(actions.DEC_LOADING);
+      if (ok) {
+        this.$root.$emit('msg', 'ok', 'успешно');
+      } else {
+        this.$root.$emit('msg', 'error', 'ошибка');
+      }
+    },
+    async cancelRestricted() {
+      await this.$store.dispatch(actions.INC_LOADING);
+      const { ok } = await this.$api('users/cancel-restricted-directions', {
+        userPk: this.user.doc_pk,
+      });
+      await this.$store.dispatch(actions.DEC_LOADING);
+      if (ok) {
+        this.$root.$emit('msg', 'ok', 'успешно');
+      } else {
+        this.$root.$emit('msg', 'error', 'ошибка');
+      }
     },
     change_setup_analyzer() {
       this.setup_analyzer = !this.setup_analyzer;

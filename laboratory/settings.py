@@ -66,6 +66,8 @@ INSTALLED_APPS = (
     'chats.apps.ChatsConfig',
     'employees.apps.EmployeesConfig',
     'results_feed.apps.ResultsFeedConfig',
+    'document_management',
+    'cash_registers',
 )
 
 MIDDLEWARE = [
@@ -402,10 +404,17 @@ CDA_TEMPLATE_XML_DIRECTORY = ""
 IDGTL_KEY = ""
 ROUTE_LIST_ROW_HEIGHTS = 25
 OWN_SETUP_TO_SEND_FTP_EXECUTOR = False
-
+FORMS_LABORATORY_DIRECTION_DEFAULT = ""
+TUBE_MAX_RESEARCH_WITH_SHARE = False
+TUBE_BARCODE_OFFSET_X = 1
+TUBE_BARCODE_WIDTH_MINDEX = 0.0125
+RELATED_AGREES_FORMS_TOGETHER = {}
+FTP_PATH_TO_SAVE = ""
+DISABLE_PATIENT_CANVAS_MARKER = False
 
 FCM_CERT_PATH = ""
 PROMETHEUS_ENABLED = False
+USERS_PK_SHOW_FACT_ADDRESSES_025U = []
 
 TYPE_NUMBER_SYSTEM = []
 FTP_SETUP_TO_SEND_HL7_BY_RESEARCHES = {
@@ -414,6 +423,44 @@ FTP_SETUP_TO_SEND_HL7_BY_RESEARCHES = {
     "ftp_settings": {"address": "", "user": "", "password": "", "path": ""},
     "id_researches": [],
 }
+
+ALLOWED_FORMS_FILE = {
+    "100.01": False,
+    "100.02": False,
+    "101.01": False,
+}
+
+EXCLUDE_TYPE_RESEARCH = {
+    "is_laboratory": False,
+    "is_paraclinic": False,
+    "is_doc_refferal": False,
+    "is_treatment": False,
+    "is_stom": False,
+    "is_hospital": False,
+    "is_slave_hospital": False,
+    "is_microbiology": False,
+    "is_citology": False,
+    "is_gistology": False,
+    "is_form": False,
+    "is_application": False,
+    "is_direction_params": False,
+    "is_global_direction_params": False,
+    "is_monitoring": False,
+    "is_expertise": False,
+    "is_aux": False,
+    "is_case": False,
+    "is_complex": False,
+}
+
+RMIS_MIDDLE_SERVER_ADDRESS = 'http://127.0.0.1:3000'
+RMIS_MIDDLE_SERVER_TOKEN = 'token'
+
+CASH_REGISTER_SERVER_ADDRESS = 'http://127.0.0.1:3000'
+CASH_REGISTER_SERVER_TOKEN = 'token'
+PAY_FIN_SOURCE_ID = None
+
+CHAMBER_DOCTOR_GROUP_ID = None
+DEFECT_VARIANTS = []
 
 try:
     from laboratory.local_settings import *  # noqa: F403,F401

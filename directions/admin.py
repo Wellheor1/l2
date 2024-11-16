@@ -34,6 +34,8 @@ from .models import (
     RegisteredOrders,
     ExternalAdditionalOrder,
     NapravleniyaHL7LinkFiles,
+    ComplexResearchAccountPerson,
+    StatementDocument,
 )
 
 admin.site.register(IstochnikiFinansirovaniya)
@@ -95,6 +97,11 @@ class NapravleniyaAdmin(admin.ModelAdmin):
 class DirectionDocumentAdmin(admin.ModelAdmin):
     autocomplete_fields = ('direction',)
     search_fields = ('direction__id',)
+
+
+@admin.register(ComplexResearchAccountPerson)
+class ComplexResearchAccountPersonAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'complex_research', 'patient_card', 'researches_id_list', 'researches_title_list', 'create_at']
 
 
 @admin.register(DocumentSign)
@@ -333,6 +340,13 @@ class ResultAdmin(admin.ModelAdmin):
     )
 
 
+class ResStatementDocument(admin.ModelAdmin):
+    list_display = (
+        'person_who_create',
+        'create_at',
+    )
+
+
 admin.site.register(TubesRegistration)
 admin.site.register(Result, ResultAdmin)
 admin.site.register(FrequencyOfUseResearches)
@@ -360,3 +374,4 @@ admin.site.register(MicrobiologyResultCulture, MicrobiologyResultCultureAdmin)
 admin.site.register(MicrobiologyResultPhenotype, MicrobiologyResultPhenotypeAdmin)
 admin.site.register(RegisteredOrders, RegisteredOrdersAdmin)
 admin.site.register(ExternalAdditionalOrder, ExternalAdditionalOrderAdmin)
+admin.site.register(StatementDocument, ResStatementDocument)

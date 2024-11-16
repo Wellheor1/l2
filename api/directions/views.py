@@ -5,6 +5,8 @@ import uuid
 from typing import Optional
 
 from django.core.paginator import Paginator
+
+from barcodes.views import tubes
 from cda.integration import cdator_gen_xml, render_cda
 from contracts.models import PriceCategory, PriceCoast, PriceName, Company
 from ecp_integration.integration import get_ecp_time_table_list_patient, get_ecp_evn_direction, fill_slot_ecp_free_nearest
@@ -67,12 +69,21 @@ from directions.models import (
     SignatureCertificateDetails,
     GeneratorValuesAreOver,
     NoGenerator,
+    ComplexResearchAccountPerson,
 )
 from directory.models import Fractions, ParaclinicInputGroups, ParaclinicTemplateName, ParaclinicInputField, HospitalService, Researches, AuxService
 from laboratory import settings
 from laboratory import utils
 from laboratory.decorators import group_required
-from laboratory.settings import DICOM_SERVER, TIME_ZONE, REMD_ONLY_RESEARCH, REMD_EXCLUDE_RESEARCH, SHOW_EXAMINATION_DATE_IN_PARACLINIC_RESULT_PAGE, DICOM_SERVERS
+from laboratory.settings import (
+    DICOM_SERVER,
+    TIME_ZONE,
+    REMD_ONLY_RESEARCH,
+    REMD_EXCLUDE_RESEARCH,
+    SHOW_EXAMINATION_DATE_IN_PARACLINIC_RESULT_PAGE,
+    DICOM_SERVERS,
+    TUBE_MAX_RESEARCH_WITH_SHARE,
+)
 from laboratory.utils import current_year, strdateru, strdatetime, strdate, strdatetimeru, strtime, tsdatetime, start_end_year, strfdatetime, current_time, replace_tz
 from pharmacotherapy.models import ProcedureList, ProcedureListTimes, Drugs, FormRelease, MethodsReception
 from results.sql_func import get_not_confirm_direction, get_laboratory_results_by_directions
@@ -98,6 +109,8 @@ from .sql_func import (
     get_confirm_direction_by_hospital,
     get_directions_meta_info,
     get_patient_open_case_data,
+    get_template_research_by_department,
+    get_template_field_by_department,
 )
 from api.stationar.stationar_func import hosp_get_hosp_direction, hosp_get_text_iss
 from forms.forms_func import hosp_get_operation_data
@@ -207,6 +220,14 @@ def directions_generate(request):
                 d: Napravleniya = Napravleniya.objects.get(pk=pk)
                 d.fill_acsn()
                 fill_slot_ecp_free_nearest(d)
+                if SettingManager.get("auto_create_tubes_with_direction", default='false', default_type='b'):
+                    resp = tubes(request, direction_implict_id=pk)
+                    content_type = resp.headers.get("content-type")
+                    if content_type == 'application/json':
+                        resp_json = json.loads(resp.content)
+                        if isinstance(resp_json, dict) and "message" in resp_json:
+                            message_tube = resp_json["message"]
+                            result["message"] + message_tube
     return JsonResponse(result)
 
 
@@ -334,8 +355,40 @@ def directions_history(request):
     # status: 4 - выписано пользователем, 0 - только выписанные, 1 - Материал получен лабораторией. 2 - результат подтвержден, 3 - направления пациента,  -1 - отменено,
     if req_status == 4:
         user_creater = request.user.doctorprofile.pk
-    if req_status in [0, 1, 2, 3, 5, 7]:
+    if req_status in [0, 1, 2, 3, 5, 7, 8]:
         patient_card = pk
+
+    if req_status == 8:
+        patient_complex_data = ComplexResearchAccountPerson.get_patient_complex_research(date_start, date_end, patient_card)
+
+        final_result = [
+            {
+                "checked": False,
+                "pacs": False,
+                "has_hosp": False,
+                "has_descriptive": False,
+                "maybe_onco": False,
+                "is_application": False,
+                "lab": "",
+                "parent": parent_obj,
+                "is_expertise": False,
+                "expertise_status": False,
+                "person_contract_pk": "",
+                "person_contract_dirs": "",
+                "isComplex": True,
+                'pk': i.get('pk'),
+                'researches': i.get('researches'),
+                'cancel': False,
+                'date': i.get('date'),
+                'status': f"из {i.get('current_sum_iss')} - {i.get('current_sum_iss_confirm')}",
+                'planed_doctor': "",
+                'register_number': "",
+            }
+            for i in patient_complex_data
+        ]
+        res['directions'] = final_result
+
+        return JsonResponse(res)
 
     if req_status == 5:
         patient_contract = get_patient_contract(date_start, date_end, patient_card)
@@ -354,6 +407,7 @@ def directions_history(request):
             'has_descriptive': False,
             'maybe_onco': False,
             'is_application': False,
+            'isComplex': False,
             'lab': "",
             'parent': parent_obj,
             'is_expertise': False,
@@ -377,6 +431,7 @@ def directions_history(request):
                     'has_descriptive': False,
                     'maybe_onco': False,
                     'is_application': False,
+                    'isComplex': False,
                     'lab': "",
                     'parent': parent_obj,
                     'is_expertise': False,
@@ -428,6 +483,7 @@ def directions_history(request):
                 'has_descriptive': False,
                 'maybe_onco': False,
                 'is_application': False,
+                'isComplex': False,
                 'lab': "",
                 'parent': parent_obj,
                 'is_expertise': False,
@@ -463,8 +519,8 @@ def directions_history(request):
     child_researches_titles = ''
 
     last_dir, dir, status, date, cancel, pacs, has_hosp, has_descriptive = None, None, None, None, None, None, None, None
-    maybe_onco, is_application, is_expertise, expertise_status, can_has_pacs = False, False, False, False, False
-    parent_obj = {"iss_id": "", "parent_title": "", "parent_is_hosp": "", "parent_is_doc_refferal": ""}
+    maybe_onco, is_application, is_expertise, expertise_status, can_has_pacs, isComplex = False, False, False, False, False, False
+    parent_obj = {"iss_id": "", "parent_title": "", "parent_is_hosp": "", "parent_is_doc_refferal": "", 'countConfirms': ""}
     person_contract_pk = -1
     status_set = {-2}
     lab = set()
@@ -517,6 +573,7 @@ def directions_history(request):
                         'has_descriptive': has_descriptive,
                         'maybe_onco': maybe_onco,
                         'is_application': is_application,
+                        'isComplex,': False,
                         'lab': lab_title,
                         'parent': parent_obj,
                         'is_expertise': is_expertise,
@@ -526,6 +583,7 @@ def directions_history(request):
                         'planed_doctor': planed_doctor,
                         'register_number': register_number,
                         'rmis_number': rmis_number,
+                        'countConfirms': "",
                     }
                 )
                 child_researches_titles = ""
@@ -550,6 +608,7 @@ def directions_history(request):
             pacs = None
             maybe_onco = False
             is_application = False
+            isComplex = False
             can_has_pacs = False
             parent_obj = {"iss_id": "", "parent_title": "", "parent_is_hosp": "", "parent_is_doc_refferal": ""}
             if i[13]:
@@ -650,6 +709,7 @@ def directions_history(request):
                 'has_descriptive': has_descriptive,
                 'maybe_onco': maybe_onco,
                 'is_application': is_application,
+                'isComplex': isComplex,
                 'lab': lab_title,
                 'parent': parent_obj,
                 'is_expertise': is_expertise,
@@ -659,6 +719,7 @@ def directions_history(request):
                 'planed_doctor': planed_doctor,
                 'register_number': register_number,
                 'rmis_number': rmis_number,
+                'countConfirms': "",
             }
         )
     res['directions'] = final_result
@@ -1457,6 +1518,7 @@ def directions_paraclinic_form(request):
         pk //= 10
     add_fr = {}
     f = False
+    doc_department_id = request.user.doctorprofile.podrazdeleniye_id
     user_groups = [str(x) for x in request.user.groups.all()]
     is_without_limit_paraclinic = "Параклиника без ограничений" in user_groups
     if not request.user.is_superuser and not is_without_limit_paraclinic:
@@ -1809,18 +1871,37 @@ def directions_paraclinic_form(request):
                                 }
                             )
 
-                ParaclinicTemplateName.make_default(i.research)
-                rts = ParaclinicTemplateName.objects.filter(research=i.research, hide=False)
+                default_template = ParaclinicTemplateName.make_default(i.research)
 
-                for rt in rts.order_by('title'):
+                if i.research.templates_by_department:
+                    templates_by_department = get_template_research_by_department(i.research_id, doc_department_id)
+                    templates_data = [{"pk": template.id, "title": template.title} for template in templates_by_department]
                     iss["templates"].append(
                         {
-                            "pk": rt.pk,
-                            "title": rt.title,
+                            "pk": default_template.pk,
+                            "title": default_template.title,
                         }
                     )
+                    iss["templates"].extend(templates_data)
+
+                else:
+                    rts = ParaclinicTemplateName.objects.filter(research=i.research, hide=False)
+
+                    for rt in rts.order_by('title'):
+                        iss["templates"].append(
+                            {
+                                "pk": rt.pk,
+                                "title": rt.title,
+                            }
+                        )
 
                 result_fields = {x.field_id: x for x in ParaclinicResult.objects.filter(issledovaniye=i)}
+
+                fields_templates_by_department_data = None
+                if i.research.templates_by_department:
+                    fields_templates_by_department = get_template_field_by_department(i.research_id, doc_department_id)
+                    fields_templates_by_department_data = {field_template.field_id: field_template.value for field_template in fields_templates_by_department}
+
                 for group in i.research.paraclinicinputgroups_set.all():
                     g = {
                         "pk": group.pk,
@@ -1841,6 +1922,11 @@ def directions_paraclinic_form(request):
                         values_to_input = ([] if not field.required or field_type not in [10, 12] or i.research.is_monitoring else ['- Не выбрано']) + (
                             [] if field.input_templates == '[]' or not field.input_templates else json.loads(field.input_templates)
                         )
+                        if fields_templates_by_department_data:
+                            values_to_input_by_department = fields_templates_by_department_data.get(field.pk)
+                            if values_to_input_by_department:
+                                values_to_input = json.loads(values_to_input_by_department)
+
                         value = (
                             ((field.default_value if field_type not in [3, 11, 13, 14, 30] else '') if not result_field else result_field.value)
                             if field_type not in [1, 20]
@@ -3524,7 +3610,7 @@ def tubes_for_get(request):
         if data["direction"]["full_confirm"] and not v.time_confirmation:
             data["direction"]["full_confirm"] = False
 
-        if direction.external_order:
+        if direction.external_order or SettingManager.get("auto_create_tubes_with_direction", default='false', default_type='b'):
             ntube: Optional[TubesRegistration] = v.tubes.all().first()
             if ntube:
                 vrpk = ntube.type_id
@@ -3539,6 +3625,19 @@ def tubes_for_get(request):
         x: TubesRegistration  # noqa: F842
         has_rels = {x.type_id if not x.chunk_number else f"{x.type_id}_{x.chunk_number}": x for x in v.tubes.all()}
         new_tubes = []
+
+        chunk_number = None
+        vrpk_for_research = None
+        if v.research.count_volume_material_for_tube and TUBE_MAX_RESEARCH_WITH_SHARE:
+            relation_tube = Fractions.objects.filter(research=v.research).first()
+            rel = relation_tube.relation
+            vrpk = relation_tube.relation_id
+
+            actual_volume_share = relation_researches_count.get(rel.pk, 0) + v.research.count_volume_material_for_tube
+            relation_researches_count[rel.pk] = actual_volume_share
+            chunk_number = math.ceil(actual_volume_share / 1)
+            vrpk_for_research = f"{vrpk}_{chunk_number}"
+
         for val in v.research.fractions_set.all():
             vrpk = val.relation_id
             rel = val.relation
@@ -3552,11 +3651,13 @@ def tubes_for_get(request):
                     vrpk = absor.fupper.relation_id
                     rel = absor.fupper.relation
 
-            if rel.max_researches_per_tube:
+            if rel.max_researches_per_tube and not TUBE_MAX_RESEARCH_WITH_SHARE:
                 actual_count = relation_researches_count.get(rel.pk, 0) + 1
                 relation_researches_count[rel.pk] = actual_count
                 chunk_number = math.ceil(actual_count / rel.max_researches_per_tube)
                 vrpk = f"{vrpk}_{chunk_number}"
+            elif v.research.count_volume_material_for_tube and TUBE_MAX_RESEARCH_WITH_SHARE:
+                vrpk = vrpk_for_research
             else:
                 chunk_number = None
 
@@ -3564,7 +3665,11 @@ def tubes_for_get(request):
                 if vrpk not in has_rels:
                     with transaction.atomic():
                         try:
-                            if direction.external_executor_hospital:
+                            if direction.hospital and direction.hospital.use_self_generate_tube:
+                                hospital_for_generator_tube = direction.hospital
+                            elif direction.hospital and not direction.external_executor_hospital:
+                                hospital_for_generator_tube = direction.hospital
+                            elif direction.external_executor_hospital:
                                 hospital_for_generator_tube = direction.external_executor_hospital
                             else:
                                 hospital_for_generator_tube = request.user.doctorprofile.get_hospital()
@@ -3577,6 +3682,7 @@ def tubes_for_get(request):
                             return status_response(False, str(e))
                         ntube = TubesRegistration(type=rel, number=number, chunk_number=chunk_number)
                         ntube.save()
+
                         has_rels[vrpk] = ntube
                         new_tubes.append(ntube)
                 else:
@@ -3646,6 +3752,8 @@ def tubes_for_get(request):
 @login_required
 def tubes_register_get(request):
     pks = data_parse(request.body, {'pks': list})[0]
+    data = json.loads(request.body)
+    manual_select_get_time = data.get('selectGetTime')
 
     get_details = {}
 
@@ -3663,7 +3771,7 @@ def tubes_register_get(request):
             if napravleniye.external_executor_hospital and napravleniye.external_executor_hospital.is_external_performing_organization:
                 napravleniye.need_order_redirection = True
         if not val.doc_get and not val.time_get:
-            val.set_get(request.user.doctorprofile)
+            val.set_get(request.user.doctorprofile, manual_select_get_time)
         get_details[pk] = val.get_details()
 
     return status_response(True, data={'details': get_details})
@@ -3875,8 +3983,8 @@ def eds_documents(request):
         if v in ["", None]:
             error_doctor = f"{k} - не верно;{error_doctor}"
 
-    if not iss_obj.doc_confirmation.podrazdeleniye.n3_id or not iss_obj.doc_confirmation.hospital.code_tfoms:
-        return JsonResponse({"documents": [], "edsTitle": "", "executors": "", "error": True, "message": "UUID подразделения или код ТФОМС не заполнен"})
+    # if not iss_obj.doc_confirmation.podrazdeleniye.n3_id or not iss_obj.doc_confirmation.hospital.code_tfoms:
+    #     return JsonResponse({"documents": [], "edsTitle": "", "executors": "", "error": True, "message": "UUID подразделения или код ТФОМС не заполнен"})
 
     base = SettingManager.get_cda_base_url()
     if base != "empty":
@@ -4308,7 +4416,7 @@ def send_to_l2vi(request):
 
 
 @login_required
-@group_required("Врач параклиники", "Врач консультаций", "Заполнение мониторингов", "Свидетельство о смерти-доступ")
+@group_required("Врач параклиники", "Врач консультаций", "Врач-лаборант", "Лаборант", "Заполнение мониторингов", "Свидетельство о смерти-доступ")
 def add_file(request):
     file = request.FILES.get('file')
     form = request.FILES['form'].read()
@@ -4352,7 +4460,7 @@ def file_log(request):
         rows.append(
             {
                 'pk': row.pk,
-                'author': row.who_add_files.get_fio(),
+                'author': row.who_add_files.get_fio() if row.who_add_files else "-",
                 'createdAt': strfdatetime(row.created_at, "%d.%m.%Y %X"),
                 'file': row.uploaded_file.url if row.uploaded_file else None,
                 'fileName': os.path.basename(row.uploaded_file.name) if row.uploaded_file else None,

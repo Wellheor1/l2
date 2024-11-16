@@ -1,4 +1,5 @@
 import base64
+from django.core.files.base import ContentFile
 import datetime
 import ftplib
 import json
@@ -15,13 +16,26 @@ from django.db import transaction
 from hl7apy import VALIDATION_LEVEL, core
 from hl7apy.parser import parse_message
 
+from appconf.manager import SettingManager
 from clients.models import Individual, CardBase
 from contracts.models import PriceName
-from directions.models import Napravleniya, RegisteredOrders, NumberGenerator, TubesRegistration, IstochnikiFinansirovaniya, NapravleniyaHL7LinkFiles, Issledovaniya, Result
+from directions.models import (
+    Napravleniya,
+    RegisteredOrders,
+    NumberGenerator,
+    TubesRegistration,
+    IstochnikiFinansirovaniya,
+    NapravleniyaHL7LinkFiles,
+    Issledovaniya,
+    Result,
+    IssledovaniyaFiles,
+)
+from directions.sql_func import get_tube_by_number
+from directory.sql_func import get_fsli_fractions_by_research_id
 from ftp_orders.sql_func import get_tubesregistration_id_by_iss
 from hospitals.models import Hospitals
 from directory.models import Researches, Fractions
-from laboratory.settings import BASE_DIR, NEED_RECIEVE_TUBE_TO_PUSH_ORDER, FTP_SETUP_TO_SEND_HL7_BY_RESEARCHES, OWN_SETUP_TO_SEND_FTP_EXECUTOR
+from laboratory.settings import BASE_DIR, NEED_RECIEVE_TUBE_TO_PUSH_ORDER, FTP_SETUP_TO_SEND_HL7_BY_RESEARCHES, OWN_SETUP_TO_SEND_FTP_EXECUTOR, FTP_PATH_TO_SAVE
 from laboratory.utils import current_time
 from slog.models import Log
 from users.models import DoctorProfile
@@ -364,12 +378,34 @@ class FTPConnection:
 
         self.log("HL7 parsed")
         obr = hl7_result.ORU_R01_RESPONSE.ORU_R01_ORDER_OBSERVATION.OBR
-        external_add_order, iss_id = None, None
         is_confirm = False
-        if "L2" not in obr.OBR_2.OBR_2_1.value:
-            external_add_order = obr.OBR_2.OBR_2_1.value
-        else:
-            iss_id = (obr.OBR_2.OBR_2_1.value).split("_")[1]
+
+        tube_number = obr.OBR_3.OBR_3_1.value
+        internal_code = obr.OBR_4.OBR_4_4.value
+        research_title = obr.OBR_4.OBR_4_5.value
+
+        tubes_sql = get_tube_by_number(tube_number)
+        iss = None
+        research_id = None
+        for i in tubes_sql:
+            if internal_code == i.research_internal_code:
+                iss = Issledovaniya.objects.filter(id=i.issledovaniye_id).first()
+                research_id = i.research_id
+                break
+
+        if not iss:
+            Log.log(
+                key=tube_number,
+                type=190005,
+                body={"tube": tube_number, "internal_code": internal_code, "researchTile": research_title, "file": file, "reason": "нет такого исследования"},
+                user=None,
+            )
+            self.copy_file(file, FTP_PATH_TO_SAVE)
+            self.delete_file(file)
+            return
+        fractions_data = get_fsli_fractions_by_research_id(research_id)
+        fractions_fsl = [i.fraction_fsli for i in fractions_data]
+
         doctor_family_confirm = obr.OBR_32.OBR_32_2.value
         doctor_name_confirm = obr.OBR_32.OBR_32_3.value
         doctor_patronymic_confirm = obr.OBR_32.OBR_32_4.value
@@ -383,9 +419,23 @@ class FTPConnection:
         obxes = hl7_result.ORU_R01_RESPONSE.ORU_R01_ORDER_OBSERVATION.ORU_R01_OBSERVATION
         fractions = {"fsli": "", "title_fraction": "", "value": "", "refs": "", "units": "", "jpeg": "", "html": "", "doc_confirm": "", "date_confirm": "", "note_data": ""}
         result = []
+        fsli_error = False
+
         for obx in obxes:
             tmp_fractions = fractions.copy()
-            if (obx.OBX.obx_3.obx_3_1.value).lower == "pdf":
+            if (obx.OBX.obx_3.obx_3_1.value).lower() == "pdf":
+                pdf_base_64 = obx.OBX.obx_5.obx_5_5.value
+                base64_bytes = pdf_base_64.encode('utf-8')
+                data = ContentFile(base64.b64decode(base64_bytes))
+                if IssledovaniyaFiles.objects.filter(issledovaniye=iss).exists():
+                    iss_files = IssledovaniyaFiles.objects.filter(issledovaniye=iss)
+                    for iss_file in iss_files:
+                        iss_file.delete()
+                iss_file = IssledovaniyaFiles(issledovaniye=iss, uploaded_file=data)
+
+                file_name_internal_code = internal_code.replace(".", "_")
+                iss_file.uploaded_file.name = f"{tube_number}_{file_name_internal_code}.pdf"
+                iss_file.save()
                 continue
             elif (obx.OBX.obx_3.obx_3_1.value).lower() == "jpg":
                 tmp_fractions["jpg"] = obx.OBX.obx_5.obx_5_5.value
@@ -395,18 +445,31 @@ class FTPConnection:
                 tmp_fractions["html"] = obx.OBX.obx_5.obx_5_1.value
                 result.append(tmp_fractions.copy())
                 continue
-            tmp_fractions["fsli"] = obx.OBX.obx_3.obx_3_1.value
-            tmp_fractions["title_fraction"] = obx.OBX.obx_3.obx_3_2.value
-            tmp_fractions["value"] = obx.OBX.obx_5.obx_5_1.value
-            tmp_fractions["units"] = obx.OBX.obx_6.obx_6_1.value
-            tmp_fractions["refs"] = obx.OBX.obx_7.obx_7_1.value
-            result.append(tmp_fractions.copy())
+            tmp_fsli = obx.OBX.obx_3.obx_3_1.value
 
-        if external_add_order:
-            iss = Issledovaniya.objects.filter(external_add_order__external_add_order=external_add_order).first()
-        else:
-            iss = Issledovaniya.objects.filter(id=iss_id).first()
-
+            if tmp_fsli not in fractions_fsl:
+                fsli_error = True
+                continue
+            else:
+                tmp_fractions["fsli"] = tmp_fsli
+                tmp_fractions["title_fraction"] = obx.OBX.obx_3.obx_3_2.value
+                tmp_fractions["value"] = obx.OBX.obx_5.obx_5_1.value
+                tmp_fractions["units"] = obx.OBX.obx_6.value
+                tmp_fractions["refs"] = obx.OBX.obx_7.obx_7_1.value
+                result.append(tmp_fractions.copy())
+        if fsli_error:
+            Log.log(key=tube_number, type=190005, body={"tube": tube_number, "internal_code": internal_code, "researchTile": research_title, "file": file}, user=None)
+            if is_confirm:
+                iss.lab_comment = ""
+                iss.time_confirmation = datetime.datetime.strptime(date_time_confirm, "%Y%m%d%H%M%S")
+                iss.time_save = current_time()
+                iss.doc_confirmation_string = doctor_fio
+                iss.save()
+            if iss.napravleniye.hospital.result_push_by_numbers:
+                self.copy_file(file, iss.napravleniye.hospital.result_push_by_numbers)
+            self.copy_file(file, FTP_PATH_TO_SAVE)
+            self.delete_file(file)
+            return
         if is_confirm:
             iss.lab_comment = ""
             iss.time_confirmation = datetime.datetime.strptime(date_time_confirm, "%Y%m%d%H%M%S")
@@ -415,7 +478,7 @@ class FTPConnection:
             iss.save()
 
             for res in result:
-                fraction = Fractions.objects.filter(fsli=res["fsli"]).first()
+                fraction = Fractions.objects.filter(fsli=res["fsli"], research__hide=False, research__podrazdeleniye__p_type=2).first()
                 if not fraction:
                     continue
                 value = res["value"]
@@ -424,20 +487,32 @@ class FTPConnection:
                 if ref_str:
                     ref_str = ref_str.replace('"', "'")
                     ref_str = f'{{"Все": "{ref_str}"}}'
-                Result(
-                    issledovaniye=iss,
-                    fraction=fraction,
-                    value=value,
-                    units=units,
-                    ref_f=ref_str,
-                    ref_m=ref_str,
-                ).save()
+                if Result.objects.filter(issledovaniye=iss, fraction=fraction).first():
+                    update_result = Result.objects.filter(issledovaniye=iss, fraction=fraction).first()
+                    update_result.value = value
+                    update_result.units = units
+                    update_result.ref_f = ref_str
+                    update_result.ref_m = ref_str
+                    update_result.save()
+                else:
+                    Result(
+                        issledovaniye=iss,
+                        fraction=fraction,
+                        value=value,
+                        units=units,
+                        ref_f=ref_str,
+                        ref_m=ref_str,
+                    ).save()
         else:
             iss.lab_comment = ("",)
-            iss.time_confirmation = (None,)
+            iss.time_confirmation = None
             iss.time_save = current_time()
             iss.doc_confirmation_string = ""
             iss.save()
+        if iss.napravleniye.hospital.result_push_by_numbers:
+            self.copy_file(file, iss.napravleniye.hospital.result_push_by_numbers)
+        self.copy_file(file, FTP_PATH_TO_SAVE)
+        self.delete_file(file)
 
     def push_order(self, direction: Napravleniya):
         hl7 = core.Message("ORM_O01", validation_level=VALIDATION_LEVEL.QUIET)
@@ -470,27 +545,38 @@ class FTPConnection:
         pv = hl7.add_group("ORM_O01_PATIENT_VISIT")
         pv.PV1.PV1_2.value = "O"
 
+        l2_price_code = SettingManager.get("l2_price_code", default='ТЛ0000001', default_type='s')
         if OWN_SETUP_TO_SEND_FTP_EXECUTOR:
             prices = PriceName.get_hospital_extrenal_price_by_date(direction.external_executor_hospital, direction.data_sozdaniya, direction.data_sozdaniya)
             for price in prices:
+                if l2_price_code:
+                    price_code_value = l2_price_code
+                else:
+                    price_code_value = price.symbol_code
                 if direction.istochnik_f.title.lower() == "омс" and "омс" in price.title.lower():
-                    pv.PV1.PV1_20.value = f"Договор^^{price.contract_number}^{price.symbol_code}"
-                    pv.PV1.PV1_7.value = f"{price.symbol_code}"
+                    pv.PV1.PV1_20.value = f"Договор^^{price.contract_number}^{price_code_value}"
+                    pv.PV1.PV1_7.value = f"{price_code_value}"
                 if direction.istochnik_f.title.lower() == "договор" and "договор" in price.title.lower():
-                    pv.PV1.PV1_20.value = f"Договор^^{price.contract_number}^{price.symbol_code}"
-                    pv.PV1.PV1_7.value = f"{price.symbol_code}"
+                    pv.PV1.PV1_20.value = f"Договор^^{price.contract_number}^{price_code_value}"
+                    pv.PV1.PV1_7.value = f"{price_code_value}"
         else:
             if direction.istochnik_f.title.lower() == "договор":
-                pv.PV1.PV1_20.value = f"Договор^^{direction.price_name.title}^{direction.price_name.symbol_code}"
+                if l2_price_code:
+                    price_code_value = l2_price_code
+                else:
+                    price_code_value = direction.price_name.symbol_code
+                pv.PV1.PV1_20.value = f"Договор^^{direction.price_name.title}^{price_code_value}"
+                if direction.doc_who_create.podrazdeleniye.oid:
+                    department_code = direction.doc_who_create.podrazdeleniye.oid
+                else:
+                    department_code = l2_price_code
+                pv.PV1.PV1_7.value = f"{department_code}"
             else:
                 pv.PV1.PV1_20.value = "Наличные"
         pv.PV1.PV1_44.value = direction.data_sozdaniya.strftime("%Y%m%d")
         pv.PV1.PV1_46.value = ""
-
         created_at = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-
         hl7.ORM_O01_ORDER.orc.orc_1 = "1"
-
         ordd = hl7.ORM_O01_ORDER.add_group("ORM_O01_ORDER_DETAIL")
 
         with transaction.atomic():
@@ -587,13 +673,14 @@ def check_replace_fields(field_replace, line_new, direction):
     for fr in field_replace:
         if fr == "2" and line_new[0] == "MSH":
             line_new[int(fr)] = direction.external_executor_hospital.hl7_sender_application
+            line_new[int(fr)] = direction.hospital.hl7_sender_application
         elif fr == "3" and line_new[0] == "MSH":
-            line_new[int(fr)] = direction.external_executor_hospital.short_title
+            line_new[int(fr)] = direction.hospital.hl7_sender_org
         elif fr == "2-2" and line_new[0] == "OBR":
             positions = fr.split("-")
             data = line_new[int(positions[0])]
             data_pos = data.split("^")
-            data_pos[int(positions[1]) - 1] = direction.external_executor_hospital.hl7_sender_application
+            data_pos[int(positions[1]) - 1] = direction.hospital.hl7_sender_application
             data = "^".join(data_pos)
             line_new[int(positions[0])] = data
     return line_new
@@ -669,19 +756,19 @@ def process_push_orders():
     hospitals = get_hospitals_push_orders()
 
     stdout.write("Getting ftp links")
-    ftp_links = {x.orders_push_by_numbers: x for x in hospitals}
+    ftp_links = {x: x.orders_push_by_numbers for x in hospitals}
 
     ftp_connections = {}
 
-    for ftp_url in ftp_links:
-        ftp_connection = FTPConnection(ftp_url, hospital=ftp_links[ftp_url])
-        ftp_connections[ftp_url] = ftp_connection
+    for hospital in ftp_links:
+        ftp_connection = FTPConnection(ftp_links[hospital], hospital=hospital)
+        ftp_connections[hospital] = ftp_connection
 
     time_start = time.time()
 
     while time.time() - time_start < MAX_LOOP_TIME:
         stdout.write(f"Iterating over {len(ftp_links)} servers")
-        for ftp_url, ftp_connection in ftp_connections.items():
+        for hospital, ftp_connection in ftp_connections.items():
             directions_to_sync = []
             directions = []
             directions_external_executor = []

@@ -372,6 +372,7 @@
           <span>Сохранить и печать</span>
         </button>
         <button
+          v-if="showButtonBarcode"
           v-tippy
           class="btn btn-blue-nb top-inner-select hidden-small"
           :disabled="!can_save"
@@ -381,6 +382,7 @@
           <span>Сохранить и печать ш/к</span>
         </button>
         <button
+          v-if="showButtonWithoutPrint"
           v-tippy
           class="btn btn-blue-nb top-inner-select"
           :disabled="!can_save"
@@ -390,6 +392,7 @@
           <span>Без печати</span>
         </button>
         <button
+          v-if="showButtonSetDocument"
           v-tippy
           class="btn btn-blue-nb top-inner-select"
           :disabled="!can_save"
@@ -764,6 +767,7 @@ export default {
       tableFieldsErrors: {},
       selectedCardLocal: null,
       patient_case: [{ id: -2, label: ' Не выбрано ' }],
+      showChequeModal: false,
     };
   },
   computed: {
@@ -836,6 +840,9 @@ export default {
     },
     needRequiredChooseCase() {
       return this.$store.getters.modules.l2_required_choose_caseChoose;
+    },
+    l2CashEnabled() {
+      return this.$store.getters.modules.l2_cash;
     },
     researches_departments() {
       const r = {};
@@ -958,6 +965,15 @@ export default {
     canChangeHospitalDirection() {
       const groups = this.$store.getters.user_data.groups || [];
       return groups.includes('Изменение больницы в направлении');
+    },
+    showButtonBarcode() {
+      return this.$store.getters.modules.l2_show_button_barcode;
+    },
+    showButtonSetDocument() {
+      return this.$store.getters.modules.l2_show_button_set_document;
+    },
+    showButtonWithoutPrint() {
+      return this.$store.getters.modules.l2_show_button_without_print;
     },
   },
   watch: {
@@ -1509,6 +1525,12 @@ export default {
       this.patient_case = [
         { id: -2, label: ' Не выбрано ' },
         { id: -1, label: ' Создать новый случай' }, ...patientOpenCase.data];
+    },
+    openChequeModal() {
+      this.showChequeModal = true;
+    },
+    closeChequeModal() {
+      this.showChequeModal = false;
     },
   },
 };

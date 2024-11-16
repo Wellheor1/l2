@@ -3,7 +3,9 @@
     <div class="margin-root">
       <div class="flex">
         <h4
+          v-tippy
           class="header"
+          :title="researchShortTitle"
         >
           Редактирование анализа ({{ research.pk }}) - {{ researchShortTitle }}
         </h4>
@@ -150,6 +152,20 @@
                 :append-to-body="true"
               />
             </div>
+            <div class="margin flex-item">
+              <label
+                for="laboratoryDuration"
+                class="research-detail-label"
+              >Доля контейнера</label>
+              <input
+                id="laboratoryDuration"
+                v-model="research.countVolumeMaterialForTube"
+                class="form-control"
+                max="1"
+                step="0.01"
+                type="number"
+              >
+            </div>
           </div>
         </div>
       </div>
@@ -163,10 +179,12 @@
             :key="tube.pk"
             :tube="tube"
             :tubeidx="idx"
+            :tubes-data="props.refBooks.relations"
             :units="props.refBooks.units"
             @updateOrder="updateOrder"
             @edit="edit"
             @addFraction="addFraction"
+            @changeTube="updateResearch"
           />
         </div>
         <div class="main">
@@ -277,7 +295,7 @@
         <div>
           <label class="research-detail-label">Ёмкости</label>
           <Treeselect
-            v-model="selectedTubes"
+            v-model="selectedTube"
             value-format="object"
             class="treeselect-34px"
             placeholder="Выберите ёмкость"
@@ -306,7 +324,7 @@
         <div>
           <button
             class="btn btn-blue-nb"
-            :disabled="!selectedTubes"
+            :disabled="!selectedTube"
             @click="addTubes"
           >
             Добавить
@@ -315,11 +333,20 @@
       </div>
       <div>
         <button
-          class="btn btn-blue-nb"
+          v-if="research.pk !== -1"
+          class="btn btn-blue-nb button-width"
           :disabled="!research.title"
           @click="updateResearch"
         >
           Сохранить
+        </button>
+        <button
+          v-else
+          class="btn btn-blue-nb button-width"
+          :disabled="!research.title"
+          @click="createResearch"
+        >
+          Создать
         </button>
       </div>
     </div>
@@ -400,14 +427,11 @@ interface researchData {
   laboratoryMaterialId: number,
   subGroupId: number,
   laboratoryDuration: string,
+  countVolumeMaterialForTube: number,
   tubes: tubeData[]
 }
 
-const selectedTubes = ref({
-  id: -1,
-  label: 'Выберите ёмкость',
-  color: '',
-});
+const selectedTube = ref(null);
 const researchShortTitle = ref('');
 
 const root = getCurrentInstance().proxy.$root;
@@ -425,6 +449,7 @@ const research = ref<researchData>({
   laboratoryMaterialId: null,
   subGroupId: null,
   laboratoryDuration: '',
+  countVolumeMaterialForTube: null,
   tubes: [],
 });
 
@@ -445,14 +470,19 @@ const defaultFraction = ref<fractionsData>({
 const currentFractionData = ref<fractionsData>({ ...defaultFraction.value });
 
 const addTubes = () => {
-  const tubesData = {
-    id: -1,
-    tubeId: selectedTubes.value.id,
-    title: selectedTubes.value.label,
-    color: selectedTubes.value.color,
-    fractions: [{ ...defaultFraction.value }],
-  };
-  research.value.tubes.push(tubesData);
+  if (!selectedTube.value) {
+    root.$emit('msg', 'error', 'Ёмкость не выбрана');
+  } else {
+    const tubesData = {
+      id: -1,
+      tubeId: selectedTube.value.id,
+      title: selectedTube.value.label,
+      color: selectedTube.value.color,
+      fractions: [{ ...defaultFraction.value }],
+    };
+    research.value.tubes.push(tubesData);
+    selectedTube.value = null;
+  }
 };
 
 const getResearch = async () => {
@@ -482,6 +512,7 @@ watch(() => [props.research.pk, props.research.tubes], () => {
       laboratoryMaterialId: null,
       subGroupId: null,
       laboratoryDuration: '',
+      countVolumeMaterialForTube: null,
       tubes: [],
     };
     for (const tube of props.research.tubes) {
@@ -504,34 +535,64 @@ watch(() => [props.research.pk, props.research.tubes], () => {
 const validateResearch = () => {
   const titleFilled = research.value.title;
   const departmentFilled = research.value.departmentId && research.value.departmentId !== -1;
-  const tubesFilled = research.value.tubes.length > 0;
+  const tubesFilled = research.value.tubes.length > 0 && !research.value.tubes.find((tube) => tube.tubeId === -1);
+  const countForTubeNormal = research.value.countVolumeMaterialForTube <= 1;
+  const variants = {
+    0: { ok: true, message: '' },
+    1: { ok: false, message: 'Не заполнено название' },
+    2: { ok: false, message: 'Не выбрано подразделение' },
+    3: { ok: false, message: 'Не выбрана пробирка' },
+    4: { ok: false, message: 'Доля в контейнере не может быть больше 1' },
+  };
+  let result = 0;
   if (!titleFilled) {
-    return { ok: false, message: 'Не заполнено название' };
+    result = 1;
+  } else if (!departmentFilled) {
+    result = 2;
+  } else if (!tubesFilled) {
+    result = 3;
+  } else if (!countForTubeNormal) {
+    result = 4;
   }
-  if (!departmentFilled) {
-    return { ok: false, message: 'Не выбрано подразделение' };
-  }
-  if (!tubesFilled) {
-    return { ok: false, message: 'Не выбрана пробирка' };
-  }
-  return { ok: true, message: '' };
+  return variants[result];
 };
 
 const updateResearch = async () => {
   const researchValidate = validateResearch();
   if (researchValidate.ok) {
     await store.dispatch(actions.INC_LOADING);
-    const { ok, pk } = await api('construct/laboratory/update-research', { research: research.value });
+    const { ok, message } = await api('construct/laboratory/update-research', { research: research.value });
     await store.dispatch(actions.DEC_LOADING);
     if (ok) {
-      if (pk) {
-        research.value.pk = pk;
-      }
       root.$emit('msg', 'ok', 'Обновлено');
       await getResearch();
       emit('updateResearch');
     } else {
-      root.$emit('msg', 'error', 'Ошибка');
+      await getResearch();
+      root.$emit('msg', 'error', message);
+    }
+  } else {
+    root.$emit('msg', 'error', researchValidate.message);
+  }
+};
+
+const createResearch = async () => {
+  const researchValidate = validateResearch();
+  if (researchValidate.ok) {
+    await store.dispatch(actions.INC_LOADING);
+    const { ok, pk, message } = await api('construct/laboratory/create-research', { research: research.value });
+    await store.dispatch(actions.DEC_LOADING);
+    if (ok) {
+      research.value.pk = pk;
+      root.$emit('msg', 'ok', 'Создано ');
+      await getResearch();
+      emit('updateResearch');
+    } else {
+      if (pk) {
+        research.value.pk = pk;
+        await getResearch();
+      }
+      root.$emit('msg', 'error', message);
     }
   } else {
     root.$emit('msg', 'error', researchValidate.message);
@@ -554,8 +615,8 @@ const updateOrder = async ({
   }
 };
 
-const edit = ({ fractionOrder, tubeIdx }) => {
-  currentFractionData.value = research.value.tubes[tubeIdx].fractions.find(fraction => fraction.order === fractionOrder);
+const edit = ({ fractionId, tubeIdx }) => {
+  currentFractionData.value = research.value.tubes[tubeIdx].fractions.find(fraction => fraction.id === fractionId);
 };
 
 const addFraction = (newFraction: object) => {
@@ -620,6 +681,9 @@ const deleteRef = (idx: number, refKey: string) => {
 }
 .header {
   margin: 10px 5px 10px 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .flex-right {
   display: flex;
@@ -724,5 +788,8 @@ const deleteRef = (idx: number, refKey: string) => {
   height: 30px;
   padding: 0 12px;
   align-self: center;
+}
+.button-width {
+  width: 100px;
 }
 </style>

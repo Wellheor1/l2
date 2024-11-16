@@ -4,7 +4,7 @@ import simplejson as json
 from django.db import transaction
 
 from api.contracts.func import researches_for_billing, get_confirm_data_for_billing, structure_table
-from contracts.models import BillingRegister, RawDocumentBillingRegister, PriceName
+from contracts.models import BillingRegister, RawDocumentBillingRegister, PriceName, PriceCoast
 from directions.models import Issledovaniya
 from directory.models import Researches
 from laboratory.decorators import group_required
@@ -44,6 +44,8 @@ def update_billing(request):
     if not billing_data.is_confirmed:
         billing_info = BillingRegister.update_billing(billing_id, date_start, date_end, info, price_id, date_from, registry_number)
         type_price = body.get("typeCompany")
+        date_start = f"{date_start} 00:00:00"
+        date_end = f"{date_end} 23:59:59"
         data = researches_for_billing(type_price, hospital_id, date_start, date_end, price_id, billing_data.is_confirmed, billing_id)
         structure_data = structure_table(data)
         return JsonResponse({"ok": True, "billingInfo": billing_info, **structure_data})
@@ -58,8 +60,8 @@ def confirm_billing(request):
     billing_data = BillingRegister.objects.filter(pk=billing_id).first()
     if not billing_data.is_confirmed:
         hospital_id = billing_data.hospital_id
-        date_start = billing_data.date_start
-        date_end = billing_data.date_end
+        date_start = f"{billing_data.date_start} 00:00:00"
+        date_end = f"{billing_data.date_end} 23:59:59"
         price_id = billing_data.price_id
 
         data = researches_for_billing(type_price, hospital_id, date_start, date_end, price_id, billing_data.is_confirmed, billing_id)
@@ -154,3 +156,21 @@ def get_billing(request):
         return JsonResponse({"ok": data["ok"], "result": [], "message": data["message"]})
     structure_data = structure_table(data)
     return JsonResponse({"ok": True, "result": result, "message": "", **structure_data})
+
+
+@login_required
+@group_required("Конструктор: Настройка организации")
+def delete_all_price_coasts(request):
+    body = json.loads(request.body)
+    price_id = body.get("priceId")
+    result = PriceCoast.delete_all_price_coasts(price_id)
+    return status_response(result["ok"], result["message"])
+
+
+@login_required
+@group_required("Конструктор: Настройка организации")
+def get_price_coasts(request):
+    body = json.loads(request.body)
+    price_id = body.get("priceId")
+    result = PriceCoast.get_researches_and_coasts_by_price(price_id)
+    return JsonResponse({"result": result})

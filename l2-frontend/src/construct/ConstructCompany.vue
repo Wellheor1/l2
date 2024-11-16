@@ -153,7 +153,13 @@
             </div>
             <div>
               <ul class="nav navbar">
-                <LoadFile :company-inn="editorCompany.inn" />
+                <UploadFileModal
+                  tag="li"
+                  :types-file="['XLSX']"
+                  :forms-file="['101.01']"
+                  :other-need-data="{ companyInn: editorCompany.inn }"
+                  :show-results="true"
+                />
               </ul>
             </div>
           </div>
@@ -166,7 +172,7 @@
         <input
           v-model.trim="searchCompany"
           class="form-control nbr search"
-          placeholder="Фильтр по названию..."
+          placeholder="Фильтр по названию|ИНН"
         >
         <div class="scroll">
           <table class="table table-bordered">
@@ -368,14 +374,18 @@ import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 import ruRu from '@/locales/ve';
 import VueTippyTd from '@/construct/VueTippyTd.vue';
 import * as actions from '@/store/action-types';
-import LoadFile from '@/ui-cards/LoadFile.vue';
+import UploadFileModal from '@/modals/UploadFileModal.vue';
 
 VeLocale.use(ruRu);
 
 export default {
   name: 'ConstructCompany',
   components: {
-    LoadFile, VueTippyTd, VeTable, VePagination, Treeselect,
+    UploadFileModal,
+    VueTippyTd,
+    VeTable,
+    VePagination,
+    Treeselect,
   },
   data() {
     return {
@@ -420,9 +430,10 @@ export default {
     filteredCompany() {
       return this.companies.filter(company => {
         const companyTitle = company.title.toLowerCase();
+        const companyInn = company.inn.toLowerCase();
         const searchTerm = this.searchCompany.toLowerCase();
 
-        return companyTitle.includes(searchTerm);
+        return companyTitle.includes(searchTerm) || companyInn.includes(searchTerm);
       });
     },
     filteredDepartments() {

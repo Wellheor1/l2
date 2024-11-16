@@ -13,6 +13,13 @@
         class="form-control"
         placeholder="Фильтр по названию"
       >
+      <a
+        class="a-under a-align"
+        href="#"
+        @click.prevent="downloadXlsx()"
+      >
+        XLSX
+      </a>
       <div
         class="sidebar-content"
       >
@@ -152,6 +159,10 @@ const changeVisibility = async ({ researchPk }) => {
   }
 };
 
+const downloadXlsx = () => {
+  window.open(`/forms/xlsx?type=102.01&departmentId=${department.value}`, '_blank');
+};
+
 const addResearch = () => {
   currentResearch.value = {
     pk: -1, order: 1, departmentId: department.value, tubes: [],
@@ -164,6 +175,7 @@ export interface refBook {
   subGroups: object[],
   variants: object[],
   tubes: object[],
+  relations: object[],
 }
 const refBooks = ref<refBook>({
   units: [],
@@ -171,6 +183,7 @@ const refBooks = ref<refBook>({
   subGroups: [],
   variants: [],
   tubes: [],
+  relations: [],
 });
 
 const getRefbooks = async () => {
@@ -224,6 +237,9 @@ onMounted(() => {
     border-right: none;
     height: 36px;
   }
+  .a-align {
+    margin-left: auto;
+  }
 }
 .empty-list {
   height: 20px;
@@ -232,7 +248,7 @@ onMounted(() => {
 }
 
 .sidebar-content {
-  height: calc(100vh - 142px);
+  height: calc(100vh - 162px);
   overflow-y: auto;
 }
 
@@ -241,4 +257,5 @@ onMounted(() => {
   margin: 0;
   flex: 0 0 34px;
 }
+
 </style>

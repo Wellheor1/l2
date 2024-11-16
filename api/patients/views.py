@@ -9,6 +9,7 @@ import simplejson as json
 from django.contrib.auth.decorators import login_required
 from django.core.validators import validate_email
 
+from api.models import Application
 from api.patients.common_func import get_card_control_param
 from ecp_integration.integration import search_patient_ecp_by_person_id
 from laboratory.decorators import group_required
@@ -345,6 +346,8 @@ def patients_search_card(request):
 
     if not inc_archive:
         cards = cards.filter(is_archive=False)
+    if not isinstance(request.user, Application) and request.user.doctorprofile.hospital.strict_data_ownership:
+        cards = cards.filter(owner=request.user.doctorprofile.hospital)
     row: Card
     for row in (
         cards.select_related("individual", "base")
@@ -608,7 +611,14 @@ def patients_card_save(request):
         request_data[field] = request_data[field].strip()
 
     if "new_individual" in request_data and (request_data["new_individual"] or not Individual.objects.filter(pk=request_data["individual_pk"])) and request_data["card_pk"] < 0:
-        i = Individual(family=request_data["family"], name=request_data["name"], patronymic=request_data["patronymic"], birthday=request_data["birthday"], sex=request_data["sex"])
+        i = Individual(
+            family=request_data["family"],
+            name=request_data["name"],
+            patronymic=request_data["patronymic"],
+            birthday=request_data["birthday"],
+            sex=request_data["sex"],
+            owner=request.user.doctorprofile.hospital,
+        )
         i.save()
     else:
         changed = False
@@ -640,6 +650,7 @@ def patients_card_save(request):
         with transaction.atomic():
             base = CardBase.objects.select_for_update().get(pk=request_data["base_pk"], internal_type=True)
             c = Card(number=Card.next_l2_n(), base=base, individual=i, main_diagnosis="", main_address="", fact_address="")
+            c.owner = request.user.doctorprofile.hospital
             c.save()
             card_pk = c.pk
         Log.log(card_pk, 30000, request.user.doctorprofile, request_data)

@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 import simplejson as json
-from directory.models import Researches, Unit, LaboratoryMaterial, ResultVariants, MaterialVariants, SubGroupPadrazdeleniye, SubGroupDirectory, ComplexService
+from directory.models import Researches, Unit, LaboratoryMaterial, ResultVariants, MaterialVariants, SubGroupPadrazdeleniye, SubGroupDirectory, ComplexService, ReleationsFT, Fractions
 from laboratory.decorators import group_required
 from podrazdeleniya.models import Podrazdeleniya
 from researches.models import Tubes
@@ -29,6 +29,12 @@ def get_tubes(request):
 def update_order_research(request):
     request_data = json.loads(request.body)
     result = Researches.update_order(request_data["researchPk"], request_data["researchNearbyPk"], request_data["action"])
+    Log.log(
+        request_data["researchPk"],
+        220000,
+        request.user.doctorprofile,
+        {"research_pk": request_data["researchPk"], "action": request_data["action"]},
+    )
     return status_response(result)
 
 
@@ -36,8 +42,14 @@ def update_order_research(request):
 @group_required("Конструктор: Лабораторные исследования")
 def change_visibility_research(request):
     request_data = json.loads(request.body)
-    result = Researches.change_visibility(request_data["researchPk"])
-    return status_response(result)
+    result = Researches.change_visibility(request_data["researchPk"], True)
+    Log.log(
+        request_data["researchPk"],
+        220001,
+        request.user.doctorprofile,
+        {"research_pk": request_data["researchPk"], "hide": result["hide"]},
+    )
+    return status_response(result["ok"])
 
 
 @login_required
@@ -52,8 +64,48 @@ def get_lab_research(request):
 @group_required("Конструктор: Лабораторные исследования")
 def update_lab_research(request):
     request_data = json.loads(request.body)
-    result = Researches.update_lab_research(request_data["research"])
-    return JsonResponse(result)
+    result = Researches.update_lab_research_and_fractions(request_data["research"], True)
+    if result["ok"]:
+        Log.log(
+            result["old_data"]["pk"],
+            220002,
+            request.user.doctorprofile,
+            {"old_data": result["old_data"], "new_data": result["new_data"]},
+        )
+    return JsonResponse({"ok": result["ok"], "message": result["message"]})
+
+
+@login_required
+@group_required("Конструктор: Лабораторные исследования")
+def change_tube_for_fractions(request):
+    request_data = json.loads(request.body)
+    fractions_id = request_data.get("fractionsIds")
+    old_tube = request_data.get("oldTube")
+    new_tube = request_data.get("newTube")
+    result = Fractions.change_relation_tube(fractions_id, old_tube, new_tube)
+    if result:
+        Log.log(
+            result["old_data"]["pk"],
+            220004,
+            request.user.doctorprofile,
+            {"old_tube": old_tube, "new_tube": new_tube, "fractions_id": fractions_id},
+        )
+    return JsonResponse({"ok": result["ok"], "message": result["message"]})
+
+
+@login_required
+@group_required("Конструктор: Лабораторные исследования")
+def create_lab_research(request):
+    request_data = json.loads(request.body)
+    result = Researches.create_lab_research_and_fractions(request_data["research"], True)
+    if result["ok"]:
+        Log.log(
+            result["log_data"]["pk"],
+            220003,
+            request.user.doctorprofile,
+            result["log_data"],
+        )
+    return JsonResponse({"ok": result["ok"], "pk": result["pk"], "message": result["message"]})
 
 
 @login_required
@@ -65,7 +117,8 @@ def get_lab_ref_books(request):
     subgroups = SubGroupPadrazdeleniye.get_subgroup_podrazdeleniye(request_data["departmentId"])
     variants = ResultVariants.get_all()
     tubes = Tubes.get_all()
-    result = {"units": units, "materials": materials, "subGroups": subgroups, "variants": variants, "tubes": tubes}
+    relations_tubes = ReleationsFT.get_all_relation()
+    result = {"units": units, "materials": materials, "subGroups": subgroups, "variants": variants, "tubes": tubes, "relations": relations_tubes}
     return JsonResponse({"result": result})
 
 
@@ -73,14 +126,6 @@ def get_lab_ref_books(request):
 @group_required("Конструктор: Лабораторные исследования")
 def get_comments_variants(request):
     result = MaterialVariants.get_all()
-    return JsonResponse({"result": result})
-
-
-@login_required
-@group_required("Конструктор: Лабораторные исследования")
-def get_lab_research_additional_data(request):
-    request_data = json.loads(request.body)
-    result = Researches.get_lab_additional_data(request_data["researchPk"])
     return JsonResponse({"result": result})
 
 

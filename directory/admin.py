@@ -173,6 +173,27 @@ class ResParaclinicInputField(admin.ModelAdmin):
     )
 
 
+class ResParaclinicFieldTemplateDepartment(admin.ModelAdmin):
+    list_display = (
+        'paraclinic_field',
+        'research',
+        'department',
+    )
+    list_display_links = (
+        'paraclinic_field',
+        'research',
+        'department',
+    )
+
+
+class ResParaclinicTemplateDepartment(admin.ModelAdmin):
+    list_display = (
+        'template_name',
+        'department',
+    )
+    list_display_links = ('template_name', 'department')
+
+
 class ResParaclinicInputGroups(admin.ModelAdmin):
     list_display = (
         'title',
@@ -282,11 +303,57 @@ class SetComplexService(admin.ModelAdmin):
     )
 
 
+class ResPatternParam(admin.ModelAdmin):
+    list_display = (
+        'title',
+        'is_dynamic_param',
+        'order',
+    )
+    list_display_links = (
+        'title',
+        'is_dynamic_param',
+        'order',
+    )
+
+
+class ResStatisticPattern(admin.ModelAdmin):
+    list_display = (
+        'title',
+        'hide',
+    )
+    list_display_links = (
+        'title',
+        'hide',
+    )
+
+
+class ResConstructorResearchAccessDepartment(admin.ModelAdmin):
+    list_display = (
+        'research',
+        'department',
+        'master_research_hospital',
+    )
+    list_display_links = (
+        'research',
+        'department',
+    )
+    autocomplete_fields = ('research',)
+    list_filter = ('department',)
+
+    def master_research_hospital(self, obj):
+        if obj.research.is_slave_hospital:
+            hs = models.HospitalService.objects.filter(slave_research=obj.research).first()
+            return hs.main_research.title
+        else:
+            return ""
+
+
 admin.site.register(models.ResearchSite, RefSiteType)
 admin.site.register(models.ResearchGroup)
 admin.site.register(models.Researches, ResAdmin)
 admin.site.register(models.ParaclinicInputGroups, ResParaclinicInputGroups)
 admin.site.register(models.ParaclinicInputField, ResParaclinicInputField)
+admin.site.register(models.ParaclinicFieldTemplateDepartment, ResParaclinicFieldTemplateDepartment)
 admin.site.register(models.References, RefAdmin)
 admin.site.register(models.ResultVariants)
 admin.site.register(models.MaterialVariants)
@@ -315,6 +382,11 @@ admin.site.register(models.SetResearch, SetResearchAdmin)
 admin.site.register(models.SetOrderResearch, SetOrderResearchAdmin)
 admin.site.register(models.AuxService, SetAuxService)
 admin.site.register(models.ComplexService, SetComplexService)
+admin.site.register(models.ParaclinicTemplateNameDepartment, ResParaclinicTemplateDepartment)
+admin.site.register(models.PatternParam, ResPatternParam)
+admin.site.register(models.StatisticPattern, ResStatisticPattern)
+admin.site.register(models.StatisticPatternParamSet)
 admin.site.register(models.LaboratoryMaterial)
 admin.site.register(models.SubGroupDirectory)
 admin.site.register(models.SubGroupPadrazdeleniye)
+admin.site.register(models.ConstructorEditAccessResearch, ResConstructorResearchAccessDepartment)

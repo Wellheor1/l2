@@ -57,6 +57,20 @@
               Шаблоны быстрого ввода
             </button>
           </span>
+          <span
+            v-if="(ex_dep === 12 || simple) && fte && ex_dep !== 14"
+            class="input-group-btn"
+          >
+            <button
+              class="btn btn-blue-nb no-margin-left"
+              type="button"
+              style="border-radius: 0;width: 100%;"
+              :disabled="has_unsaved || loaded_pk < 0"
+              @click="openPermissionsModal"
+            >
+              Права
+            </button>
+          </span>
         </div>
         <div
           v-if="ex_dep !== 12 && ex_dep !== 13 && ex_dep !== 14 && ex_dep !== 15"
@@ -251,6 +265,19 @@
               @click="f_templates()"
             >
               Шаблоны быстрого ввода
+            </button>
+          </span>
+          <span
+            class="input-group-btn"
+          >
+            <button
+              class="btn btn-blue-nb no-margin-left"
+              type="button"
+              style="border-radius: 0;width: 100%;"
+              :disabled="has_unsaved || loaded_pk < 0"
+              @click="openPermissionsModal"
+            >
+              Права
             </button>
           </span>
         </div>
@@ -619,7 +646,7 @@
                     >
                   </div>
                   <div class="row">
-                    <div class="col-xs-6">
+                    <div class="col-xs-4">
                       <strong>Контролируемый параметр:</strong>
                       <Treeselect
                         v-model="row.patientControlParam"
@@ -632,7 +659,7 @@
                         :clearable="false"
                       />
                     </div>
-                    <div class="col-xs-6">
+                    <div class="col-xs-4">
                       <strong>CDA-отношение:</strong>
                       <Treeselect
                         v-model="row.cdaOption"
@@ -640,6 +667,19 @@
                         :multiple="false"
                         :disable-branch-nodes="true"
                         :options="cda_options"
+                        placeholder="CDA-отношение"
+                        :append-to-body="true"
+                        :clearable="false"
+                      />
+                    </div>
+                    <div class="col-xs-4">
+                      <strong>Параметр статистики:</strong>
+                      <Treeselect
+                        v-model="row.patternParam"
+                        class="treeselect treeselect-26px"
+                        :multiple="false"
+                        :disable-branch-nodes="true"
+                        :options="patternParams"
                         placeholder="CDA-отношение"
                         :append-to-body="true"
                         :clearable="false"
@@ -1099,6 +1139,12 @@
       :research_pk="loaded_pk"
       @hide="hide_localization"
     />
+    <ResearchPermissionsModal
+      v-if="showPermissionsModal"
+      :research-id="loaded_pk"
+      :departments="departmentsForPermissions"
+      @hide="closePermissionsModal"
+    />
   </div>
 </template>
 
@@ -1117,6 +1163,7 @@ import FieldHelper from '@/ui-cards/FieldHelper.vue';
 import Localizations from '@/construct/Localizations.vue';
 import PermanentDirectories from '@/construct/PermanentDirectories.vue';
 import LoadFile from '@/ui-cards/LoadFile.vue';
+import ResearchPermissionsModal from '@/construct/ResearchPermissionsModal.vue';
 
 import FastTemplatesEditor from './FastTemplatesEditor.vue';
 
@@ -1125,6 +1172,7 @@ Vue.use(Vue2Filters);
 export default {
   name: 'ParaclinicResearchEditor',
   components: {
+    ResearchPermissionsModal,
     LoadFile,
     PermanentDirectories,
     FieldHelper,
@@ -1207,6 +1255,7 @@ export default {
       result_current_form: 0,
       info: '',
       hide: false,
+      templatesByDepartment: false,
       cancel_do: false,
       loaded_pk: -2,
       site_type: null,
@@ -1240,8 +1289,14 @@ export default {
       assigned_to_params: [],
       type_period: null,
       cda_options: [],
+      patternParams: [],
       dynamicDirectories: [],
       autoRegisterRmisLocation: '',
+      departmentForTemplatesField: null,
+      departmentsForPermissions: [],
+      showAllDepartmentForTemplateField: false,
+      userDepartmentId: null,
+      showPermissionsModal: false,
     };
   },
   computed: {
@@ -1328,10 +1383,12 @@ export default {
       deep: true,
     },
   },
-  created() {
-    this.load();
-    this.load_deparments();
-    this.loadDynamicDirectories();
+  async created() {
+    this.checkShowAllTemplates();
+    await this.load();
+    await this.loadDepartmentsForPermissions();
+    await this.load_deparments();
+    await this.loadDynamicDirectories();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1544,6 +1601,7 @@ export default {
         attached: field.attached ?? '',
         patientControlParam: field.patientControlParam ?? -1,
         cdaOption: field.cdaOption ?? -1,
+        patternParam: field.patternParam ?? -1,
       });
     },
     add_group(groupSettings: any = {}) {
@@ -1572,7 +1630,7 @@ export default {
       }
       this.groups.push(g);
     },
-    load() {
+    async load() {
       this.title = '';
       this.short_title = '';
       this.autoRegisterRmisLocation = '';
@@ -1591,48 +1649,45 @@ export default {
       this.hospital_research_department_pk = -1;
       this.type_period = null;
       if (this.pk >= 0) {
-        this.$store.dispatch(actions.INC_LOADING);
-        constructPoint
-          .researchDetails(this, 'pk')
-          .then(data => {
-            this.title = data.title;
-            this.short_title = data.short_title;
-            this.autoRegisterRmisLocation = data.autoRegisterRmisLocation;
-            this.schedule_title = data.schedule_title;
-            this.is_global_direction_params = data.is_global_direction_params;
-            this.code = data.code;
-            this.internal_code = data.internal_code;
-            this.uet_refferal_doc = data.uet_refferal_doc;
-            this.uet_refferal_co_executor_1 = data.uet_refferal_co_executor_1;
-            this.direction_current_form = data.direction_current_form;
-            this.result_current_form = data.result_current_form;
-            this.currentNsiResearchCode = data.currentNsiResearchCode;
-            this.collectNsiResearchCode = data.collectNsiResearchCode;
-            this.collectMethods = data.collectMethods;
-            this.speciality = data.speciality;
-            this.hospital_research_department_pk = data.department;
-            this.info = data.info.replace(/<br\/>/g, '\n').replace(/<br>/g, '\n');
-            this.hide = data.hide;
-            this.site_type = data.site_type;
-            this.loaded_pk = this.pk;
-            this.groups = data.groups;
-            this.direction_params_all = data.direction_params_all;
-            this.patient_control_param_all = data.patient_control_param_all;
-            this.cda_options = data.cda_options;
-            this.direction_current_params = data.direction_current_params;
-            this.direction_expertise_all = data.direction_expertise_all;
-            this.direction_current_expertise = data.direction_current_expertise;
-            this.assigned_to_params = data.assigned_to_params;
-            this.show_more_services = data.show_more_services;
-            this.is_paraclinic = data.is_paraclinic;
-            this.type_period = data.type_period;
-            if (this.groups.length === 0) {
-              this.add_group();
-            }
-          })
-          .finally(() => {
-            this.$store.dispatch(actions.DEC_LOADING);
-          });
+        await this.$store.dispatch(actions.INC_LOADING);
+        const data = await constructPoint.researchDetails(this, ['pk', 'departmentForTemplatesField']);
+        await this.$store.dispatch(actions.DEC_LOADING);
+        this.title = data.title;
+        this.short_title = data.short_title;
+        this.autoRegisterRmisLocation = data.autoRegisterRmisLocation;
+        this.schedule_title = data.schedule_title;
+        this.is_global_direction_params = data.is_global_direction_params;
+        this.code = data.code;
+        this.internal_code = data.internal_code;
+        this.uet_refferal_doc = data.uet_refferal_doc;
+        this.uet_refferal_co_executor_1 = data.uet_refferal_co_executor_1;
+        this.direction_current_form = data.direction_current_form;
+        this.result_current_form = data.result_current_form;
+        this.currentNsiResearchCode = data.currentNsiResearchCode;
+        this.collectNsiResearchCode = data.collectNsiResearchCode;
+        this.collectMethods = data.collectMethods;
+        this.speciality = data.speciality;
+        this.hospital_research_department_pk = data.department;
+        this.info = data.info.replace(/<br\/>/g, '\n').replace(/<br>/g, '\n');
+        this.hide = data.hide;
+        this.templatesByDepartment = data.templatesByDepartment;
+        this.site_type = data.site_type;
+        this.loaded_pk = this.pk;
+        this.groups = data.groups;
+        this.direction_params_all = data.direction_params_all;
+        this.patient_control_param_all = data.patient_control_param_all;
+        this.cda_options = data.cda_options;
+        this.patternParams = data.patternParams;
+        this.direction_current_params = data.direction_current_params;
+        this.direction_expertise_all = data.direction_expertise_all;
+        this.direction_current_expertise = data.direction_current_expertise;
+        this.assigned_to_params = data.assigned_to_params;
+        this.show_more_services = data.show_more_services;
+        this.is_paraclinic = data.is_paraclinic;
+        this.type_period = data.type_period;
+        if (this.groups.length === 0) {
+          this.add_group();
+        }
       } else {
         this.add_group();
       }
@@ -1660,6 +1715,8 @@ export default {
         'is_global_direction_params',
         'code',
         'hide',
+        'templatesByDepartment',
+        'departmentForTemplatesField',
         'groups',
         'site_type',
         'internal_code',
@@ -1706,6 +1763,29 @@ export default {
     async loadcollectNsiCode() {
       const { rows } = await this.$api('external-system/fsidi-by-method', { method: this.currentMethod });
       this.collectNsiResearchCode = rows;
+    },
+    async loadDepartmentsForPermissions() {
+      await this.$store.dispatch(actions.INC_LOADING);
+      const { data } = await this.$api('get-departments-with-exclude', { exclude_type: [2] });
+      await this.$store.dispatch(actions.DEC_LOADING);
+      this.departmentsForPermissions = data;
+    },
+    checkShowAllTemplates() {
+      this.userDepartmentId = this.$store.getters.user_data.department.pk;
+      const { groups } = this.$store.getters.user_data;
+      if (groups.includes('Конструктор: Параклинические (описательные) исследования - шаблоны по подразделениям')
+        || groups.includes('Admin')) {
+        this.showAllDepartmentForTemplateField = true;
+      }
+    },
+    async changeTemplateField() {
+      await this.load();
+    },
+    openPermissionsModal() {
+      this.showPermissionsModal = true;
+    },
+    closePermissionsModal() {
+      this.showPermissionsModal = false;
     },
   },
 };
@@ -1916,5 +1996,8 @@ export default {
   display: flex;
   flex-direction: row;
   gap: 10px;
+}
+.no-margin-left {
+  margin-left: 0 !important;
 }
 </style>

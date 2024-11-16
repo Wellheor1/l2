@@ -144,6 +144,7 @@ def menu(request):
                     "nt": False,
                     "access": ["Управление анализаторами"],
                 },
+                {"url": "/ui/chambers", "title": "Палаты", "nt": False, "access": ["Оператор лечащего врача", "Лечащий врач"], "module": "l2_hosp"},
                 {"url": '/ui/list-wait', "title": "Листы ожидания", "nt": False, "access": ["Лечащий врач", "Оператор лечащего врача"], "module": "l2_list_wait"},
                 {"url": '/ui/doc-call', "title": "Вызовы врача и заявки", "nt": False, "access": ["Лечащий врач", "Оператор лечащего врача", "Вызов врача"], "module": "l2_doc_call"},
                 {
@@ -234,9 +235,10 @@ def menu(request):
                     "url": '/ui/billing',
                     "title": "Счета на оплату",
                     "nt": True,
-                    "access": ["Счет: проект, Счет: закрытие"],
+                    "access": ["Счет: проект", "Счет: закрытие"],
                 },
                 {"url": "/ui/utils", "title": "Инструменты", "nt": False, "access": ["Инструменты"]},
+                {"url": "/ui/document-manager", "title": "ДОУ", "nt": False, "access": ["ДОУ: просмотр документов"]},
             ]
 
             hp = SettingManager.get(key="home_page", default="false")

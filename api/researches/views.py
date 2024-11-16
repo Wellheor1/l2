@@ -9,6 +9,7 @@ from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse, JsonResponse
 
+from api.directions.sql_func import get_template_research_by_department
 from api.researches.help_files.constructor_help import constructor_help_message
 from appconf.manager import SettingManager
 from directions.models import FrequencyOfUseResearches
@@ -29,7 +30,11 @@ from directory.models import (
     ServiceLocation,
     ResearchGroup,
     ReleationsFT,
+    ParaclinicTemplateNameDepartment,
+    ParaclinicFieldTemplateDepartment,
+    ConstructorEditAccessResearch,
 )
+from directory.sql_func import get_constructor_edit_access_by_research_id, get_constructor_edit_access_by_department_or_doctor
 from directory.utils import get_researches_details
 from laboratory.decorators import group_required
 from laboratory.settings import REQUIRED_STATTALON_FIELDS, RESEARCHES_PK_REQUIRED_STATTALON_FIELDS, DISABLED_RESULT_FORMS
@@ -185,6 +190,7 @@ def get_researches(request, last_used=False):
                     "autoadd": autoadd,
                     "addto": addto,
                     "code": r.code,
+                    "internal_code": r.internal_code,
                     "type": "4" if not r.podrazdeleniye else str(r.podrazdeleniye.p_type),
                     "site_type": r.get_site_type_id(),
                     "site_type_raw": r.site_type_id if not r.is_application else -13,
@@ -236,6 +242,8 @@ def get_researches(request, last_used=False):
                     for t in tpls:
                         has_templates[t['pk']] = True
             deps['-109999' if last_used else r.reversed_type].append(research_data)
+            if r.podrazdeleniye_id and r.podrazdeleniye.p_type == 2:
+                deps['all'].append(research_data)
 
         for dk in deps:
             if last_used:
@@ -314,7 +322,7 @@ def localization_save(request):
 
 
 @login_required
-@group_required("Оператор", "Конструктор: Параклинические (описательные) исследования", "Врач стационара")
+@group_required("Оператор", "Конструктор: Параклинические (описательные) исследования", "Врач стационара", "Конструктор: Редактировать свои услуги")
 def researches_by_department(request):
     direction_form = DResearches.DIRECTION_FORMS
     result_form = [i for i in DResearches.RESULT_FORMS if i[0] not in DISABLED_RESULT_FORMS]
@@ -323,19 +331,36 @@ def researches_by_department(request):
 
     response = {"researches": [], "direction_forms": direction_form, "result_forms": result_form, "specialities": spec_data, "permanent_directories": NSI, "period_types": period_types}
     request_data = json.loads(request.body)
+    is_constructor = request_data.get('isConstructor')
     department_pk = int(request_data["department"])
+
+    user_groups = [str(x) for x in request.user.groups.all()]
+    check_self_access_edit_research = False
+    access_edit_research_ids = []
+    doctor_id = request.user.doctorprofile.pk
+    if is_constructor and "Конструктор: Редактировать свои услуги" in user_groups:
+        check_self_access_edit_research = True
+        doctor_department = request.user.doctorprofile.podrazdeleniye_id
+        research_sql_data = get_constructor_edit_access_by_department_or_doctor(int(doctor_department), int(doctor_id))
+        access_edit_research_ids = [i.research_id for i in research_sql_data]
+
     if -500 >= department_pk > -600:
         for hospital_service in HospitalService.objects.filter(site_type=-department_pk - 500):
-            response["researches"].append(
-                {
-                    "pk": hospital_service.pk,
-                    "slave_research_id": hospital_service.slave_research_id,
-                    "main_research_id": hospital_service.main_research_id,
-                    "is_hospital_service": True,
-                    "title": hospital_service.get_title(),
-                    "hide": hospital_service.hide,
-                }
-            )
+            is_check_research_access = hospital_service.slave_research_id in access_edit_research_ids and hospital_service.main_research_id in access_edit_research_ids
+            if check_self_access_edit_research and not is_check_research_access:
+                continue
+            else:
+                response["researches"].append(
+                    {
+                        "pk": hospital_service.pk,
+                        "slave_research_id": hospital_service.slave_research_id,
+                        "main_research_id": hospital_service.main_research_id,
+                        "is_hospital_service": True,
+                        "title": hospital_service.get_title(),
+                        "hide": hospital_service.hide,
+                    }
+                )
+
     elif department_pk != -1:
         if department_pk == -2:
             q = DResearches.objects.filter(is_doc_refferal=True).order_by("title")
@@ -367,6 +392,9 @@ def researches_by_department(request):
             q = DResearches.objects.filter(podrazdeleniye__pk=department_pk).order_by("title")
 
         for research in q:
+            is_check_research_access = research.pk in access_edit_research_ids
+            if check_self_access_edit_research and not is_check_research_access:
+                continue
             response["researches"].append(
                 {
                     "pk": research.pk,
@@ -402,12 +430,13 @@ def researches_params(request):
 
 
 @login_required
-@group_required("Оператор", "Конструктор: Параклинические (описательные) исследования")
+@group_required("Оператор", "Конструктор: Параклинические (описательные) исследования", "Конструктор: Редактировать свои услуги")
 @transaction.atomic
 def researches_update(request):
     response = {"ok": False}
     request_data = json.loads(request.body)
     pk = request_data.get("pk", -2)
+    user_groups = [str(x) for x in request.user.groups.all()]
     if pk > -2:
         department_pk = request_data.get("department")
         title = request_data.get("title", "").strip()
@@ -442,6 +471,8 @@ def researches_update(request):
         own_form_result = result_current_form > 0
         info = request_data.get("info", "").strip()
         hide = request_data.get("hide")
+        templates_by_department = request_data.get("templatesByDepartment")
+        department_template_pk = request_data.get("departmentForTemplatesField")
         site_type = request_data.get("site_type", None)
         groups = request_data.get("groups", [])
         tube = request_data.get("tube", -1)
@@ -454,6 +485,10 @@ def researches_update(request):
         show_more_services = request_data.get("show_more_services", True)
         hospital_research_department_pk = request_data.get("hospital_research_department_pk", -1)
         current_nsi_research_code = request_data.get("currentNsiResearchCode", -1)
+        user = request.user
+        can_change_template_department = user.doctorprofile.has_group("Конструктор: Параклинические (описательные) исследования - шаблоны по подразделениям")
+        if not can_change_template_department:
+            can_change_template_department = user.is_superuser
         if tube == -1:
             tube = None
         stationar_slave = is_simple and -500 >= department_pk > -600 and main_service_pk != 1
@@ -463,7 +498,7 @@ def researches_update(request):
             res = None
             if int(hospital_research_department_pk) > -1:
                 department = Podrazdeleniya.objects.filter(pk=int(hospital_research_department_pk))[0]
-            if pk == -1:
+            if pk == -1 and "Конструктор: Параклинические (описательные) исследования" in user_groups:
                 res = DResearches(
                     title=title,
                     short_title=short_title,
@@ -507,7 +542,16 @@ def researches_update(request):
                     show_more_services=show_more_services,
                     nsi_id=current_nsi_research_code,
                 )
+                if can_change_template_department:
+                    res.templates_by_department = templates_by_department
             elif DResearches.objects.filter(pk=pk).exists():
+                access_edit_research = get_constructor_edit_access_by_research_id(pk)
+                doc_ids = [i.doctor_id for i in access_edit_research]
+                department_ids = [i.department_id for i in access_edit_research]
+                if "Конструктор: Редактировать свои услуги" in user_groups and not (
+                    request.user.doctorprofile.pk in doc_ids or request.user.doctorprofile.podrazdeleniye_id in department_ids
+                ):
+                    return JsonResponse(response)
                 res = DResearches.objects.filter(pk=pk)[0]
                 if res == researche_direction_current_params:
                     return JsonResponse(response)
@@ -552,6 +596,8 @@ def researches_update(request):
                 res.has_own_form_result = own_form_result
                 res.show_more_services = show_more_services and not res.is_microbiology and not res.is_form
                 res.nsi_id = current_nsi_research_code
+                if can_change_template_department:
+                    res.templates_by_department = templates_by_department
             if res:
                 res.save()
                 if main_service_pk != 1 and stationar_slave:
@@ -593,6 +639,8 @@ def researches_update(request):
                         g.fields_inline = group.get("fieldsInline", False)
                     if g:
                         g.save()
+
+                        department_template_field = None
                         for field in group["fields"]:
                             f = None
                             pk = field["pk"]
@@ -609,7 +657,6 @@ def researches_update(request):
                                     hide=field["hide"],
                                     default_value=field["default"],
                                     visibility=field.get("visibility", ""),
-                                    input_templates=json.dumps(field["values_to_input"]),
                                     field_type=field.get("field_type", 0),
                                     can_edit_computed=field.get("can_edit", False),
                                     helper=field.get("helper", ''),
@@ -620,8 +667,16 @@ def researches_update(request):
                                     control_param=field.get("controlParam", ""),
                                     cda_option_id=field.get("cdaOption", -1) if field.get("cdaOption", -1) != -1 else None,
                                     patient_control_param_id=field.get("patientControlParam", -1) if field.get("patientControlParam", -1) != -1 else None,
+                                    statistic_pattern_param_id=field.get("patternParam") if field.get("patternParam") != -1 else None,
                                 )
+                                if department_template_pk:
+                                    department_template_field = ParaclinicFieldTemplateDepartment(
+                                        paraclinic_field_id=f.pk, research_id=res.pk, department_id=department_template_pk, value=json.dumps(field["values_to_input"])
+                                    )
+                                else:
+                                    f.input_templates = json.dumps(field["values_to_input"])
                             elif ParaclinicInputField.objects.filter(pk=pk).exists():
+                                field_data = ParaclinicInputField.objects.filter(pk=pk).first()
                                 f = ParaclinicInputField.objects.get(pk=pk)
                                 f.title = field["title"]
                                 f.short_title = field["short_title"]
@@ -633,7 +688,9 @@ def researches_update(request):
                                 f.hide = field["hide"]
                                 f.default_value = field["default"]
                                 f.visibility = field.get("visibility", "")
-                                f.input_templates = json.dumps(field["values_to_input"])
+                                su = request.user.is_superuser or request.user.doctorprofile.all_hospitals_users_control
+                                if field_data.field_type != field.get("field_type", 0) and not su:
+                                    return JsonResponse(response)
                                 f.field_type = field.get("field_type", 0)
                                 f.can_edit_computed = field.get("can_edit", False)
                                 f.required = field.get("required", False)
@@ -646,8 +703,22 @@ def researches_update(request):
                                 f.control_param = field.get("controlParam", '')
                                 f.patient_control_param_id = field.get("patientControlParam", -1) if field.get("patientControlParam", -1) != -1 else None
                                 f.cda_option_id = field.get("cdaOption", -1) if field.get("cdaOption", -1) != -1 else None
+                                f.statistic_pattern_param_id = field.get("patternParam") if field.get("patternParam") != -1 else None
+
+                                if department_template_pk:
+                                    department_template_field: ParaclinicFieldTemplateDepartment = ParaclinicFieldTemplateDepartment.objects.filter(pk=f.pk).first()
+                                    if department_template_field:
+                                        department_template_field.value = json.dumps(field["values_to_input"])
+                                    else:
+                                        department_template_field = ParaclinicFieldTemplateDepartment(
+                                            paraclinic_field_id=f.pk, research_id=res.pk, department_id=department_template_pk, value=json.dumps(field["values_to_input"])
+                                        )
+                                else:
+                                    f.input_templates = json.dumps(field["values_to_input"])
                             if f:
                                 f.save()
+                                if department_template_field:
+                                    department_template_field.save()
 
                             if f.default_value == '':
                                 continue
@@ -663,8 +734,8 @@ def researches_update(request):
 def researches_details(request):
     request_data = json.loads(request.body)
     pk = request_data.get("pk")
-    response = get_researches_details(pk)
-
+    templates_department_pk = request_data.get("departmentForTemplatesField")
+    response = get_researches_details(pk, templates_department_pk)
     return JsonResponse(response)
 
 
@@ -706,38 +777,50 @@ def paraclinic_details(request):
 
 
 def fast_templates(request):
-    data = []
     request_data = json.loads(request.body)
+    research_id = request_data["pk"]
     is_all = request_data.get('all', False)
+    department_id = request_data.get('department')
 
-    ParaclinicTemplateName.make_default(DResearches.objects.get(pk=request_data["pk"]))
+    ParaclinicTemplateName.make_default(DResearches.objects.get(pk=research_id))
 
-    rts = ParaclinicTemplateName.objects.filter(research__pk=request_data["pk"])
+    if department_id and is_all:
+        templates = get_template_research_by_department(research_id, department_id)
+    elif department_id and not is_all:
+        templates = get_template_research_by_department(research_id, department_id, hide="false")
+    else:
+        templates = ParaclinicTemplateName.objects.filter(research__pk=request_data["pk"]).order_by('pk')
+        if not is_all:
+            templates = templates.filter(hide=False)
+    result = [
+        {
+            "pk": template.id,
+            "title": template.title,
+            "hide": template.hide,
+            "readonly": not is_all or template.title == ParaclinicTemplateName.DEFAULT_TEMPLATE_TITLE,
+        }
+        for template in templates
+    ]
 
-    if not is_all:
-        rts = rts.filter(hide=False)
-
-    for rt in rts.order_by('pk'):
-        data.append(
-            {
-                "pk": rt.pk,
-                "title": rt.title,
-                "hide": rt.hide,
-                "readonly": not is_all or rt.title == ParaclinicTemplateName.DEFAULT_TEMPLATE_TITLE,
-            }
-        )
-
-    return JsonResponse({"data": data})
+    return JsonResponse({"data": result})
 
 
 def fast_template_data(request):
     request_data = json.loads(request.body)
-    p = ParaclinicTemplateName.objects.get(pk=request_data["pk"])
+    template_pk = request_data["pk"]
+    need_template_department = request_data.get("needTemplateDepartment")
+    all_departments = request_data.get("allDepartments")
+    user_department_id = request.user.doctorprofile.podrazdeleniye.pk
+    p = ParaclinicTemplateName.objects.get(pk=template_pk)
+    template_departments_ids = []
+    if need_template_department:
+        template_departments_ids = ParaclinicTemplateNameDepartment.get_departments_ids(p.pk, all_departments, user_department_id)
     data = {
         "readonly": p.title == ParaclinicTemplateName.DEFAULT_TEMPLATE_TITLE,
         "hide": p.hide,
         "title": p.title,
         "fields": {},
+        "templateDepartmentsIds": template_departments_ids,
     }
 
     for pi in ParaclinicTemplateField.objects.filter(template_name=p).order_by('pk'):
@@ -751,14 +834,25 @@ def fast_template_data(request):
 def fast_template_save(request):
     request_data = json.loads(request.body)
     data = request_data["data"]
+    template_departments_ids = data.get("templateDepartmentsIds", [])
     if request_data["pk"] == -1:
         p = ParaclinicTemplateName(research=DResearches.objects.get(pk=request_data["research_pk"]), title=data["title"], hide=data["hide"])
         p.save()
+        for department in template_departments_ids:
+            new_template_depart = ParaclinicTemplateNameDepartment(template_name_id=p.pk, department_id=department)
+            new_template_depart.save()
     else:
         p = ParaclinicTemplateName.objects.get(pk=request_data["pk"])
         p.title = data["title"]
         p.hide = data["hide"]
         p.save()
+
+        template_department = ParaclinicTemplateNameDepartment.objects.filter(template_name_id=p.pk)
+        template_department.delete()
+        for department in template_departments_ids:
+            new_template_depart = ParaclinicTemplateNameDepartment(template_name_id=p.pk, department_id=department)
+            new_template_depart.save()
+
     to_delete = []
     has = []
     for pi in ParaclinicTemplateField.objects.filter(template_name=p):
@@ -1090,6 +1184,26 @@ def tube_related_data(request):
 
 
 @login_required
+@group_required('Конструктор: Лабораторные исследования')
+def get_existing_tubes_relation(request):
+    tubes = [{"id": -1, "label": "Пусто"}]
+    tubes_data = [
+        {
+            "id": x.pk,
+            "label": f"{x.title}-{x.pk}",
+        }
+        for x in Tubes.objects.all().order_by('pk')
+    ]
+    tubes.extend(tubes_data)
+
+    return JsonResponse(
+        {
+            "tubes": tubes,
+        }
+    )
+
+
+@login_required
 @group_required('Оператор', 'Конструктор: Лабораторные исследования')
 def tube_related_data_update(request):
     request_data = json.loads(request.body)
@@ -1126,3 +1240,23 @@ def research_performer_save(request):
 def get_research_performer(request):
     rows = DResearches.get_plan_performer()
     return JsonResponse(rows, safe=False)
+
+
+@login_required
+@group_required("Оператор", "Конструктор: Параклинические (описательные) исследования")
+def get_research_permissions(request):
+    request_data = json.loads(request.body)
+    research_id = request_data.get('researchId')
+    result = ConstructorEditAccessResearch.get_by_research(research_id)
+    return JsonResponse(result)
+
+
+@login_required
+@group_required("Оператор", "Конструктор: Параклинические (описательные) исследования")
+def save_research_permissions(request):
+    request_data = json.loads(request.body)
+    research_id = request_data.get('researchId')
+    department_id = request_data.get('departmentId')
+    user_ids = request_data.get('userIds')
+    result = ConstructorEditAccessResearch.save_permissions(research_id, department_id, user_ids)
+    return JsonResponse(result)

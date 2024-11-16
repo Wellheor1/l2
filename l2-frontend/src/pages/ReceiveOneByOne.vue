@@ -95,18 +95,18 @@
     </h5>
     <table class="table table-bordered table-responsive table-condensed">
       <colgroup>
-        <col width="87">
-        <col width="245">
-        <col width="92">
+        <col width="60">
+        <col width="155">
+        <col width="147">
         <col width="180">
         <col>
         <col width="50">
         <col width="50">
-        <col width="195">
+        <col width="270">
       </colgroup>
       <thead>
         <tr>
-          <th>№ приёма</th>
+          <th>№</th>
           <th>Тип емкости</th>
           <th>№ емкости</th>
           <th>Лаборатория</th>
@@ -171,6 +171,7 @@
               <input
                 :id="rId(r, 'defect')"
                 v-model="r.defect_text"
+                list="directoryDefectVariants"
                 type="text"
                 class="form-control"
                 spellcheck="false"
@@ -178,6 +179,13 @@
                 :readonly="!r.is_defect"
                 @keypress.enter="saveDefect(r)"
               >
+              <datalist id="directoryDefectVariants">
+                <option
+                  v-for="currentDeffect in defectVariants"
+                  :key="currentDeffect"
+                  :value="currentDeffect"
+                />
+              </datalist>
               <span class="input-group-btn">
                 <button
                   v-tippy
@@ -189,6 +197,18 @@
                   <i class="fa fa-save" />
                 </button>
               </span>
+            </div>
+            <div
+              style="float: left; padding-top: 20px"
+            >
+              <button
+                class="btn btn-blue-nb"
+
+                type="button"
+                @click="cancelReceive(r)"
+              >
+                Отменить прием
+              </button>
             </div>
           </td>
         </tr>
@@ -255,6 +275,8 @@ interface ReceiveHistory {
       receiveStatuses: [],
       receiveHistory: [],
       historyLoading: false,
+      defectVariants: [],
+      currentDeffect: '',
     };
   },
   mounted() {
@@ -262,6 +284,7 @@ interface ReceiveHistory {
     this.$root.$on('change-laboratory', (pk) => {
       this.currentLaboratory = pk;
       this.loadNextN();
+      this.loadDefectVariants();
       this.receiveHistory = [];
       this.debouncedLoadHistory();
     });
@@ -306,6 +329,8 @@ export default class ReceiveOneByOne extends Vue {
 
   historyLoading: boolean;
 
+  defectVariants: [];
+
   focus() {
     window.$(this.$refs.q).focus();
   }
@@ -314,6 +339,11 @@ export default class ReceiveOneByOne extends Vue {
     const { lastDaynum } = await this.$api('/laboratory/last-received-daynum', { pk: this.currentLaboratory });
 
     this.nextN = lastDaynum + 1;
+  }
+
+  async loadDefectVariants() {
+    const rows = await this.$api('/laboratory/defect-variants');
+    this.defectVariants = rows.defectVariants;
   }
 
   async receive() {
@@ -354,6 +384,15 @@ export default class ReceiveOneByOne extends Vue {
   async saveDefect(row) {
     await this.$store.dispatch(actions.INC_LOADING);
     await this.$api('/laboratory/save-defect-tube', { row });
+    this.loadHistory();
+    await this.$store.dispatch(actions.DEC_LOADING);
+    this.focus();
+  }
+
+  async cancelReceive(row) {
+    await this.$store.dispatch(actions.INC_LOADING);
+    await this.$api('/laboratory/cancel-receive', { row });
+    await this.loadNextN();
     this.loadHistory();
     await this.$store.dispatch(actions.DEC_LOADING);
     this.focus();

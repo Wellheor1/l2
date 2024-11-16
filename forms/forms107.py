@@ -531,11 +531,11 @@ def form_03(request_data):
     ]
     assignments_data = [
         [
-            Paragraph(f'{" ".join(i["research_title"])}', style),
-            Paragraph(f'{i["create_date"]}', styleCenter),
-            Paragraph(f'{i["who_assigned"]}', styleCenter),
-            Paragraph(f'{i["time_confirmation"]}', styleCenter),
-            Paragraph(f'{i["who_confirm"]}', styleCenter),
+            Paragraph(f'{" ".join(i["researchTitle"])}', style),
+            Paragraph(f'{i["createDate"]}', styleCenter),
+            Paragraph(f'{i["whoAssigned"]}', styleCenter),
+            Paragraph(f'{i["timeConfirmation"]}', styleCenter),
+            Paragraph(f'{i["whoConfirm"]}', styleCenter),
         ]
         for i in assignments
     ]

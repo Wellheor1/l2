@@ -25,7 +25,14 @@ from django.utils import timezone
 from jsonfield import JSONField
 import clients.models as Clients
 import directory.models as directory
-from directions.sql_func import check_limit_assign_researches, get_count_researches_by_doc, check_confirm_patient_research, check_create_direction_patient_by_research
+from directions.sql_func import (
+    check_limit_assign_researches,
+    get_count_researches_by_doc,
+    check_confirm_patient_research,
+    check_create_direction_patient_by_research,
+    get_patient_complex_research_data,
+    get_directions_by_complex_id,
+)
 from directions.tasks import send_result
 from forms.sql_func import sort_direction_by_file_name_contract
 from laboratory.settings import (
@@ -102,6 +109,15 @@ class NoGenerator(Exception):
     pass
 
 
+class StatementDocument(models.Model):
+    create_at = models.DateTimeField(auto_now_add=True, help_text='Дата создания ведомости', db_index=True)
+    person_who_create = models.ForeignKey(DoctorProfile, default=None, blank=True, null=True, help_text='Создатель ведомости', on_delete=models.SET_NULL)
+
+    class Meta:
+        verbose_name = 'Ведомость документов передачи'
+        verbose_name_plural = 'Ведомости документов передачи'
+
+
 class TubesRegistration(models.Model):
     """
     Таблица с пробирками для исследований
@@ -111,7 +127,8 @@ class TubesRegistration(models.Model):
     number = models.BigIntegerField(db_index=True, help_text='Номер ёмкости', blank=True, null=True, default=None)
     chunk_number = models.PositiveSmallIntegerField(db_index=True, blank=True, null=True, default=None, help_text='Номер разложения ёмкости на несколько')
     type = models.ForeignKey(directory.ReleationsFT, help_text='Тип ёмкости', on_delete=models.CASCADE)
-    time_get = models.DateTimeField(null=True, blank=True, help_text='Время взятия материала', db_index=True)
+    time_get = models.DateTimeField(null=True, blank=True, help_text='Время взятия материала/ фиксация перации', db_index=True)
+    manual_selected_time_get = models.DateTimeField(null=True, blank=True, default=None, help_text='Время взятия материала введенное вручну', db_index=True)
     doc_get = models.ForeignKey(DoctorProfile, null=True, blank=True, db_index=True, related_name='docget', help_text='Кто взял материал', on_delete=models.SET_NULL)
     time_recive = models.DateTimeField(null=True, blank=True, help_text='Время получения материала', db_index=True)
     doc_recive = models.ForeignKey(DoctorProfile, null=True, blank=True, db_index=True, related_name='docrecive', help_text='Кто получил материал', on_delete=models.SET_NULL)
@@ -120,6 +137,7 @@ class TubesRegistration(models.Model):
     daynum = models.IntegerField(default=0, blank=True, null=True, help_text='Номер принятия ёмкости среди дня в лаборатории')
     is_defect = models.BooleanField(default=False, blank=True, verbose_name='Дефект')
     defect_text = models.CharField(max_length=50, default="", blank=True, help_text='Замечания')
+    statement_document = models.ForeignKey(StatementDocument, default=None, null=True, blank=True, db_index=True, help_text='Ведомость документов', on_delete=models.SET_NULL)
 
     @staticmethod
     def make_default_external_tube(number: int):
@@ -180,7 +198,7 @@ class TubesRegistration(models.Model):
 
         return {"n": self.daynum, "new": new_t}
 
-    def set_get(self, doc_get):
+    def set_get(self, doc_get, manual_select_get_time=None):
         """
         Установка статуса взятия
         :param doc_get: врач/мед сестра, взявшая материал
@@ -191,6 +209,8 @@ class TubesRegistration(models.Model):
         self.time_get = timezone.now()
         self.doc_get = doc_get
         self.barcode = str(self.number)
+        if manual_select_get_time:
+            self.manual_selected_time_get = manual_select_get_time
         self.save()
         slog.Log(key=str(self.number), type=9, body="", user=doc_get).save()
 
@@ -479,6 +499,7 @@ class Napravleniya(models.Model):
     doc_who_create = models.ForeignKey(DoctorProfile, default=None, blank=True, null=True, related_name="doc_who_create", help_text='Создатель направления', on_delete=models.SET_NULL)
     cancel = models.BooleanField(default=False, blank=True, help_text='Отмена направления')
     rmis_number = models.CharField(max_length=20, default=None, blank=True, null=True, db_index=True, help_text='ID направления в РМИС')
+    rmis_direction_date = models.DateTimeField(help_text='Дата рмис-направлению', db_index=True, default=None, blank=True, null=True)
     result_rmis_send = models.BooleanField(default=False, blank=True, help_text='Результат отправлен в РМИС?', db_index=True)
     imported_from_rmis = models.BooleanField(default=False, blank=True, db_index=True, help_text='Направление создано на основе направления из РМИС?')
     imported_org = models.ForeignKey(RMISOrgs, default=None, blank=True, null=True, on_delete=models.SET_NULL)
@@ -552,7 +573,8 @@ class Napravleniya(models.Model):
     total_confirmed = models.BooleanField(verbose_name='Результат полностью подтверждён', blank=True, default=False, db_index=True)
     last_confirmed_at = models.DateTimeField(help_text='Дата и время последнего подтверждения', db_index=True, blank=True, default=None, null=True)
     emdr_id = models.CharField(max_length=40, default=None, blank=True, null=True, help_text='ИД РЭМД', db_index=True)
-    email_with_results_sent = models.BooleanField(verbose_name='Результаты отправлены на почту', blank=True, default=False, db_index=True)
+    email_with_results_sent = models.BooleanField(verbose_name='Результаты отправлены на почту организации', blank=True, default=False, db_index=True)
+    email_with_results_sent_to_person = models.BooleanField(verbose_name='Результаты отправлены на почту физлицу', blank=True, default=False, db_index=True)
     celery_send_task_ids = ArrayField(models.CharField(max_length=64), default=list, blank=True, db_index=True)
     external_order = models.ForeignKey(RegisteredOrders, default=None, blank=True, null=True, db_index=True, on_delete=models.PROTECT, help_text='Внешний заказ')
     need_order_redirection = models.BooleanField(default=False, blank=True, help_text='Требуется проверка на перенаправление заказа')
@@ -565,6 +587,7 @@ class Napravleniya(models.Model):
     cpp_upload_id = models.CharField(max_length=128, default=None, blank=True, null=True, db_index=True, help_text='Id-загрузки ЦПП')
     need_resend_cpp = models.BooleanField(default=False, blank=True, help_text='Требуется отправка в ЦПП')
     ecp_direction_number = models.CharField(max_length=64, default=None, blank=True, null=True, db_index=True, help_text='Id-направления ЕЦП')
+    is_cito = models.BooleanField(default=False, blank=True, help_text='Срочное исполнение')
 
     def sync_confirmed_fields(self, skip_post=False):
         has_confirmed_iss = Issledovaniya.objects.filter(napravleniye=self, time_confirmation__isnull=False).exists()
@@ -1096,7 +1119,7 @@ class Napravleniya(models.Model):
         client = Clients.Card.objects.get(pk=client_id)
         if price_name_id is None and istochnik_f and istochnik_f.title.lower() in ["договор"]:
             current_hospital = doc.hospital_id
-            if hospital:
+            if hospital != -1:
                 current_hospital = hospital
             price_name_obj = contracts.PriceName.get_hospital_price_by_date(current_hospital, current_time(only_date=True), current_time(only_date=True), True)
             price_name_id = price_name_obj.pk
@@ -1418,10 +1441,31 @@ class Napravleniya(models.Model):
             conflict_list = []
             conflict_keys = []
             limit_research_to_assign = {}
+            used_research_for_all_complex_research = {}
             for v in researches:  # нормализация исследований
-                researches_grouped_by_lab.append({v: researches[v]})
+                if v != '-16':
+                    researches_grouped_by_lab.append({v: researches[v]})
+
                 for vv in researches[v]:
                     research_tmp = directory.Researches.objects.get(pk=vv)
+                    if research_tmp.is_complex:
+                        services_data = directory.ComplexService.get_services_in_complex(vv, filtered_hide=True)
+                        researches_id_list = ','.join(map(str, [r_id.get('id') for r_id in services_data]))
+                        researches_title_list = ','.join(map(str, [r_title.get('label') for r_title in services_data]))
+                        complex_research_accunt_id = ComplexResearchAccountPerson.complex_account_save(vv, researches_id_list, researches_title_list, client_id)
+                        for s in services_data:
+                            used_research_for_all_complex_research[s.get('id')] = complex_research_accunt_id
+
+                            # добавить в общуюю стр-ру по типу услуги из комплекса
+                            add_from_complex_research_to_researches_grouped_by_lab = False
+                            for el in researches_grouped_by_lab:
+                                if list(el.keys())[0] == str(s.get('type')):
+                                    add_from_complex_research_to_researches_grouped_by_lab = True
+                                    if s.get('id') not in el[list(el.keys())[0]]:
+                                        el[list(el.keys())[0]].append(s.get('id'))
+                            if not add_from_complex_research_to_researches_grouped_by_lab:
+                                researches_grouped_by_lab.append({s.get('type'): [s.get('id')]})
+
                     if finsource and finsource.title.lower() != "платно" and limit_researches_by_period and limit_researches_by_period.get(vv, None):
                         template_research_assign = limit_researches_by_period.get(vv)
                         if template_research_assign["period"] == 1:
@@ -1449,6 +1493,7 @@ class Napravleniya(models.Model):
             res = []
             only_lab_researches = []
             dir_group_onlylab = ''
+
             for v in researches_grouped_by_lab:  # цикл перевода листа в словарь
                 for key in v.keys():
                     res += v[key]
@@ -1497,8 +1542,12 @@ class Napravleniya(models.Model):
                         research_data_params = None
                     else:
                         dir_group = -1
-                        if research.direction and external_organization == "NONE":
+                        if research.direction and external_organization == "NONE" and (not SettingManager.get("dirgroup_by_tube", default='false', default_type='b')):
                             dir_group = research.direction_id
+
+                        if SettingManager.get("dirgroup_by_tube", default='false', default_type='b') and research.podrazdeleniye and research.podrazdeleniye.p_type == 2:
+                            fraction = directory.Fractions.objects.filter(research=research).first()
+                            dir_group = fraction.relation_id
 
                         if v in only_lab_researches and external_organization != "NONE":
                             dir_group = dir_group_onlylab
@@ -1716,6 +1765,8 @@ class Napravleniya(models.Model):
                         issledovaniye.hospital_department_override_id = hospital_department_override
                     elif hospital_department_override == -1 and research.is_hospital and Podrazdeleniya.objects.filter(pk=research.podrazdeleniye.pk).exists():
                         issledovaniye.hospital_department_override_id = research.podrazdeleniye.pk
+                    if used_research_for_all_complex_research.get(v):
+                        issledovaniye.complex_research_account_id = used_research_for_all_complex_research.get(v)
                     issledovaniye.save()
 
                     if research.is_monitoring:
@@ -2234,6 +2285,86 @@ class ExternalAdditionalOrder(models.Model):
         verbose_name_plural = 'Внешние лабораторные номера заказов'
 
 
+class ComplexResearchAccountPerson(models.Model):
+    complex_research = models.ForeignKey(directory.Researches, null=True, blank=True, help_text='Комплексная из справочника', db_index=True, on_delete=models.SET_NULL)
+    iss_list = models.CharField(max_length=1024, default=None, blank=True, null=True, db_index=True, help_text="Исследования для комплексной услуги")
+    researches_id_list = models.CharField(max_length=512, null=False, db_index=True, help_text="Список услуг-id комплекса")
+    researches_title_list = models.CharField(max_length=1024, null=False, db_index=True, help_text="Список услуг-наименования комплекса")
+    patient_card = models.ForeignKey(Clients.Card, default=None, blank=True, null=True, help_text='Карта пациента', db_index=True, on_delete=models.SET_NULL)
+    create_at = models.DateTimeField(auto_now_add=True, help_text='Дата создания направления', db_index=True)
+
+    def __str__(self):
+        return f"{self.id} {self.complex_research}"
+
+    class Meta:
+        verbose_name = 'Комплексная услуги'
+        verbose_name_plural = 'Комплексные услуги'
+
+    @staticmethod
+    def complex_account_save(complex_research_id, researches_id_list, researches_title_list, patient_card_id, iss_list=None):
+        complex_account = ComplexResearchAccountPerson(
+            complex_research_id=complex_research_id,
+            researches_id_list=researches_id_list,
+            researches_title_list=researches_title_list,
+            patient_card_id=patient_card_id,
+            iss_list=iss_list,
+        )
+
+        complex_account.save()
+        return complex_account.pk
+
+    @staticmethod
+    def get_patient_complex_research(date_start, date_end, patient_card):
+        result = get_patient_complex_research_data(date_start, date_end, patient_card)
+        last_complex_account_id = None
+        step = 0
+        final_result = []
+        current_sum_iss = 0
+        current_sum_iss_confirm = 0
+        last_researches_title, last_researches_title_list, last_create_date = "", "", ""
+        for i in result:
+            if i.complex_account_id != last_complex_account_id and step != 0:
+                final_result.append(
+                    {
+                        'pk': last_complex_account_id,
+                        'researches': f"{last_researches_title} ({last_researches_title_list})",
+                        'date': last_create_date,
+                        'current_sum_iss': current_sum_iss,
+                        'current_sum_iss_confirm': current_sum_iss_confirm,
+                    }
+                )
+                current_sum_iss = 0
+                current_sum_iss_confirm = 0
+
+            current_sum_iss += 1
+            if i.iss_time_confirm:
+                current_sum_iss_confirm += 1
+            last_complex_account_id = i.complex_account_id
+            last_researches_title = i.research_title
+            last_researches_title_list = i.researches_title_list
+            last_create_date = i.create_date
+            step += 1
+
+        final_result.append(
+            {
+                'pk': last_complex_account_id,
+                'researches': f"{last_researches_title} ({last_researches_title_list})",
+                'date': last_create_date,
+                'current_sum_iss': current_sum_iss,
+                'current_sum_iss_confirm': current_sum_iss_confirm,
+            }
+        )
+        return final_result
+
+    @staticmethod
+    def get_complex_directions(complex_ids):
+        return list(set([i.napravleniye_id for i in get_directions_by_complex_id(complex_ids)]))
+
+    @staticmethod
+    def get_complex_confirm_directions(complex_ids):
+        return list(set([i.napravleniye_id for i in get_directions_by_complex_id(complex_ids) if i.iss_time_confirmation]))
+
+
 class Issledovaniya(models.Model):
     """
     Направления на исследования
@@ -2314,6 +2445,10 @@ class Issledovaniya(models.Model):
     external_add_order = models.ForeignKey(ExternalAdditionalOrder, db_index=True, blank=True, null=True, default=None, help_text="Внешний заказ", on_delete=models.SET_NULL)
     plan_start_date = models.DateTimeField(null=True, blank=True, db_index=True, help_text='Планируемое время начала услуги')
     billing = models.ForeignKey(contracts.BillingRegister, db_index=True, blank=True, null=True, default=None, help_text="Принадлежит счету", on_delete=models.SET_NULL)
+    complex_research_account = models.ForeignKey(
+        ComplexResearchAccountPerson, db_index=True, blank=True, null=True, default=None, help_text="Принадлежит комплексу", on_delete=models.SET_NULL
+    )
+    cancel = models.BooleanField(default=False, help_text="Отменено")
 
     @staticmethod
     def save_billing(billing_id, iss_ids):
@@ -2461,6 +2596,10 @@ class Issledovaniya(models.Model):
         return (
             ctime - ctp < rt and (current_doc_confirmation == user.doctorprofile or (executor_confirmation is not None and executor_confirmation == user.doctorprofile))
         ) or "Сброс подтверждений результатов" in groups
+
+    @staticmethod
+    def get_iss_id_by_directions(directions):
+        return list(Issledovaniya.objects.filter(napravleniye_id__in=directions).values_list("pk", flat=True))
 
     class Meta:
         verbose_name = 'Назначение на исследование'

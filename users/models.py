@@ -39,6 +39,7 @@ class Speciality(models.Model):
 
 class Position(models.Model):
     title = models.CharField(max_length=255, help_text='Название')
+    title = models.CharField(max_length=255, help_text='Название')
     hide = models.BooleanField(help_text='Скрытие', default=False)
     rmis_id = models.PositiveSmallIntegerField(default=None, db_index=True, blank=True, null=True)
     n3_id = models.PositiveSmallIntegerField(default=None, db_index=True, blank=True, null=True)
@@ -90,6 +91,7 @@ class DoctorProfile(models.Model):
     black_list_monitoring = models.ManyToManyField('directory.Researches', related_name='black_list_monitoring', blank=True, help_text='Запрещены для просмотра мониторинги')
     position = models.ForeignKey(Position, blank=True, default=None, null=True, help_text='Должность пользователя', on_delete=models.SET_NULL)
     snils = models.CharField(max_length=11, help_text='СНИЛС', blank=True, default="", db_index=True)
+    inn = models.CharField(max_length=12, help_text='ИНН', blank=True, default="")
     n3_id = models.CharField(max_length=40, help_text='N3_ID', blank=True, default="")
     disabled_forms = models.CharField(max_length=255, help_text='Отключенные формы перчислить ч/з запятую', blank=True, default="")
     disabled_statistic_categories = models.CharField(max_length=255, help_text='Отключить доступ к статистике-категории ч/з запятую', blank=True, default="")
@@ -110,6 +112,16 @@ class DoctorProfile(models.Model):
     date_stop_certificate = models.DateField(help_text='Дата окончания сертификата', db_index=True, default=None, blank=True, null=True)
     replace_doctor_cda = models.ForeignKey('self', related_name='used_doctor_cda', help_text="Замена доктора для cda", blank=True, null=True, default=None, on_delete=models.SET_NULL)
     additional_info = models.TextField(default='', blank=True, help_text='Дополнительная информация описывать словарем {}')
+    hosp_research_template = models.ForeignKey(
+        'directory.Researches',
+        related_name='hosp_research_template',
+        blank=True,
+        default=None,
+        null=True,
+        verbose_name="Услуга стационара по котрой по умолчанию подгружаются шаблоны",
+        on_delete=models.CASCADE,
+    )
+    dismissed = models.BooleanField(default=False, help_text="Уволен")
 
     @staticmethod
     def get_system_profile():

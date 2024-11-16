@@ -229,6 +229,7 @@ def get_confirm_direction(d_s, d_e, lab_podr, is_lab=False, is_paraclinic=False,
         cursor.execute(
             """     
         SELECT DISTINCT ON (napravleniye_id) napravleniye_id FROM public.directions_issledovaniya
+        LEFT JOIN directions_napravleniya dn on directions_issledovaniya.napravleniye_id = dn.id
         WHERE time_confirmation AT TIME ZONE %(tz)s BETWEEN %(d_start)s AND %(d_end)s
         AND research_id IN (SELECT id FROM directory_researches WHERE CASE
         
@@ -538,6 +539,119 @@ def get_patient_open_case_data(card_pk, start_date, end_date):
                 ORDER BY directions_issledovaniya.napravleniye_id
             """,
             params={'card_pk': card_pk, 'tz': TIME_ZONE, 'd_start': start_date, 'd_end': end_date},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_direction_data_by_directions_id(directions):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+                SELECT 
+                    directions_napravleniya.id as direction_id,
+                    directions_napravleniya.client_id as client_id,
+                    ci.family,
+                    ci.name,
+                    ci.patronymic,
+                    directions_napravleniya.email_with_results_sent_to_person,
+                    cc.email as patient_email
+                FROM directions_napravleniya
+                LEFT JOIN clients_card cc on cc.id = directions_napravleniya.client_id
+                LEFT JOIN clients_individual ci on cc.individual_id = ci.id
+                WHERE directions_napravleniya.id in %(directions)s
+                ORDER BY directions_napravleniya.client_id
+            """,
+            params={
+                'directions': directions,
+            },
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_total_confirm_direction(d_s, d_e, lab_podr, is_lab=False, is_paraclinic=False, is_doc_refferal=False):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """     
+        SELECT DISTINCT ON (napravleniye_id) napravleniye_id FROM public.directions_issledovaniya
+        LEFT JOIN directions_napravleniya dn on directions_issledovaniya.napravleniye_id = dn.id
+        WHERE (time_confirmation AT TIME ZONE %(tz)s BETWEEN %(d_start)s AND %(d_end)s) AND dn.total_confirmed = true
+        AND research_id IN (SELECT id FROM directory_researches WHERE CASE
+
+        WHEN  %(is_lab)s = FALSE AND %(is_paraclinic)s = TRUE AND %(is_doc_refferal)s = FALSE THEN
+          is_paraclinic = TRUE
+        WHEN %(is_lab)s = FALSE AND %(is_paraclinic)s = FALSE AND %(is_doc_refferal)s = TRUE THEN
+          is_doc_refferal = TRUE or is_form = TRUE
+
+        WHEN  %(is_lab)s = FALSE AND %(is_paraclinic)s = TRUE AND %(is_doc_refferal)s = TRUE  THEN 
+          is_paraclinic = TRUE or is_doc_refferal = TRUE or is_form = TRUE
+
+        WHEN %(is_lab)s = TRUE AND %(is_paraclinic)s = FALSE AND %(is_doc_refferal)s = FALSE THEN
+            podrazdeleniye_id = ANY(ARRAY[%(lab_podr)s])
+
+        WHEN %(is_lab)s = TRUE AND %(is_paraclinic)s = TRUE AND %(is_doc_refferal)s = FALSE THEN
+          is_paraclinic = TRUE and is_doc_refferal = FALSE or podrazdeleniye_id = ANY(ARRAY[%(lab_podr)s])
+
+        WHEN %(is_lab)s = TRUE AND %(is_paraclinic)s = FALSE AND %(is_doc_refferal)s = TRUE THEN
+          is_paraclinic = FALSE and is_doc_refferal = TRUE or is_form = TRUE or podrazdeleniye_id = ANY(ARRAY[%(lab_podr)s])
+
+        WHEN %(is_lab)s = TRUE AND %(is_paraclinic)s = TRUE AND %(is_doc_refferal)s = TRUE THEN
+          is_paraclinic = TRUE or is_doc_refferal = TRUE or is_form = TRUE or podrazdeleniye_id = ANY(ARRAY[%(lab_podr)s])
+        END
+        )
+
+        """,
+            params={'d_start': d_s, 'd_end': d_e, 'tz': TIME_ZONE, 'is_lab': is_lab, 'is_paraclinic': is_paraclinic, 'is_doc_refferal': is_doc_refferal, 'lab_podr': lab_podr},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_template_research_by_department(research_id, department_id, hide="true"):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+                SELECT directory_paraclinictemplatename.id, directory_paraclinictemplatename.title, directory_paraclinictemplatename.hide
+                FROM public.directory_paraclinictemplatenamedepartment
+                INNER JOIN directory_paraclinictemplatename ON 
+                directory_paraclinictemplatenamedepartment.template_name_id = directory_paraclinictemplatename.id
+                WHERE
+                directory_paraclinictemplatename.research_id = %(research_id)s AND
+                directory_paraclinictemplatenamedepartment.department_id = %(department_id)s AND
+                (directory_paraclinictemplatename.hide = %(hide)s or directory_paraclinictemplatename.hide = false)
+                
+                ORDER BY directory_paraclinictemplatename.id
+                
+                
+            """,
+            params={
+                'research_id': research_id,
+                'department_id': department_id,
+                'hide': hide,
+            },
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_template_field_by_department(research_id, department_id):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+                SELECT 
+                directory_paraclinicfieldtemplatedepartment.paraclinic_field_id as field_id,
+                directory_paraclinicfieldtemplatedepartment.value  
+                FROM directory_paraclinicfieldtemplatedepartment
+                WHERE
+                directory_paraclinicfieldtemplatedepartment.department_id = %(department_id)s AND
+                directory_paraclinicfieldtemplatedepartment.research_id = %(research_id)s
+
+            """,
+            params={
+                'research_id': research_id,
+                'department_id': department_id,
+            },
         )
         rows = namedtuplefetchall(cursor)
     return rows

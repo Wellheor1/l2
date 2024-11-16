@@ -51,6 +51,9 @@ class Hospitals(models.Model):
     result_pull_by_numbers = models.CharField(
         max_length=256, blank=True, default=None, null=True, help_text='URL для FTP директории получения результатов (ftp://user:password@host.example.com/path)'
     )
+    result_push_by_numbers = models.CharField(
+        max_length=256, blank=True, default=None, null=True, help_text='URL для FTP директории отрпавки результатов (ftp://user:password@host.example.com/path)'
+    )
     hl7_sender_application = models.CharField(max_length=55, blank=True, default=None, null=True, help_text='HL7 приложение отправитель')
     hl7_sender_org = models.CharField(max_length=55, blank=True, default=None, null=True, help_text='HL7 организация отправитель')
     hl7_receiver_appplication = models.CharField(max_length=55, blank=True, default=None, null=True, help_text='HL7 приложение получатель')
@@ -60,6 +63,7 @@ class Hospitals(models.Model):
     title_stamp_customer = models.CharField(max_length=255, blank=True, null=True, default=None, help_text="Ссылка на заголовок Закачика - клеше")
     acronym_title = models.CharField(max_length=128, blank=True, default='', help_text="Акроним (Аббревиатура) наименование", db_index=True)
     send_result_after_time_min = models.PositiveSmallIntegerField(default=0, blank=True, null=True, verbose_name="Время (мин) отправки результатов")
+    use_self_generate_tube = models.BooleanField(default=False, blank=True, help_text='Приоритет собственного генератора')
 
     @staticmethod
     def get_default_hospital() -> Optional['Hospitals']:

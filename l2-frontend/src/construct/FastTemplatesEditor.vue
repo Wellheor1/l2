@@ -3,18 +3,26 @@
     ref="modal"
     show-footer="true"
     white-bg="true"
-    min-width="85%"
+    min-width="95%"
     margin-top
     @close="hide_modal"
   >
     <span slot="header">Настройка шаблонов быстрого ввода ({{ title }})</span>
     <div
-      v-if="loaded"
       slot="body"
       style="min-height: 200px"
       class="directions-manage"
     >
       <div class="directions-sidebar">
+        <div>
+          <Treeselect
+            v-model="department"
+            class="treeselect-nbr treeselect-wide"
+            :options="departments"
+            :clearable="showAllDepartments"
+            placeholder="Выберите подразделение"
+          />
+        </div>
         <div class="inner">
           <div
             v-for="d in rows"
@@ -50,15 +58,27 @@
       >
         <div class="direction-data">
           <div class="results-top">
-            <div>
-              <label>
-                Название: <input
+            <div class="flex-display">
+              <div class="flex-display margin-right">
+                <label class="name-label">
+                  Название:
+                </label>
+                <input
                   v-model="template_data.title"
                   placeholder="Название"
+                  class="flex-align-center"
                   :readonly="template_data.readonly"
                 >
-              </label>
-              <strong v-if="selected_template === -1">(новый шаблон)</strong>
+                <strong v-if="selected_template === -1">(новый шаблон)</strong>
+              </div>
+              <Treeselect
+                v-if="byDepartment && !template_data.readonly && showAllDepartments"
+                v-model="template_data.templateDepartmentsIds"
+                class="treeselect-nbr treeselect-wide"
+                :options="departmentsForTemplate"
+                placeholder="Выберите подразделение"
+                :multiple="true"
+              />
             </div>
             <div>
               <label>Скрыть: <input
@@ -152,13 +172,6 @@
         </div>
       </div>
     </div>
-    <div
-      v-else
-      slot="body"
-      style="line-height: 200px;text-align: center"
-    >
-      Загрузка данных...
-    </div>
     <div slot="footer">
       <div class="row">
         <div class="col-xs-8" />
@@ -177,14 +190,17 @@
 </template>
 
 <script lang="ts">
+import Treeselect from '@riophae/vue-treeselect';
+
 import Modal from '@/ui-cards/Modal.vue';
 import MKBField from '@/fields/MKBField.vue';
 import researchesPoint from '@/api/researches-point';
 import * as actions from '@/store/action-types';
+import '@riophae/vue-treeselect/dist/vue-treeselect.css';
 
 export default {
   name: 'FastTemplatesEditor',
-  components: { Modal, MKBField },
+  components: { Modal, MKBField, Treeselect },
   props: {
     research_pk: {
       type: Number,
@@ -198,14 +214,27 @@ export default {
       type: Array,
       required: true,
     },
+    byDepartment: {
+      type: Boolean,
+      required: false,
+    },
+    departments: {
+      type: Array,
+      required: false,
+    },
+    showAllDepartments: {
+      type: Boolean,
+      required: false,
+    },
   },
   data() {
     return {
       rows: [],
-      loaded: false,
       checked: false,
       selected_template: -2,
       template_data: {},
+      department: null,
+      departmentsForTemplate: [],
     };
   },
   watch: {
@@ -221,9 +250,18 @@ export default {
         this.checked = true;
       }
     },
+    department() {
+      this.load_data();
+    },
   },
   created() {
     this.load_data();
+    if (this.byDepartment) {
+      this.departmentsForTemplate = this.departments;
+      if (!this.showAllDepartments) {
+        this.department = this.departments[0].id;
+      }
+    }
   },
   methods: {
     hide_modal() {
@@ -244,28 +282,39 @@ export default {
         hide: false,
         readonly: false,
         fields: {},
+        templateDepartmentsIds: [],
       };
       this.selected_template = -1;
+      if (this.department !== 'all') {
+        this.template_data.templateDepartmentsIds.push(this.department);
+      }
     },
-    load_data(selectAfter) {
-      this.loaded = false;
-      this.clear();
+    load_data(selectAfter, clear = true) {
+      if (clear) {
+        this.clear();
+      }
+      let department = null;
+      if (this.department) {
+        department = this.department;
+      }
       this.$store.dispatch(actions.INC_LOADING);
-      researchesPoint.getFastTemplates({ pk: this.research_pk, all: true }).then(({ data }) => {
+      researchesPoint.getFastTemplates({ pk: this.research_pk, all: true, department }).then(({ data }) => {
         this.rows = data;
         if (selectAfter) {
           this.select_template(selectAfter);
         }
       }).finally(() => {
         this.$store.dispatch(actions.DEC_LOADING);
-        this.loaded = true;
       });
     },
     select_template(pk) {
       if (pk === this.selected_template) return;
-      this.clear();
       this.$store.dispatch(actions.INC_LOADING);
-      researchesPoint.getTemplateData({ pk }).then(({ data }) => {
+      researchesPoint.getTemplateData({
+        pk,
+        allDepartments: this.showAllDepartments,
+        needTemplateDepartment: this.byDepartment,
+      }).then(({ data }) => {
         this.template_data = data;
         this.selected_template = pk;
       }).finally(() => {
@@ -275,7 +324,11 @@ export default {
     copy_template(pk) {
       this.clear();
       this.$store.dispatch(actions.INC_LOADING);
-      researchesPoint.getTemplateData({ pk }).then(({ data }) => {
+      researchesPoint.getTemplateData({
+        pk,
+        allDepartments: this.showAllDepartments,
+        needTemplateDepartment: this.byDepartment,
+      }).then(({ data }) => {
         this.template_data = {
           ...data, title: '', hide: false, readonly: false,
         };
@@ -285,17 +338,16 @@ export default {
       });
     },
     save() {
-      this.loaded = false;
       this.$store.dispatch(actions.INC_LOADING);
       researchesPoint.saveFastTemplate({
         pk: this.selected_template,
         data: this.template_data,
         research_pk: this.research_pk,
       }).then(({ pk }) => {
-        this.load_data(pk);
+        this.load_data(pk, false);
+        this.$root.$emit('msg', 'ok', 'Сохранено');
       }).finally(() => {
         this.$store.dispatch(actions.DEC_LOADING);
-        this.loaded = true;
       });
     },
   },
@@ -341,9 +393,9 @@ export default {
     background: rgba(0, 0, 0, .04);
     border-right: 1px solid rgba(0, 0, 0, .16);
     position: relative;
-    padding-bottom: 34px;
+    padding-bottom: 36px;
     .inner {
-      height: 100%;
+      height: calc(100% - 36px);
       width: 100%;
       overflow-y: auto;
       overflow-x: hidden;
@@ -852,4 +904,16 @@ export default {
       padding: 2px 10px;
     }
   }
+.flex-display {
+  display: flex;
+}
+.name-label {
+  margin: auto 2px;
+}
+.margin-right {
+  margin-right: 5px;
+}
+.flex-align-center {
+  align-self: center;
+}
 </style>
