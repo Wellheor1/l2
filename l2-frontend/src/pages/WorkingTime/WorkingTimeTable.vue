@@ -16,7 +16,7 @@
     >
       <VeTable
         v-show="filteredEmployees.length > 0"
-        :max-height="600"
+        max-height="calc(100vh - 200px)"
         :columns="columns"
         :table-data="filteredEmployees"
         :row-style-option="rowStyleOption"
@@ -207,7 +207,7 @@ const rowStyleOption = {
 
 <style lang="scss">
 .table-body-cell-weekend {
-  background: #ade0a875 !important;;
+  background: #ade0a875 !important;
 }
 .table-header-cell-weekend {
   background: #ade0a875 !important;
