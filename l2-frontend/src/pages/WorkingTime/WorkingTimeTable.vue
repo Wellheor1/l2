@@ -21,6 +21,7 @@
         :table-data="filteredEmployees"
         :row-style-option="rowStyleOption"
         :cell-style-option="cellStyleOption"
+        :column-hidden-option="columnHiddenOption"
         :border-y="true"
         :scroll-width="0"
       />
@@ -111,6 +112,9 @@ const getMonthDays = (year: number, month: number) => {
 const getColumns = () => {
   const columnTemplate = [
     {
+      field: 'employeePositionId', key: 'employeePositionId', title: '№', align: 'center', width: 20, fixed: 'center',
+    },
+    {
       field: 'fio', key: 'fio', title: 'ФИО', align: 'center', width: 190, fixed: 'left',
     },
     {
@@ -143,8 +147,8 @@ const getColumns = () => {
         {
           props: {
             workTime: row[column.field] ? row[column.field] : '',
-            rowIndex,
-            columnKey: column.key,
+            employeePositionId: row.employeePositionId,
+            date: column.key,
           },
           on: { changeWorkTime },
         },
@@ -178,7 +182,9 @@ const cellStyleOption = {
 const rowStyleOption = {
   stripe: true,
 };
-
+const columnHiddenOption = {
+  defaultHiddenColumnKeys: ['employeePositionId'],
+};
 </script>
 
 <style scoped lang="scss">

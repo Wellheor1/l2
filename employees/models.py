@@ -555,6 +555,7 @@ class EmployeeWorkingHoursSchedule(models.Model):
         for employee in employees:
             employees_template[employee.employee_position_id] = template_days.copy()
             employees_template[employee.employee_position_id].update({
+                "employeePositionId": employee.employee_position_id,
                 "fio": f'{employee.family} {employee.name[0]}.{employee.patronymic[0] + "." if employee.patronymic else ""}',
                 "position": employee.position_name,
                 "bidType": 'осн',
@@ -576,9 +577,18 @@ class EmployeeWorkingHoursSchedule(models.Model):
                 work_time = template_employee[work_day.employee_position_id][work_day.start.strftime('%Y.%m.%d')].copy()
                 work_time["startWorkTime"] = work_day.start.astimezone(pytz.timezone(TIME_ZONE)).strftime('%H:%M')
                 work_time["endWorkTime"] = work_day.end.astimezone(pytz.timezone(TIME_ZONE)).strftime('%H:%M')
+                work_time["type"] = work_day.work_day_status_id
                 template_employee[work_day.employee_position_id][work_day.start.strftime('%Y.%m.%d')] = work_time
         result = [value for value in template_employee.values()]
         return result
+
+    @staticmethod
+    def update_time(start_work, end_work, type, employee_position_id):
+        print(start_work)
+        print(end_work)
+        print(type)
+
+        return {"ok": True, "message": ""}
 
 
 class CashRegister(models.Model):

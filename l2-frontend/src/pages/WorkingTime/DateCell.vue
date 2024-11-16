@@ -98,12 +98,12 @@ const props = defineProps({
     required: true,
     default: '',
   },
-  rowIndex: {
+  employeePositionId: {
     type: Number,
     required: true,
   },
-  columnKey: {
-    type: String,
+  date: {
+    type: [String, undefined],
     required: true,
   },
 });
@@ -114,10 +114,10 @@ const startWork = ref(null);
 const endWork = ref(null);
 const selectedTimeOff = ref(null);
 const typesTimeOff = ref([
-  { id: 'VACTION', label: 'О' },
-  { id: 'SICK', label: 'Б' },
-  { id: 'PARENTAL', label: 'Д' },
-  { id: 'TRUANCY', label: 'П' },
+  { id: 1, label: 'О' },
+  { id: 2, label: 'Б' },
+  { id: 3, label: 'Д' },
+  { id: 4, label: 'П' },
 ]);
 const selectedTypeLabel = ref('');
 
@@ -172,6 +172,8 @@ const currentTime = computed(() => {
 const appendCurrentTime = () => {
   startWork.value = props.workTime.startWorkTime;
   endWork.value = props.workTime.endWorkTime;
+  selectedTimeOff.value = props.workTime.type;
+  selectedTimeOption.value = null;
 };
 
 const updateTime = async () => {
