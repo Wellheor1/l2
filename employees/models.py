@@ -540,6 +540,10 @@ class EmployeeWorkingHoursSchedule(models.Model):
     work_day_status = models.ForeignKey(WorkDayStatus, null=True, blank=True, default=None, db_index=True, on_delete=models.SET_NULL, verbose_name='Тип')
     user_saved = models.ForeignKey('users.DoctorProfile', on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Профиль пользователя сохранившего запись')
 
+    class Meta:
+        verbose_name = "Сотрудник - фактическое время за дату"
+        verbose_name_plural = "Сотрудники - фактическое время за дату"
+
     def __str__(self):
         return f'{self.employee_position.employee.__str__()} {self.start} - {self.end}'
 
@@ -575,10 +579,6 @@ class EmployeeWorkingHoursSchedule(models.Model):
                 template_employee[work_day.employee_position_id][work_day.start.strftime('%Y.%m.%d')] = work_time
         result = [value for value in template_employee.values()]
         return result
-
-    class Meta:
-        verbose_name = "Сотрудник - фактическое время за дату"
-        verbose_name_plural = "Сотрудники - фактическое время за дату"
 
 
 class CashRegister(models.Model):
