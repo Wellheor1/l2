@@ -19,3 +19,12 @@ def get_work_time(request):
     request_data = json.loads(request.body)
     result = EmployeeWorkingHoursSchedule.get_work_time(request_data["year"], request_data["month"], request_data["departmentId"])
     return JsonResponse({"result": result})
+
+
+@login_required()
+@group_required('График рабочего времени')
+def update_time(request):
+    request_data = json.loads(request.body)
+    print(request_data)
+    result = {"ok": True, "message": ""}
+    return JsonResponse(result)

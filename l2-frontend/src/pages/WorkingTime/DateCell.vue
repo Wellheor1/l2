@@ -87,6 +87,9 @@ import {
 } from 'vue';
 
 import RadioFieldById from '@/fields/RadioFieldById.vue';
+import * as actions from '@/store/action-types';
+import api from '@/api';
+import { useStore } from '@/store';
 
 const emit = defineEmits(['changeWorkTime']);
 const props = defineProps({
@@ -106,15 +109,26 @@ const props = defineProps({
 });
 
 const root = getCurrentInstance().proxy.$root;
-
+const store = useStore();
 const startWork = ref(null);
 const endWork = ref(null);
+const selectedTimeOff = ref(null);
+const typesTimeOff = ref([
+  { id: 'VACTION', label: 'О' },
+  { id: 'SICK', label: 'Б' },
+  { id: 'PARENTAL', label: 'Д' },
+  { id: 'TRUANCY', label: 'П' },
+]);
+const selectedTypeLabel = ref('');
 
 const timeValid = () => {
-  if (startWork.value > endWork.value && endWork.value !== '00:00') {
-    return { ok: false, message: 'Время начала больше времени конца' };
+  if (!startWork.value && !endWork.value && !selectedTimeOff.value) {
+    return { valid: false, reason: 'Время не выбрано' };
   }
-  return { ok: true, message: '' };
+  if (startWork.value > endWork.value && endWork.value !== '00:00' && !selectedTimeOff.value) {
+    return { valid: false, reason: 'Время начала больше времени конца' };
+  }
+  return { valid: true, reason: '' };
 };
 
 const selectedTimeOption = ref(null);
@@ -125,16 +139,7 @@ const timeOptions = ref([
   { id: 4, startWork: '19:48', endWork: '21:00' },
   { id: 5, startWork: '14:48', endWork: '16:00' },
 ]);
-const selectedTimeOff = ref(null);
-const typesTimeOff = ref([
-  { id: 1, label: 'А' },
-  { id: 2, label: 'Б' },
-  { id: 3, label: 'В' },
-  { id: 4, label: 'Г' },
-  { id: 5, label: 'Д' },
-  { id: 6, label: 'Е' },
-]);
-const selectedTypeLabel = ref('');
+
 const selectTime = (variantId: number, startTime: string, endTime: string) => {
   selectedTimeOption.value = variantId;
   startWork.value = startTime;
@@ -169,16 +174,19 @@ const appendCurrentTime = () => {
   endWork.value = props.workTime.endWorkTime;
 };
 
-const updateTime = () => {
-  if (startWork.value && endWork.value) {
-    const { ok, message } = timeValid();
+const updateTime = async () => {
+  const { valid, reason } = timeValid();
+  if (!valid) {
+    root.$emit('msg', 'error', reason);
+  } else {
+    await store.dispatch(actions.INC_LOADING);
+    const { ok, message } = await api('/working-time/update-time');
+    await store.dispatch(actions.DEC_LOADING);
     if (ok) {
       root.$emit('msg', 'ok', 'Обновлено');
     } else {
       root.$emit('msg', 'error', message);
     }
-  } else if (selectedTimeOff.value) {
-    root.$emit('msg', 'ok', 'Отпуск установлен');
   }
 };
 
