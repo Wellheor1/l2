@@ -183,8 +183,8 @@ const updateTime = async () => {
   } else {
     await store.dispatch(actions.INC_LOADING);
     const { ok, message } = await api('/working-time/update-time', {
-      startWork: startWork.value,
-      endWork: endWork.value,
+      startWork: `${props.date} ${startWork.value}`,
+      endWork: `${props.date} ${endWork.value}`,
       type: selectedTimeOff.value,
       employeePositionId: props.employeePositionId,
       date: props.date,
