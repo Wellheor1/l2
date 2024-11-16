@@ -207,9 +207,9 @@ const rowStyleOption = {
 
 <style lang="scss">
 .table-body-cell-weekend {
-  background: #ade0a875 !important;
+  background-color: #cbf2cb !important;
 }
 .table-header-cell-weekend {
-  background: #ade0a875 !important;
+  background-color: #cbf2cb !important;
 }
 </style>
