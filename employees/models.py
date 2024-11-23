@@ -585,11 +585,11 @@ class EmployeeWorkingHoursSchedule(models.Model):
         if document:
             employees_work_time = get_work_time_by_document(document.pk)
             for work_day in employees_work_time:
-                work_time = template_employee[work_day.employee_position_id][work_day.start.strftime('%Y.%m.%d')].copy()
+                work_time = template_employee[work_day.employee_position_id][work_day.start.strftime('%Y-%m-%d')].copy()
                 work_time["startWorkTime"] = work_day.start.astimezone(pytz.timezone(TIME_ZONE)).strftime('%H:%M')
                 work_time["endWorkTime"] = work_day.end.astimezone(pytz.timezone(TIME_ZONE)).strftime('%H:%M')
                 work_time["type"] = work_day.work_day_status_id
-                template_employee[work_day.employee_position_id][work_day.start.strftime('%Y.%m.%d')] = work_time
+                template_employee[work_day.employee_position_id][work_day.start.strftime('%Y-%m-%d')] = work_time
         result = [value for value in template_employee.values()]
         return result
 
