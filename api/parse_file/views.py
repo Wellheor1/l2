@@ -33,8 +33,7 @@ from results.sql_func import check_lab_instrumental_results_by_cards_and_period
 from slog.models import Log
 from statistic.views import commercial_offer_xls_save_file, data_xls_save_file, data_xls_save_headers_file
 from users.models import AssignmentResearches, DoctorProfile
-from clients.models import Individual, HarmfulFactor, PatientHarmfullFactor, Card, CardBase, DocumentType, Document
-from integration_framework.views import check_enp
+from clients.models import Individual, HarmfulFactor, Card, DocumentType, Document
 from utils.dates import age_for_year, normalize_dots_date
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
