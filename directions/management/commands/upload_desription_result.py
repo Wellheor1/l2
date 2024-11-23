@@ -57,7 +57,6 @@ class Command(BaseCommand):
                 ind = clients.Document.objects.filter(Q(document_type__title__iexact="СНИЛС", number=cells[snils]) | Q(document_type__title__iexact="Полис ОМС", number=cells[polis])).first()
 
                 if ind:
-                    print("used", ind)
                     i = ind.individual
                     if clients.Card.objects.filter(individual=i, base=base_l2).exists():
                         card = clients.Card.objects.filter(individual=i, base=base_l2).first()
