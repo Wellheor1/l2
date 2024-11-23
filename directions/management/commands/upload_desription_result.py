@@ -11,6 +11,7 @@ import logging
 from users.models import DoctorProfile
 import directions.models as directions
 from utils.dates import normalize_dots_date
+from sys import stdout
 
 logger = logging.getLogger("IF")
 
@@ -53,7 +54,6 @@ class Command(BaseCommand):
                     base_l2 = clients.CardBase.objects.filter(internal_type=True)[0]
                     title_fields = cells.copy()
             else:
-                # если есть индивидуал по документам
                 ind = clients.Document.objects.filter(Q(document_type__title__iexact="СНИЛС", number=cells[snils]) | Q(document_type__title__iexact="Полис ОМС", number=cells[polis])).first()
 
                 if ind:
@@ -61,15 +61,13 @@ class Command(BaseCommand):
                     if clients.Card.objects.filter(individual=i, base=base_l2).exists():
                         card = clients.Card.objects.filter(individual=i, base=base_l2).first()
                     else:
-                        # создать карту L2
                         card = clients.Card.objects.create(
                             number=clients.Card.next_l2_n(),
                             base=base_l2,
                             individual=i,
                         )
-                        print('Добавлена карта: \n', card)  # noqa: T001
+                        stdout.write(f'Добавлена карта: {card}')
                 else:
-                    # создать индивидуал, документы, карты в l2.
                     ind = clients.Individual.objects.create(
                         family=cells[lastname],
                         name=cells[name],
@@ -90,7 +88,7 @@ class Command(BaseCommand):
                         number=clients.Card.next_l2_n(),
                         base=base_l2,
                     )
-                    print('Добавлена карта: \n', card)  # noqa: T001
+                    stdout.write(f'Добавлена карта: {card}')
                 try:
                     with transaction.atomic():
                         direction = directions.Napravleniya.objects.create(
