@@ -54,10 +54,7 @@ class Command(BaseCommand):
                     title_fields = cells.copy()
             else:
                 # если есть индивидуал по документам
-                ind = clients.Document.objects.filter(
-                    Q(document_type__title__iexact="СНИЛС", number=cells[snils])
-                    | Q(document_type__title__iexact="Полис ОМС", number=cells[polis])
-                ).first()
+                ind = clients.Document.objects.filter(Q(document_type__title__iexact="СНИЛС", number=cells[snils]) | Q(document_type__title__iexact="Полис ОМС", number=cells[polis])).first()
 
                 if ind:
                     print("used", ind)
