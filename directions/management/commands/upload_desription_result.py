@@ -32,8 +32,7 @@ class Command(BaseCommand):
         ws = wb[wb.sheetnames[0]]
         starts = False
         base_l2 = None
-        polis_date_start, born_date, visit_date_star, visit_date_end, visit_type_text = None, None, None, None, None
-        snils, lastname, name, patronymic, sex, polis = None, None, None, None, None, None
+        snils, lastname, name, patronymic, sex, polis, born_date = None, None, None, None, None, None, None
         title_fields = []
 
         doc_profile = DoctorProfile.objects.filter(pk=doctor_profile_id).first()
@@ -72,7 +71,7 @@ class Command(BaseCommand):
                             base=base_l2,
                             individual=i,
                         )
-                        print('Добавлена карта: \n', c)  # noqa: T001
+                        print('Добавлена карта: \n', card)  # noqa: T001
                 else:
                     # создать индивидуал, документы, карты в l2.
                     ind = clients.Individual.objects.create(
