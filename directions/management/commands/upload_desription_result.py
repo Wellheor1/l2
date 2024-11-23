@@ -88,7 +88,7 @@ class Command(BaseCommand):
                         clients.Document.objects.create(document_type=snils_object, number=cells[snils], individual=ind)
 
                     polis_object = clients.DocumentType.objects.get(title__iexact='Полис ОМС')
-                    document_polis = clients.Document.objects.create(document_type=polis_object, number=cells[polis], individual=ind) if cells[polis] else None
+                    clients.Document.objects.create(document_type=polis_object, number=cells[polis], individual=ind) if cells[polis] else None
 
                     card = clients.Card.objects.create(
                         individual=ind,
@@ -96,7 +96,6 @@ class Command(BaseCommand):
                         base=base_l2,
                     )
                     print('Добавлена карта: \n', card)  # noqa: T001
-                print(card)
                 try:
                     with transaction.atomic():
                         direction = directions.Napravleniya.objects.create(
@@ -119,9 +118,7 @@ class Command(BaseCommand):
                         )
                         for group in ParaclinicInputGroups.objects.filter(research_id=research_id):
                             for f in ParaclinicInputField.objects.filter(group=group):
-                                print(f.title)
                                 if f.title in title_fields:
-                                    print("f.title", f.title, "cells")
                                     current_cells = title_fields.index(f.title)
                                     if f.field_type == 1:
                                         tmp_value = cells[current_cells]
