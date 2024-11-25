@@ -25,7 +25,7 @@ jobs:
         run: git checkout tags/${{ steps.version_check.outputs.version }}
 
       - name: 'Download workflow artifact: webpack_bundles.tar.gz'
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v6
         with:
           name: webpack_bundles.tar.gz
           run_id: ${{ github.event.workflow_run.id }}
