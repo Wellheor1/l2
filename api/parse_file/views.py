@@ -18,11 +18,10 @@ from api.parse_file.pdf import extract_text_from_pdf
 import simplejson as json
 
 from api.patients.sql_func import search_cards_by_numbers
-from api.patients.views import patients_search_card
 from api.views import endpoint
 from openpyxl import load_workbook
 from appconf.manager import SettingManager
-from contracts.models import PriceCoast, Company, MedicalExamination, CompanyDepartment, PriceName
+from contracts.models import PriceCoast
 import directions.models as directions
 from directory.models import SetOrderResearch, Researches, ParaclinicInputGroups, ParaclinicInputField
 from directory.sql_func import is_paraclinic_filter_research, is_lab_filter_research

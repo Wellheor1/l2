@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from django.db.models import Q
 from openpyxl import load_workbook
 import clients.models as clients
+from api.directions.views import eds_documents
 from directory.models import ParaclinicInputGroups, ParaclinicInputField
 from django.db import transaction
 from django.utils import timezone
@@ -12,6 +13,8 @@ from users.models import DoctorProfile
 import directions.models as directions
 from utils.dates import normalize_dots_date
 from sys import stdout
+from django.http import HttpRequest
+import simplejson as json
 
 logger = logging.getLogger("IF")
 
@@ -121,6 +124,12 @@ class Command(BaseCommand):
                                     else:
                                         value = cells[current_cells]
                                 directions.ParaclinicResult(issledovaniye=iss, field=f, field_type=f.field_type, value=value).save()
+                        eds_documents_data = json.dumps({"pk": direction.pk})
+                        eds_documents_obj = HttpRequest()
+                        eds_documents_obj._body = eds_documents_data
+                        eds_documents_obj.user = doc_profile.user
+                        eds_documents(eds_documents_obj)
+                        stdout.write(f'Добавлено направление: {direction.pk}')
 
                 except Exception as e:
                     logger.exception(e)
