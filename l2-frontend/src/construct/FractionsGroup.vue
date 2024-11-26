@@ -361,7 +361,7 @@ const changeTube = async () => {
 }
 ::v-deep .hide-treeselect .vue-treeselect {
   &__placeholder {
-    line-height: 28px !important;
+    line-height: 26px !important;
   }
 }
 
