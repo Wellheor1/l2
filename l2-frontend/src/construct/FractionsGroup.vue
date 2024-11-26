@@ -11,7 +11,7 @@
         v-tippy
         class="height-button-change-tube btn"
         title="Изменить пробирку"
-        :disabled="selectedTubeTypeId===-1"
+        :disabled="!selectedTubeTypeId"
         @click="changeTube()"
       >
         Изменить
@@ -254,16 +254,18 @@ const addFraction = () => {
   }
 };
 
-const selectedTubeTypeId = ref(-1);
+const selectedTubeTypeId = ref(null);
 
 const changeTube = async () => {
-  const fractionsIds = props.tube.fractions.map(t => t.id);
-  await api('construct/laboratory/change-tube-for-fractions', {
-    oldTube: props.tube.id,
-    newTube: selectedTubeTypeId.value,
-    fractionsIds,
-  });
-  emit('changeTube');
+  if (selectedTubeTypeId.value) {
+    const fractionsIds = props.tube.fractions.map(t => t.id);
+    await api('construct/laboratory/change-tube-for-fractions', {
+      oldTube: props.tube.id,
+      newTube: selectedTubeTypeId.value,
+      fractionsIds,
+    });
+    emit('changeTube');
+  }
 };
 </script>
 
@@ -393,7 +395,7 @@ const changeTube = async () => {
 
 .height-button-change-tube {
   height: 26px;
-  padding: 0 2px;
+  padding: 0 6px;
   border-radius: 4px;
 }
 </style>
