@@ -356,7 +356,7 @@ const changeTube = async () => {
     background-image: linear-gradient(#6c7a89, #56616c);
     color: #fff;
     cursor: not-allowed;
-    line-height: 28px !important;
+    line-height: 26px !important;
   }
 }
 ::v-deep .hide-treeselect .vue-treeselect {
