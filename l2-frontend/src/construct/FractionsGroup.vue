@@ -265,6 +265,8 @@ const changeTube = async () => {
       fractionsIds,
     });
     emit('changeTube');
+  } else {
+    root.$emit('msg', 'error', 'Пробирка не выбрана');
   }
 };
 </script>
