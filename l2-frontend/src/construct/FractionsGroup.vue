@@ -9,7 +9,7 @@
       </div>
       <button
         v-tippy
-        class="height-button-change-tube"
+        class="height-button-change-tube btn"
         title="Изменить пробирку"
         :disabled="selectedTubeTypeId===-1"
         @click="changeTube()"
@@ -310,7 +310,7 @@ const changeTube = async () => {
   border: 1px solid #AAB2BD;
   border-radius: 4px;
   padding: 3px 2px;
-  margin: 0px 1px;
+  margin: 0 1px;
 }
 .transparent-button:hover {
   background-color: #434a54;
@@ -393,5 +393,7 @@ const changeTube = async () => {
 
 .height-button-change-tube {
   height: 26px;
+  padding: 0 2px;
+  border-radius: 4px;
 }
 </style>
