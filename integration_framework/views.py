@@ -302,9 +302,9 @@ def direction_data(request):
 
             signed_documents.append(document)
 
-    doctor_direction_create = direction.doc.additional_info
     additional_data_create_direction = None
-    if direction.doc.additional_info:
+    if direction.doc and direction.doc.additional_info:
+        doctor_direction_create = direction.doc.additional_info
         if "{" in doctor_direction_create and "}" in doctor_direction_create:
             try:
                 additional_data_create_direction = json.loads(doctor_direction_create)
