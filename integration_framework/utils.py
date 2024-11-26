@@ -163,7 +163,7 @@ def get_json_protocol_data(pk, is_paraclinic=False):
         if not data.get("Состояние код"):
             data["Состояние код"] = "1"
             data["Состояние наименование"] = "Удовлетворительное"
-        if not data.get("Дата осмотра"):
+        if not data.get("Дата осмотра") and iss.medical_examination:
             data["Дата осмотра"] = iss.medical_examination.strftime("%Y-%m-%d")
         if data.get("Дата заключения"):
             val = data.get("Дата заключения")
