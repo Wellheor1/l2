@@ -582,6 +582,7 @@ class Researches(models.Model):
             "pk": research.pk,
             "title": research.title,
             "internalCode": research.internal_code,
+            "code": research.code,
             "hide": research.hide,
             "order": research.sort_weight,
         }
