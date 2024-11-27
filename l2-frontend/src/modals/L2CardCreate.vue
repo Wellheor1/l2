@@ -1542,6 +1542,7 @@ export default {
           company_db: currentCompany,
         });
         this.companyDepartments = data;
+        this.card.work_department_db = null;
       } else {
         this.card.work_department_db = null;
         this.companyDepartments = [];
