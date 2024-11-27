@@ -449,7 +449,7 @@
                   :cache-options="false"
                   open-direction="top"
                   :open-on-focus="true"
-                  @input="changeCompany(card.work_place_db)"
+                  @input="changeCompany(card.work_place_db, card.work_department_db)"
                 >
                   <div
                     slot="value-label"
@@ -1543,6 +1543,7 @@ export default {
         });
         this.companyDepartments = data;
       } else {
+        this.card.work_department_db = null;
         this.companyDepartments = [];
       }
     },
