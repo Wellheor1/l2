@@ -1010,7 +1010,7 @@ def companies_find(request):
 @login_required
 def company_departments_find(request):
     request_data = json.loads(request.body)
-    company_departments = CompanyDepartment.search_departments(request_data["company_db"])
+    company_departments = CompanyDepartment.search_departments(request_data.get("company_db"))
     return JsonResponse({"data": company_departments})
 
 
