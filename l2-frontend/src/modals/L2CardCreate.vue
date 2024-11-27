@@ -1537,10 +1537,14 @@ export default {
   },
   methods: {
     async changeCompany(currentCompany) {
-      const { data } = await this.$api('company-departments-find', {
-        company_db: currentCompany,
-      });
-      this.companyDepartments = data;
+      if (currentCompany) {
+        const { data } = await this.$api('company-departments-find', {
+          company_db: currentCompany,
+        });
+        this.companyDepartments = data;
+      } else {
+        this.companyDepartments = [];
+      }
     },
 
     async loadRoomLocations() {
