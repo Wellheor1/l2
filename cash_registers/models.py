@@ -166,6 +166,7 @@ class Cheque(models.Model):
         (CASH_OUT, "Выплата"),
     )
 
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания', db_index=True)
     shift = models.ForeignKey(Shift, verbose_name='Смена', help_text='1', null=True, on_delete=models.CASCADE, db_index=True)
     type = models.CharField(max_length=20, choices=TYPES, verbose_name='Тип операции', help_text='sell, buy и т.д', db_index=True)
     uuid = models.UUIDField(verbose_name='UUID', help_text='abbfg-45fsd2')
@@ -282,3 +283,8 @@ class ChequeForDirection(models.Model):
 
     def __str__(self):
         return f"{self.cheque} - {self.direction_id}"
+
+    @staticmethod
+    def get_patient_cheque(date_start, date_end, patient_card_pk: int):
+        result = sql_func.get_patient_cheque(date_start, date_end, patient_card_pk)
+        return []
