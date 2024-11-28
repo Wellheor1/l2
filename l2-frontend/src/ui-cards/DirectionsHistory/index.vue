@@ -552,6 +552,7 @@ export default {
         { pk: 6, title: 'Регистратура пациента', module: 'rmisQueue' },
         { pk: 7, title: 'Случаи пациента' },
         { pk: 8, title: 'Комплексы пациента' },
+        { pk: 9, title: 'Чеки пациента' },
       ],
       active_type: this.onlyType || 3,
       checked_obj: {},
