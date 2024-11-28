@@ -1,4 +1,6 @@
 import uuid
+from datetime import datetime
+
 from django.db import models, transaction
 from jsonfield import JSONField
 from cash_registers import sql_func
@@ -285,6 +287,8 @@ class ChequeForDirection(models.Model):
         return f"{self.cheque} - {self.direction_id}"
 
     @staticmethod
-    def get_patient_cheque(date_start, date_end, patient_card_pk: int):
-        result = sql_func.get_patient_cheque(date_start, date_end, patient_card_pk)
+    def get_patient_cheque(date_start, date_end, patient_card_pk):
+        date_start_str = datetime.strftime(date_start, "%Y-%m-%d %H:%M")
+        date_end_str = datetime.strftime(date_end, "%Y-%m-%d %H:%M")
+        result = sql_func.get_patient_cheque(date_start_str, date_end_str, patient_card_pk)
         return result
