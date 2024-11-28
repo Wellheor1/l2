@@ -287,4 +287,4 @@ class ChequeForDirection(models.Model):
     @staticmethod
     def get_patient_cheque(date_start, date_end, patient_card_pk: int):
         result = sql_func.get_patient_cheque(date_start, date_end, patient_card_pk)
-        return []
+        return result

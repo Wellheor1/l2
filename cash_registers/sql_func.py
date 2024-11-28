@@ -1,4 +1,6 @@
 from django.db import connection
+
+from laboratory.settings import TIME_ZONE
 from utils.db import namedtuplefetchall
 
 
@@ -99,6 +101,27 @@ def get_total_count_issledovania(directions_ids):
             WHERE directions_napravleniya.id in %(directions_ids)s
             """,
             params={"directions_ids": directions_ids},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_patient_cheque(date_start, date_end, patient_card_pk):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT 
+
+            *
+
+            FROM cash_registers_cheque
+
+            WHERE cash_registers_cheque.created_at AT TIME ZONE %(tz)s BETWEEN %(date_start)s AND %(date_end)s
+            AND cash_registers_cheque.card_id = %(patient_card_pk)s
+
+            ORDER BY created_at DESC
+            """,
+            params={"tz": TIME_ZONE, "date_start": date_start, "date_end": date_end, "patient_card_pk": patient_card_pk},
         )
         rows = namedtuplefetchall(cursor)
     return rows
