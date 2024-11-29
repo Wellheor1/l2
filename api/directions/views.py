@@ -7,7 +7,7 @@ from typing import Optional
 from django.core.paginator import Paginator
 
 from barcodes.views import tubes
-from cash_registers.models import ChequeForDirection
+from cash_registers.models import Cheque
 from cda.integration import cdator_gen_xml, render_cda
 from contracts.models import PriceCategory, PriceCoast, PriceName, Company
 from ecp_integration.integration import get_ecp_time_table_list_patient, get_ecp_evn_direction, fill_slot_ecp_free_nearest
@@ -360,7 +360,7 @@ def directions_history(request):
         patient_card = pk
 
     if req_status == 9:
-        patient_cheque_data = ChequeForDirection.get_patient_cheque(date_start, date_end, patient_card)
+        patient_cheque_data = Cheque.get_patient_cheque(date_start, date_end, patient_card)
 
         final_result = [
             {

@@ -1,6 +1,6 @@
 import uuid
 import pytz
-from cash_registers.models import CashRegister, Shift, Cheque, ChequeItems
+from cash_registers.models import CashRegister, Shift, Cheque, ChequeItems, ChequeForDirection
 import cash_registers.req as cash_req
 import cash_registers.sql_func as sql_func
 from directions.models import IstochnikiFinansirovaniya, Napravleniya
@@ -184,6 +184,7 @@ def payment(shift_id, service_coasts, total_coast, cash, received_cash, electron
         if job_result["ok"]:
             cheq_id = Cheque.create_cheque(shift_id, type_operations, uuid_data, cash, received_cash, electronic, card_id, items)
             result["cheqId"] = cheq_id
+            cheque_for_direction = ChequeForDirection.objects.filter()
         else:
             result = job_result
     else:

@@ -236,6 +236,13 @@ class Cheque(models.Model):
             new_cheque.save()
         return new_cheque.pk
 
+    @staticmethod
+    def get_patient_cheque(date_start, date_end, patient_card_pk):
+        date_start_str = datetime.strftime(date_start, "%Y-%m-%d %H:%M")
+        date_end_str = datetime.strftime(date_end, "%Y-%m-%d %H:%M")
+        result = sql_func.get_patient_cheque(date_start_str, date_end_str, patient_card_pk)
+        return result
+
 
 class ChequeItems(models.Model):
     cheque = models.ForeignKey(Cheque, verbose_name='Чек', on_delete=models.CASCADE, db_index=True)
@@ -285,10 +292,3 @@ class ChequeForDirection(models.Model):
 
     def __str__(self):
         return f"{self.cheque} - {self.direction_id}"
-
-    @staticmethod
-    def get_patient_cheque(date_start, date_end, patient_card_pk):
-        date_start_str = datetime.strftime(date_start, "%Y-%m-%d %H:%M")
-        date_end_str = datetime.strftime(date_end, "%Y-%m-%d %H:%M")
-        result = sql_func.get_patient_cheque(date_start_str, date_end_str, patient_card_pk)
-        return result
