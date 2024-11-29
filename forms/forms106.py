@@ -1240,7 +1240,7 @@ def form_02(request_data):
     styles_obj = {
         "style": style, "styleCenter": styleCenter, "styleLead": styleLead, "styleBold": styleBold, "styleCenterBold": styleCenterBold,
         "styleJustified": styleJustified,
-        "styleRight": styleRight
+        "styleRight": styleRight,
     }
     if current_template_file:
         for section in body_paragraphs:
