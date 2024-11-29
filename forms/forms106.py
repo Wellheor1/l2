@@ -1198,10 +1198,6 @@ def form_02(request_data):
 
         Paragraph("Поступил в: стационар - 1", style),
         Spacer(1, 0.5 * mm),
-        # Paragraph(f"Дата и время поступления: {primary_reception_data['date_entered_value']}, {primary_reception_data['time_entered_value']}", style),
-        # Spacer(1, 0.5 * mm),
-        # Paragraph(f"Поступил через <u>{primary_reception_data['time_start_ill']}</u> часов после начала заболевания, получения травмы, отравления.", style),
-        # Spacer(1, 0.5 * mm),
      ]
     current_template = SettingManager.get("template_federal_order_530_titul_page", default='', default_type='s')
     objs.extend(title_page)
@@ -1250,7 +1246,6 @@ def form_02(request_data):
         "styleJustified": styleJustified,
         "styleRight": styleRight
     }
-    cdaTitles = {}
     if current_template_file:
         for section in body_paragraphs:
             objs = check_section_param(objs, styles_obj, section, tbl, primary_reception_data.get('result_by_cda'))
@@ -1266,7 +1261,6 @@ def form_02(request_data):
 
 
 def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles):
-    space_symbol = '&nbsp;'
     if section.get('Spacer'):
         height_spacer = section.get('spacer_data')
         objs.append(Spacer(1, height_spacer * mm))
@@ -1277,11 +1271,7 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
     elif section.get('text'):
         cda_titles_sec = section.get('cdaTitles')
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
-        print(data_cda)
-        print(len(cda_titles_sec))
         if len(data_cda) < 1:
             data_cda = ["" for count in range(len(cda_titles_sec))]
-        print(section.get('text'))
-        print(data_cda)
         objs.append(Paragraph(section.get('text').format(*data_cda), styles_obj[section.get('style')]))
     return objs
