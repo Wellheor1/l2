@@ -160,7 +160,7 @@ def check_count_items(directions_ids, service_coasts):
     total_issledovaniya_count = sql_func.get_total_count_issledovania(local_ids)
     if total_issledovaniya_count:
         total_issledovaniya_count = total_issledovaniya_count[0].count
-    if total_items_count <= total_issledovaniya_count:
+    if total_items_count < total_issledovaniya_count:
         return False
     return True
 
