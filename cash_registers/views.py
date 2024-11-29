@@ -153,10 +153,13 @@ def check_count_items(directions_ids, service_coasts):
     Проверка совпадения кол-ва услуг в чеке и кол-ва исследований в направлениях
     """
     total_items_count = 0
+    total_issledovaniya_count = 0
     for service in service_coasts:
         total_items_count += int(service["count"])
-    local_ids = set(directions_ids)
+    local_ids = tuple(directions_ids)
     total_issledovaniya_count = sql_func.get_total_count_issledovania(local_ids)
+    if total_issledovaniya_count:
+        total_issledovaniya_count = total_issledovaniya_count[0].count
     if total_items_count <= total_issledovaniya_count:
         return False
     return True
