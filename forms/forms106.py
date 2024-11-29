@@ -1198,9 +1198,9 @@ def form_02(request_data):
     current_template = SettingManager.get("template_federal_order_530_titul_page", default='', default_type='s')
     objs.extend(title_page)
     if not os.path.join(
-            BASE_DIR,
-            'forms',
-            'pdf_templates',
+        BASE_DIR,
+        'forms',
+        'pdf_templates',
     ):
         current_template_file = os.path.join(BASE_DIR, 'forms', 'pdf_templates', "template_federal_order_530_titul_page.json")
     else:
