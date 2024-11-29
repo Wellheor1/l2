@@ -1194,7 +1194,7 @@ def form_02(request_data):
 
         Paragraph("Поступил в: стационар - 1", style),
         Spacer(1, 0.5 * mm),
-     ]
+    ]
     current_template = SettingManager.get("template_federal_order_530_titul_page", default='', default_type='s')
     objs.extend(title_page)
     if not os.path.join(
