@@ -699,7 +699,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'date_diagnosis': date_diagnosis,
         'time_diagnosis': time_diagnosis,
         'whom_transfer_health_data': whom_transfer_health_data,
-        'result_by_cda': result_by_cda
+        'result_by_cda': result_by_cda,
     }
 
 
