@@ -1238,7 +1238,11 @@ def form_02(request_data):
     styleRight.alignment = TA_RIGHT
 
     styles_obj = {
-        "style": style, "styleCenter": styleCenter, "styleLead": styleLead, "styleBold": styleBold, "styleCenterBold": styleCenterBold,
+        "style": style,
+        "styleCenter": styleCenter,
+        "styleLead": styleLead,
+        "styleBold": styleBold,
+        "styleCenterBold": styleCenterBold,
         "styleJustified": styleJustified,
         "styleRight": styleRight,
     }
