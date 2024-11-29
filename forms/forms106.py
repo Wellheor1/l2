@@ -1191,7 +1191,6 @@ def form_02(request_data):
         Spacer(1, 0.2 * mm),
         Paragraph(f"Дата рождения: {patient_data['born']} Пол: {patient_data['sex']}", style),
         Spacer(1, 0.5 * mm),
-
         Paragraph("Поступил в: стационар - 1", style),
         Spacer(1, 0.5 * mm),
     ]
