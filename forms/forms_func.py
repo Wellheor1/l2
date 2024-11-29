@@ -9,11 +9,13 @@ from django.db.models import Q
 from clients.models import Document, DispensaryReg, Card
 from directions.models import Napravleniya, Issledovaniya, ParaclinicResult, IstochnikiFinansirovaniya, PersonContract
 from directory.models import Researches
+from external_system.models import CdaFields
+from external_system.sql_func import cda_data_by_title
 from laboratory import utils
-from laboratory.settings import MEDEXAM_FIN_SOURCE_TITLE
+from laboratory.settings import MEDEXAM_FIN_SOURCE_TITLE, CDA_TITLES_FIELDS_PRIMARY_RESEARCH
 from laboratory.utils import strdate
 from api.stationar.stationar_func import hosp_get_data_direction, check_transfer_epicrisis
-from api.stationar.sql_func import get_result_value_iss
+from api.stationar.sql_func import get_result_value_iss, get_title_fields_by_cda_relation
 from utils.dates import normalize_date
 import json
 
@@ -457,9 +459,25 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'Время установления диагноза',
         'Кому доверяю',
     ]
+    cda_dict_title = {}
+    result_by_cda = {}
+    if CDA_TITLES_FIELDS_PRIMARY_RESEARCH:
+        cda_ids_data = cda_data_by_title(tuple(CDA_TITLES_FIELDS_PRIMARY_RESEARCH))
+        print(cda_ids_data)
+        cda_ids = [i.id for i in cda_ids_data]
+        cda_dict_title = {i.id: i.title for i in cda_ids_data}
+        print(cda_ids)
+
+        fields_data = get_title_fields_by_cda_relation(primary_research_id, tuple(cda_ids))
+        print(fields_data)
+        titles_field = [i.title for i in fields_data]
+
     list_values = None
     if titles_field and hosp_primary_receptions:
         list_values = get_result_value_iss(hosp_primary_iss, primary_research_id, titles_field)
+
+    if CDA_TITLES_FIELDS_PRIMARY_RESEARCH:
+        result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
 
     date_entered_value, time_entered_value, type_transport, medicament_allergy = '', '', '', ''
     who_directed, plan_hospital, extra_hospital, type_hospital = '', '', '', ''
@@ -681,6 +699,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'date_diagnosis': date_diagnosis,
         'time_diagnosis': time_diagnosis,
         'whom_transfer_health_data': whom_transfer_health_data,
+        'result_by_cda': result_by_cda
     }
 
 

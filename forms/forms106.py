@@ -23,6 +23,8 @@ from api.stationar.stationar_func import hosp_get_hosp_direction
 from api.sql_func import get_fraction_result
 from utils.dates import normalize_date
 from .forms_func import primary_reception_get_data, hosp_extract_get_data, hosp_get_clinical_diagnos, hosp_get_transfers_data, hosp_get_operation_data, closed_bl
+from laboratory.settings import FONTS_FOLDER, BASE_DIR
+import simplejson as json
 
 
 def form_01(request_data):
@@ -560,7 +562,7 @@ def form_01(request_data):
     return pdf
 
 
-def form_02(request_data):
+def form_03_1(request_data):
     """
     Форма 003/у - cтационарная карта 530Н
     """
@@ -775,7 +777,7 @@ def form_02(request_data):
         Spacer(1, 0.5 * mm),
         Paragraph("Направлен в стационар (дневной стационар):", style),
         Spacer(1, 0.5 * mm),
-        Paragraph(f"Наименование медицинской	организации, направившей пациента: {primary_reception_data['who_directed']}", style),
+        Paragraph(f"Наименование медицинской организации, направившей пациента: {primary_reception_data['who_directed']}", style),
         Spacer(1, 0.5 * mm),
         Paragraph(f"Номер и дата направления: {primary_reception_data['ext_direction_number']}	от {number_direction} г.", style),
         Spacer(1, 0.5 * mm),
@@ -983,3 +985,303 @@ def form_02(request_data):
     buffer.close()
 
     return pdf
+
+
+def form_02(request_data):
+    """
+    Форма 003/у - cтационарная карта 530Н
+    """
+
+    num_dir = request_data["dir_pk"]
+    direction_obj = Napravleniya.objects.get(pk=num_dir)
+    hosp_nums_obj = hosp_get_hosp_direction(num_dir)
+    hosp_nums = f"- {hosp_nums_obj[0].get('direction')}"
+
+    ind_card = direction_obj.client
+    patient_data = ind_card.get_data_individual()
+
+    hospital: Hospitals = request_data["hospital"]
+
+    hospital_name = hospital.safe_short_title
+    hospital_address = hospital.safe_address
+    hospital_kod_ogrn = hospital.safe_ogrn
+
+    if sys.platform == "win32":
+        locale.setlocale(locale.LC_ALL, "rus_rus")
+    else:
+        locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
+
+    pdfmetrics.registerFont(TTFont("PTAstraSerifBold", os.path.join(FONTS_FOLDER, "PTAstraSerif-Bold.ttf")))
+    pdfmetrics.registerFont(TTFont("PTAstraSerifReg", os.path.join(FONTS_FOLDER, "PTAstraSerif-Regular.ttf")))
+    pdfmetrics.registerFont(TTFont("Symbola", os.path.join(FONTS_FOLDER, "Symbola.ttf")))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=20 * mm, rightMargin=12 * mm, topMargin=5 * mm, bottomMargin=10 * mm, allowSplitting=1, title="Форма {}".format("003/у"))
+    width, height = portrait(A4)
+    styleSheet = getSampleStyleSheet()
+    style = styleSheet["Normal"]
+    style.fontName = "PTAstraSerifReg"
+    style.fontSize = 11
+    style.leading = 12
+    style.spaceAfter = 0.5 * mm
+
+    styleLead = deepcopy(style)
+    styleLead.leading = 12
+    styleLead.alignment = TA_JUSTIFY
+
+    styleBold = deepcopy(style)
+    styleBold.fontName = "PTAstraSerifBold"
+    styleCenter = deepcopy(style)
+    styleCenter.alignment = TA_CENTER
+    styleCenter.fontSize = 12
+    styleCenter.leading = 9
+    styleCenter.spaceAfter = 1 * mm
+    styleCenterBold = deepcopy(styleBold)
+    styleCenterBold.alignment = TA_CENTER
+    styleCenterBold.fontSize = 7
+    styleCenterBold.leading = 15
+    styleCenterBold.face = "PTAstraSerifBold"
+    styleCenterBold.borderColor = black
+    styleJustified = deepcopy(style)
+    styleJustified.alignment = TA_JUSTIFY
+    styleJustified.spaceAfter = 4.5 * mm
+    styleJustified.fontSize = 12
+    styleJustified.leading = 4.5 * mm
+
+    styleRight = deepcopy(styleJustified)
+    styleRight.alignment = TA_RIGHT
+
+    objs = []
+
+    styleT = deepcopy(style)
+    styleT.alignment = TA_LEFT
+    styleT.fontSize = 10
+    styleT.leading = 4.5 * mm
+    styleT.face = "PTAstraSerifReg"
+
+    print_district = ""
+    if SettingManager.get("district", default="True", default_type="b"):
+        if ind_card.district is not None:
+            print_district = "Уч: {}".format(ind_card.district.title)
+
+    opinion = [
+        [
+            Paragraph("<font size=11>{}<br/>Адрес: {}<br/>ОГРН: {} <br/><u>{}</u> </font>".format(hospital_name, hospital_address, hospital_kod_ogrn, print_district), styleT),
+            Paragraph(
+                "<font size=9 >Код формы по ОКУД:<br/>"
+                "Медицинская документация<br/>форма № 003/у<br/><br/>Утверждена приказом Министерства здравоохранения Российской Федерации от «5» августа 2022г. N 530н</font>",
+                styleT,
+            ),
+        ],
+    ]
+
+    tbl = Table(opinion, 2 * [90 * mm])
+    tbl.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 0.75, colors.white),
+                ("LEFTPADDING", (1, 0), (-1, -1), 80),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+
+    objs.append(tbl)
+    if patient_data["age"] < SettingManager.get("child_age_before", default="15", default_type="i"):
+        patient_data["serial"] = patient_data["bc_serial"]
+        patient_data["num"] = patient_data["bc_num"]
+    else:
+        patient_data["serial"] = patient_data["passport_serial"]
+        patient_data["num"] = patient_data["passport_num"]
+
+    p_phone = ""
+    if patient_data["phone"]:
+        p_phone = "тел.: " + ", ".join(patient_data["phone"])
+
+    card_num_obj = patient_data["card_num"].split(" ")
+    p_card_num = card_num_obj[0]
+
+    # взять самое последнее направленеие из hosp_dirs
+    hosp_last_num = hosp_nums_obj[-1].get("direction")
+    ############################################################################################################
+    # Получение данных из выписки
+    # Взять услугу типа выписка. Из полей "Дата выписки" - взять дату. Из поля "Время выписки" взять время
+    hosp_extract_data = hosp_extract_get_data(hosp_last_num)
+
+    extrac_date, extract_time, outcome = "", "", ""
+    days_count = "__________________________"
+    result_hospital = ""
+    if hosp_extract_data:
+        extrac_date = hosp_extract_data["date_value"]
+        extract_time = hosp_extract_data["time_value"]
+        days_count = hosp_extract_data["days_count"]
+        if hosp_extract_data["outcome"]:
+            outcome = hosp_extract_data["outcome"]
+        if hosp_extract_data["result_hospital"]:
+            result_hospital = hosp_extract_data["result_hospital"]
+
+    # Получить отделение - из названия услуги или самого главного направления
+    first_bed_profile = hosp_nums_obj[0].get("research_title")
+    iss_first_depart = Issledovaniya.objects.get(pk=hosp_nums_obj[0].get("issledovaniye"))
+    first_hosp_depart = iss_first_depart.hospital_department_override.title if iss_first_depart.hospital_department_override else ""
+
+    ############################################################################################################
+    # Получить данные из первичного приема (самого первого hosp-направления)
+    hosp_first_num = hosp_nums_obj[0].get("direction")
+    primary_reception_data = primary_reception_get_data(hosp_first_num)
+    print(primary_reception_data.get('result_by_cda'))
+
+    ###########################################################################################################
+    # Получение данных группы крови
+    fcaction_avo_id = Fractions.objects.filter(title="Групповая принадлежность крови по системе АВО").first()
+    fcaction_rezus_id = Fractions.objects.filter(title="Резус").first()
+    group_blood_avo = get_fraction_result(ind_card.pk, fcaction_avo_id.pk, count=1)
+    if group_blood_avo:
+        group_blood_avo_value = group_blood_avo[0][5]
+    else:
+        group_blood_avo_value = primary_reception_data["blood_group"]
+
+    open_symbola = '<font face="Symbola" size=11>'
+    close_symbola = "</font>"
+    variants = {
+        "O<sub>αβ</sub> (I)": f"O<sub>{open_symbola}\u03B1\u03B2{close_symbola}</sub>",
+        "Bα (III)": f"B{open_symbola}\u03B1{close_symbola} (III)",
+        "A<sub>β</sub> (II)": f"A<sub>{open_symbola}\u03B2{close_symbola}</sub>(II)",
+        "A₂β (II)": f"A₂{open_symbola}\u03B2{close_symbola}",
+        "AB₀ (IV)": f"AB<sub>{open_symbola}\u2070{close_symbola}</sub> (IV)",
+        "A₂B₀ (IV)": f"A₂B<sub>{open_symbola}\u2070{close_symbola}</sub>",
+    }
+    if variants.get(group_blood_avo_value):
+        group_blood_avo_value = variants.get(group_blood_avo_value)
+
+    group_blood_rezus = get_fraction_result(ind_card.pk, fcaction_rezus_id.pk, count=1)
+    if group_blood_rezus:
+        group_rezus_value = group_blood_rezus[0][5].replace("<br/>", " ")
+    else:
+        group_rezus_value = primary_reception_data["resus_factor"]
+
+    #####################################################################################################
+    # получить даные из переводного эпикриза: Дата перевода, Время перевода, в какое отделение переведен
+    # у каждого hosp-направления найти подчиненное эпикриз Перевод*
+    transfers_data = hosp_get_transfers_data(hosp_nums_obj)
+    transfers = ""
+    for i in transfers_data:
+        transfers = (
+            f"{transfers}<br/> Переведен в отделение {i['transfer_depart']}; профиль коек {i['transfer_research_title']}<br/>Дата и время перевода {i['date_transfer_value']} "
+            f"время:{i['time_transfer_value']};<br/>"
+        )
+
+    plan_form = primary_reception_data["plan_hospital"]
+    extra_hospital = primary_reception_data["extra_hospital"]
+    result_form = ""
+    if plan_form.lower() == "да":
+        result_form = "плановая — 1"
+    if extra_hospital.lower() == "да":
+        result_form = "экстренная — 2"
+    number_direction = normalize_date(primary_reception_data["ext_direction_date"])
+    bold_open = '<font fontname ="PTAstraSerifBold">'
+    bold_close = "</font>"
+    title_page = [
+        Indenter(left=0 * mm),
+        Spacer(1, 2 * mm),
+        Paragraph(
+            '<font fontname="PTAstraSerifBold" size=10>МЕДИЦИНСКАЯ КАРТА ПАЦИЕНТА,<br/>ПОЛУЧАЮЩЕГО МЕДИЦННСКУЮ ПОМОЩЬ<br/>В СТАЦИОНАРНЫХ УСЛОВНЯХ<br/> № {} <u>{}</u></font>'.format(
+                p_card_num, hosp_nums
+            ),
+            styleCenterBold,
+        ),
+        Spacer(1, 2 * mm),
+        Paragraph(f"Фамилия, имя, отчество:&nbsp; {patient_data['fio']}", style),
+        Spacer(1, 0.2 * mm),
+        Paragraph(f"Дата рождения: {patient_data['born']} Пол: {patient_data['sex']}", style),
+        Spacer(1, 0.5 * mm),
+
+        Paragraph("Поступил в: стационар - 1", style),
+        Spacer(1, 0.5 * mm),
+        # Paragraph(f"Дата и время поступления: {primary_reception_data['date_entered_value']}, {primary_reception_data['time_entered_value']}", style),
+        # Spacer(1, 0.5 * mm),
+        # Paragraph(f"Поступил через <u>{primary_reception_data['time_start_ill']}</u> часов после начала заболевания, получения травмы, отравления.", style),
+        # Spacer(1, 0.5 * mm),
+     ]
+    current_template = SettingManager.get("template_federal_order_530_titul_page", default='', default_type='s')
+    objs.extend(title_page)
+    if not os.path.join(
+            BASE_DIR,
+            'forms',
+            'pdf_templates',
+    ):
+        current_template_file = os.path.join(BASE_DIR, 'forms', 'pdf_templates', "template_federal_order_530_titul_page.json")
+    else:
+        current_template_file = os.path.join(BASE_DIR, 'forms', 'pdf_templates', "template_federal_order_530_titul_page.json")
+
+    if current_template_file:
+        with open(current_template_file) as json_file:
+            data = json.load(json_file)
+            body_paragraphs = data['body_paragraphs']
+
+    styleLead = deepcopy(style)
+    styleLead.leading = 12
+    styleLead.alignment = TA_JUSTIFY
+
+    styleBold = deepcopy(style)
+    styleBold.fontName = "PTAstraSerifBold"
+    styleCenter = deepcopy(style)
+    styleCenter.alignment = TA_CENTER
+    styleCenter.fontSize = 12
+    styleCenter.leading = 9
+    styleCenter.spaceAfter = 1 * mm
+    styleCenterBold = deepcopy(styleBold)
+    styleCenterBold.alignment = TA_CENTER
+    styleCenterBold.fontSize = 7
+    styleCenterBold.leading = 15
+    styleCenterBold.face = "PTAstraSerifBold"
+    styleCenterBold.borderColor = black
+    styleJustified = deepcopy(style)
+    styleJustified.alignment = TA_JUSTIFY
+    styleJustified.spaceAfter = 4.5 * mm
+    styleJustified.fontSize = 12
+    styleJustified.leading = 4.5 * mm
+
+    styleRight = deepcopy(styleJustified)
+    styleRight.alignment = TA_RIGHT
+
+    styles_obj = {
+        "style": style, "styleCenter": styleCenter, "styleLead": styleLead, "styleBold": styleBold, "styleCenterBold": styleCenterBold,
+        "styleJustified": styleJustified,
+        "styleRight": styleRight
+    }
+    cdaTitles = {}
+    if current_template_file:
+        for section in body_paragraphs:
+            objs = check_section_param(objs, styles_obj, section, tbl, primary_reception_data.get('result_by_cda'))
+
+    if primary_reception_data.get("weight"):
+        title_page.append(Paragraph(f"Вес: {primary_reception_data['weight']}", styleRight))
+
+    doc.build(objs)
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    return pdf
+
+
+def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles):
+    space_symbol = '&nbsp;'
+    if section.get('Spacer'):
+        height_spacer = section.get('spacer_data')
+        objs.append(Spacer(1, height_spacer * mm))
+    elif section.get('page_break'):
+        objs.append(PageBreak())
+    elif section.get('specification'):
+        objs.append(tbl_specification)
+    elif section.get('text'):
+        cda_titles_sec = section.get('cdaTitles')
+        data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
+        print(data_cda)
+        print(len(cda_titles_sec))
+        if len(data_cda) < 1:
+            data_cda = ["" for count in range(len(cda_titles_sec))]
+        print(section.get('text'))
+        print(data_cda)
+        objs.append(Paragraph(section.get('text').format(*data_cda), styles_obj[section.get('style')]))
+    return objs
