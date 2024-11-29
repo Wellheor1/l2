@@ -61,7 +61,7 @@ class Shift(models.Model):
     open_uuid = models.UUIDField(verbose_name='UUID открытия', help_text='abbfg-45fsd2', null=True, blank=True)
     close_uuid = models.UUIDField(verbose_name='UUID Закрытия', help_text='abbfg-45fsd2', null=True, blank=True)
     open_status = models.BooleanField(verbose_name='Статус открытия смены', default=False)
-    close_status = models.BooleanField(verbose_name='Статус открытия смены', default=False)
+    close_status = models.BooleanField(verbose_name='Статус закрытия смены', default=False)
 
     class Meta:
         verbose_name = "Кассовая смена"
