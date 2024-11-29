@@ -45,4 +45,3 @@ def cda_data_by_title(cda_title):
         )
         rows = namedtuplefetchall(cursor)
     return rows
-
