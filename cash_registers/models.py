@@ -292,3 +292,9 @@ class ChequeForDirection(models.Model):
 
     def __str__(self):
         return f"{self.cheque} - {self.direction_id}"
+
+    @staticmethod
+    def create(cheque_id: int, directions_ids: list):
+        for direction_id in directions_ids:
+            cheque_for_direction = ChequeForDirection(cheque_id=cheque_id, direction_id=direction_id)
+            cheque_for_direction.save()

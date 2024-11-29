@@ -183,8 +183,8 @@ def payment(shift_id, service_coasts, total_coast, cash, received_cash, electron
         job_result = cash_req.send_job(job_body)
         if job_result["ok"]:
             cheq_id = Cheque.create_cheque(shift_id, type_operations, uuid_data, cash, received_cash, electronic, card_id, items)
+            ChequeForDirection.create(cheq_id, directions_ids)
             result["cheqId"] = cheq_id
-            cheque_for_direction = ChequeForDirection.objects.filter()
         else:
             result = job_result
     else:
