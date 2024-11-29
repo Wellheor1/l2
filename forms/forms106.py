@@ -1094,10 +1094,6 @@ def form_02(request_data):
         patient_data["serial"] = patient_data["passport_serial"]
         patient_data["num"] = patient_data["passport_num"]
 
-    p_phone = ""
-    if patient_data["phone"]:
-        p_phone = "тел.: " + ", ".join(patient_data["phone"])
-
     card_num_obj = patient_data["card_num"].split(" ")
     p_card_num = card_num_obj[0]
 
