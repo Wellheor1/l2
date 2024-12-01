@@ -698,6 +698,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'result_by_cda': result_by_cda,
     }
 
+
 def primary_reception_get_data_by_cda(hosp_first_num, site_type=0):
     # Получение данных из певичного приема
     hosp_primary_receptions = hosp_get_data_direction(hosp_first_num, site_type=site_type, type_service='None', level=2)
