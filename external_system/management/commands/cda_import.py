@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from openpyxl import load_workbook
 
-from external_system.models import ProfessionsWorkersPositionsRefbook, CdaFields
+from external_system.models import CdaFields
 
 
 class Command(BaseCommand):
