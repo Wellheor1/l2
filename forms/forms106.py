@@ -21,8 +21,16 @@ from io import BytesIO
 from api.stationar.stationar_func import hosp_get_hosp_direction
 from api.sql_func import get_fraction_result
 from utils.dates import normalize_date
-from .forms_func import primary_reception_get_data, hosp_extract_get_data, hosp_get_clinical_diagnos, hosp_get_transfers_data, hosp_get_operation_data, closed_bl, \
-    hosp_extract_get_data_by_cda, primary_reception_get_data_by_cda
+from .forms_func import (
+    primary_reception_get_data,
+    hosp_extract_get_data,
+    hosp_get_clinical_diagnos,
+    hosp_get_transfers_data,
+    hosp_get_operation_data,
+    closed_bl,
+    hosp_extract_get_data_by_cda,
+    primary_reception_get_data_by_cda,
+)
 from laboratory.settings import FONTS_FOLDER, BASE_DIR
 import simplejson as json
 
