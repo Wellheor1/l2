@@ -14,7 +14,6 @@ from appconf.manager import SettingManager
 from directions.models import Napravleniya, Issledovaniya
 from directory.models import Fractions
 from hospitals.models import Hospitals
-from laboratory.settings import FONTS_FOLDER
 import locale
 import sys
 import os.path
@@ -22,7 +21,18 @@ from io import BytesIO
 from api.stationar.stationar_func import hosp_get_hosp_direction
 from api.sql_func import get_fraction_result
 from utils.dates import normalize_date
-from .forms_func import primary_reception_get_data, hosp_extract_get_data, hosp_get_clinical_diagnos, hosp_get_transfers_data, hosp_get_operation_data, closed_bl
+from .forms_func import (
+    primary_reception_get_data,
+    hosp_extract_get_data,
+    hosp_get_clinical_diagnos,
+    hosp_get_transfers_data,
+    hosp_get_operation_data,
+    closed_bl,
+    hosp_extract_get_data_by_cda,
+    primary_reception_get_data_by_cda,
+)
+from laboratory.settings import FONTS_FOLDER, BASE_DIR
+import simplejson as json
 
 
 def form_01(request_data):
@@ -560,7 +570,7 @@ def form_01(request_data):
     return pdf
 
 
-def form_02(request_data):
+def form_03_1(request_data):
     """
     Форма 003/у - cтационарная карта 530Н
     """
@@ -739,7 +749,7 @@ def form_02(request_data):
     transfers = ""
     for i in transfers_data:
         transfers = (
-            f"{transfers}<br/> Переведен в отделение {i['transfer_depart']}; профиль коек {i['transfer_research_title']}<br/>Дата и время перевода {i['date_transfer_value']} "
+            f"{transfers}<br/> Переведен в отделение {i['transfer_depart']}; профиль коек {i['transfer_research_title']} палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
             f"время:{i['time_transfer_value']};<br/>"
         )
 
@@ -775,7 +785,7 @@ def form_02(request_data):
         Spacer(1, 0.5 * mm),
         Paragraph("Направлен в стационар (дневной стационар):", style),
         Spacer(1, 0.5 * mm),
-        Paragraph(f"Наименование медицинской	организации, направившей пациента: {primary_reception_data['who_directed']}", style),
+        Paragraph(f"Наименование медицинской организации, направившей пациента: {primary_reception_data['who_directed']}", style),
         Spacer(1, 0.5 * mm),
         Paragraph(f"Номер и дата направления: {primary_reception_data['ext_direction_number']}	от {number_direction} г.", style),
         Spacer(1, 0.5 * mm),
@@ -983,3 +993,341 @@ def form_02(request_data):
     buffer.close()
 
     return pdf
+
+
+def form_02(request_data):
+    """
+    Форма 003/у - cтационарная карта 530Н
+    """
+
+    num_dir = request_data["dir_pk"]
+    direction_obj = Napravleniya.objects.get(pk=num_dir)
+    hosp_nums_obj = hosp_get_hosp_direction(num_dir)
+    hosp_nums = f"- {hosp_nums_obj[0].get('direction')}"
+
+    ind_card = direction_obj.client
+    patient_data = ind_card.get_data_individual()
+
+    hospital: Hospitals = request_data["hospital"]
+
+    hospital_name = hospital.safe_short_title
+    hospital_address = hospital.safe_address
+    hospital_kod_ogrn = hospital.safe_ogrn
+
+    if sys.platform == "win32":
+        locale.setlocale(locale.LC_ALL, "rus_rus")
+    else:
+        locale.setlocale(locale.LC_ALL, "ru_RU.UTF-8")
+
+    pdfmetrics.registerFont(TTFont("PTAstraSerifBold", os.path.join(FONTS_FOLDER, "PTAstraSerif-Bold.ttf")))
+    pdfmetrics.registerFont(TTFont("PTAstraSerifReg", os.path.join(FONTS_FOLDER, "PTAstraSerif-Regular.ttf")))
+    pdfmetrics.registerFont(TTFont("Symbola", os.path.join(FONTS_FOLDER, "Symbola.ttf")))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=20 * mm, rightMargin=12 * mm, topMargin=5 * mm, bottomMargin=10 * mm, allowSplitting=1, title="Форма {}".format("003/у"))
+    width, height = portrait(A4)
+    styleSheet = getSampleStyleSheet()
+    style = styleSheet["Normal"]
+    style.fontName = "PTAstraSerifReg"
+    style.fontSize = 11
+    style.leading = 12
+    style.spaceAfter = 0.5 * mm
+
+    styleLead = deepcopy(style)
+    styleLead.leading = 12
+    styleLead.alignment = TA_JUSTIFY
+
+    styleBold = deepcopy(style)
+    styleBold.fontName = "PTAstraSerifBold"
+    styleCenter = deepcopy(style)
+    styleCenter.alignment = TA_CENTER
+    styleCenter.fontSize = 12
+    styleCenter.leading = 9
+    styleCenter.spaceAfter = 1 * mm
+    styleCenterBold = deepcopy(styleBold)
+    styleCenterBold.alignment = TA_CENTER
+    styleCenterBold.fontSize = 7
+    styleCenterBold.leading = 15
+    styleCenterBold.face = "PTAstraSerifBold"
+    styleCenterBold.borderColor = black
+    styleJustified = deepcopy(style)
+    styleJustified.alignment = TA_JUSTIFY
+    styleJustified.spaceAfter = 4.5 * mm
+    styleJustified.fontSize = 12
+    styleJustified.leading = 4.5 * mm
+
+    styleRight = deepcopy(styleJustified)
+    styleRight.alignment = TA_RIGHT
+
+    objs = []
+
+    styleT = deepcopy(style)
+    styleT.alignment = TA_LEFT
+    styleT.fontSize = 10
+    styleT.leading = 4.5 * mm
+    styleT.face = "PTAstraSerifReg"
+
+    print_district = ""
+    if SettingManager.get("district", default="True", default_type="b"):
+        if ind_card.district is not None:
+            print_district = "Уч: {}".format(ind_card.district.title)
+
+    opinion = [
+        [
+            Paragraph("<font size=11>{}<br/>Адрес: {}<br/>ОГРН: {} <br/><u>{}</u> </font>".format(hospital_name, hospital_address, hospital_kod_ogrn, print_district), styleT),
+            Paragraph(
+                "<font size=9 >Код формы по ОКУД:<br/>"
+                "Медицинская документация<br/>форма № 003/у<br/><br/>Утверждена приказом Министерства здравоохранения Российской Федерации от «5» августа 2022г. N 530н</font>",
+                styleT,
+            ),
+        ],
+    ]
+
+    tbl = Table(opinion, 2 * [90 * mm])
+    tbl.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 0.75, colors.white),
+                ("LEFTPADDING", (1, 0), (-1, -1), 80),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+
+    objs.append(tbl)
+    if patient_data["age"] < SettingManager.get("child_age_before", default="15", default_type="i"):
+        patient_data["serial"] = patient_data["bc_serial"]
+        patient_data["num"] = patient_data["bc_num"]
+    else:
+        patient_data["serial"] = patient_data["passport_serial"]
+        patient_data["num"] = patient_data["passport_num"]
+
+    card_num_obj = patient_data["card_num"].split(" ")
+    p_card_num = card_num_obj[0]
+
+    # взять самое последнее направленеие из hosp_dirs
+    hosp_last_num = hosp_nums_obj[-1].get("direction")
+    ############################################################################################################
+    # Получение данных из выписки
+    # Взять услугу типа выписка. Из полей "Дата выписки" - взять дату. Из поля "Время выписки" взять время
+    hosp_depart = hosp_nums_obj[0].get("research_title")
+
+    hosp_extract_data = hosp_extract_get_data_by_cda(hosp_last_num)
+
+    # Получить отделение - из названия услуги или самого главного направления
+    first_bed_profile = hosp_nums_obj[0].get("research_title")
+    iss_first_depart = Issledovaniya.objects.get(pk=hosp_nums_obj[0].get("issledovaniye"))
+    first_hosp_depart = iss_first_depart.hospital_department_override.title if iss_first_depart.hospital_department_override else ""
+
+    ############################################################################################################
+    # Получить данные из первичного приема (самого первого hosp-направления)
+    hosp_first_num = hosp_nums_obj[0].get("direction")
+    primary_reception_data = primary_reception_get_data_by_cda(hosp_first_num)
+
+    ###########################################################################################################
+    # Получение данных группы крови
+    fcaction_avo_id = Fractions.objects.filter(title="Групповая принадлежность крови по системе АВО").first()
+    fcaction_rezus_id = Fractions.objects.filter(title="Резус").first()
+    group_blood_avo = get_fraction_result(ind_card.pk, fcaction_avo_id.pk, count=1)
+    if group_blood_avo:
+        group_blood_avo_value = group_blood_avo[0][5]
+    else:
+        group_blood_avo_value = primary_reception_data.get("blood_group")
+
+    open_symbola = '<font face="Symbola" size=11>'
+    close_symbola = "</font>"
+    variants = {
+        "O<sub>αβ</sub> (I)": f"O<sub>{open_symbola}\u03B1\u03B2{close_symbola}</sub>",
+        "Bα (III)": f"B{open_symbola}\u03B1{close_symbola} (III)",
+        "A<sub>β</sub> (II)": f"A<sub>{open_symbola}\u03B2{close_symbola}</sub>(II)",
+        "A₂β (II)": f"A₂{open_symbola}\u03B2{close_symbola}",
+        "AB₀ (IV)": f"AB<sub>{open_symbola}\u2070{close_symbola}</sub> (IV)",
+        "A₂B₀ (IV)": f"A₂B<sub>{open_symbola}\u2070{close_symbola}</sub>",
+    }
+    if variants.get(group_blood_avo_value):
+        group_blood_avo_value = variants.get(group_blood_avo_value)
+
+    group_blood_rezus = get_fraction_result(ind_card.pk, fcaction_rezus_id.pk, count=1)
+    if group_blood_rezus:
+        group_rezus_value = group_blood_rezus[0][5].replace("<br/>", " ")
+    else:
+        group_rezus_value = primary_reception_data.get("resus_factor")
+
+    #####################################################################################################
+    # получить даные из переводного эпикриза: Дата перевода, Время перевода, в какое отделение переведен
+    # у каждого hosp-направления найти подчиненное эпикриз Перевод*
+
+    transfers_data = hosp_get_transfers_data(hosp_nums_obj)
+    if not first_hosp_depart:
+        first_hosp_depart = hosp_depart
+    transfers = f"Отделение <u>{first_hosp_depart}</u>; профиль коек {first_bed_profile} палата N _______"
+    for i in transfers_data:
+        transfers = (
+            f"{transfers}<br/> Переведен в отделение <u>{i['transfer_depart']}</u>; "
+            f"профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
+            f"время:{i['time_transfer_value']};<br/>"
+        )
+
+    title_page = [
+        Indenter(left=0 * mm),
+        Spacer(1, 2 * mm),
+        Paragraph(
+            '<font fontname="PTAstraSerifBold" size=10>МЕДИЦИНСКАЯ КАРТА ПАЦИЕНТА,<br/>ПОЛУЧАЮЩЕГО МЕДИЦННСКУЮ ПОМОЩЬ<br/>В СТАЦИОНАРНЫХ УСЛОВНЯХ<br/> № {} <u>{}</u></font>'.format(
+                p_card_num, hosp_nums
+            ),
+            styleCenterBold,
+        ),
+        Spacer(1, 2 * mm),
+        Paragraph(f"Фамилия, имя, отчество:&nbsp; {patient_data['fio']}", style),
+        Spacer(1, 0.2 * mm),
+        Paragraph(f"Дата рождения: {patient_data['born']} Пол: {patient_data['sex']}", style),
+        Spacer(1, 0.5 * mm),
+        Paragraph("Поступил в: стационар - 1", style),
+        Spacer(1, 0.5 * mm),
+    ]
+    objs.extend(title_page)
+    if not os.path.join(BASE_DIR, "forms", "pdf_templates"):
+        current_template_file = os.path.join(BASE_DIR, "forms", "pdf_templates", "template_federal_order_530_titul_page.json")
+    else:
+        current_template_file = os.path.join(BASE_DIR, "forms", "pdf_templates", "template_federal_order_530_titul_page.json")
+
+    if current_template_file:
+        with open(current_template_file) as json_file:
+            data = json.load(json_file)
+            body_paragraphs = data["body_paragraphs"]
+
+    styleLead = deepcopy(style)
+    styleLead.leading = 12
+    styleLead.alignment = TA_JUSTIFY
+
+    styleBold = deepcopy(style)
+    styleBold.fontName = "PTAstraSerifBold"
+    styleCenter = deepcopy(style)
+    styleCenter.alignment = TA_CENTER
+    styleCenter.fontSize = 12
+    styleCenter.leading = 9
+    styleCenter.spaceAfter = 1 * mm
+    styleCenterBold = deepcopy(styleBold)
+    styleCenterBold.alignment = TA_CENTER
+    styleCenterBold.fontSize = 7
+    styleCenterBold.leading = 15
+    styleCenterBold.face = "PTAstraSerifBold"
+    styleCenterBold.borderColor = black
+    styleJustified = deepcopy(style)
+    styleJustified.alignment = TA_JUSTIFY
+    styleJustified.spaceAfter = 4.5 * mm
+    styleJustified.fontSize = 12
+    styleJustified.leading = 4.5 * mm
+
+    styleRight = deepcopy(styleJustified)
+    styleRight.alignment = TA_RIGHT
+
+    styles_obj = {
+        "style": style,
+        "styleCenter": styleCenter,
+        "styleLead": styleLead,
+        "styleBold": styleBold,
+        "styleCenterBold": styleCenterBold,
+        "styleJustified": styleJustified,
+        "styleRight": styleRight,
+    }
+
+    # title_page.append(Paragraph("Проведенные оперативные вмешательства (операции):", style))
+    styleTO = deepcopy(style)
+    styleTO.alignment = TA_LEFT
+    styleTO.firstLineIndent = 0
+    styleTO.fontSize = 9.5
+    styleTO.leading = 10
+    styleTO.spaceAfter = 0.2 * mm
+
+    # Таблица для операции
+    opinion_oper = [
+        [
+            Paragraph("Дата проведения", styleTO),
+            Paragraph("Наименование оперативного вмешательства (операции), код согласно номенклатуре медицинских услуг", styleTO),
+            Paragraph("Вид анестезиологического пособия", styleTO),
+            Paragraph("Кровопотеря во время оперативного вмешательства (операции), мл", styleTO),
+        ]
+    ]
+
+    hosp_operation = hosp_get_operation_data(num_dir)
+    operation_result = []
+    for i in hosp_operation:
+        operation_template = [""] * 4
+        operation_template[0] = Paragraph(i["date"] + "<br/>" + i["time_start"] + "-" + i["time_end"], styleTO)
+        operation_template[1] = Paragraph(f"{i['name_operation']} <br/><font face=\"PTAstraSerifBold\" size=\"8.7\">({i['category_difficult']}), {i['doc_fio']}</font>", styleTO)
+        operation_template[2] = Paragraph(i["anesthesia method"], styleTO)
+        operation_template[3] = Paragraph(i["complications"], styleTO)
+        operation_result.append(operation_template.copy())
+
+    opinion_oper.extend(operation_result)
+
+    t_opinion_oper = opinion_oper.copy()
+    tbl_o = Table(
+        t_opinion_oper,
+        colWidths=(
+            22 * mm,
+            85 * mm,
+            45 * mm,
+            24 * mm,
+        ),
+    )
+    tbl_o.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 1.0, colors.black),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.1 * mm),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
+
+    table_data = {"operation": tbl_o, "transfers": transfers}
+    cda_data_result = {}
+    if hosp_extract_data.get("result_by_cda"):
+        cda_data_result.update(hosp_extract_data.get("result_by_cda"))
+
+    if primary_reception_data.get("result_by_cda"):
+        cda_data_result.update(primary_reception_data.get("result_by_cda"))
+
+    if not cda_data_result.get("п.п.-Группа крови"):
+        cda_data_result["п.п.-Группа крови"] = group_blood_avo_value
+
+    if not cda_data_result.get("п.п.-резус"):
+        cda_data_result["п.п.-резус"] = group_rezus_value
+
+    if not cda_data_result.get("п.п.-антиген К1"):
+        cda_data_result["п.п.-антиген К1"] = ""
+
+    if not cda_data_result.get("п.п.-Kell"):
+        cda_data_result["п.п.-Kell"] = ""
+
+    if current_template_file:
+        for section in body_paragraphs:
+            objs = check_section_param(objs, styles_obj, section, table_data, cda_data_result)
+
+    doc.build(objs)
+    pdf = buffer.getvalue()
+    buffer.close()
+
+    return pdf
+
+
+def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles):
+    if section.get("Spacer"):
+        height_spacer = section.get("spacer_data")
+        objs.append(Spacer(1, height_spacer * mm))
+    elif section.get("page_break"):
+        objs.append(PageBreak())
+    elif section.get("tbl"):
+        if section.get("type") == "Операции":
+            objs.append(tbl_specification.get("operation"))
+        elif section.get("type") == "Движение":
+            objs.append(Paragraph(tbl_specification.get("transfers"), styles_obj[section.get("style")]))
+    elif section.get("text"):
+        cda_titles_sec = section.get("cdaTitles")
+        data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
+        if len(data_cda) < 1:
+            data_cda = ["" for count in range(len(cda_titles_sec))]
+        objs.append(Paragraph(section.get("text").format(*data_cda), styles_obj[section.get("style")]))
+    return objs

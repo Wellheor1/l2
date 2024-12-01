@@ -171,15 +171,13 @@ def get_result_value_iss(iss_pk, research_pk, titles_field):
         cursor.execute(
             """
         WITH
-           t_field AS (SELECT "id", title FROM directory_paraclinicinputfield
+           t_field AS (SELECT "id", title, cda_option_id FROM directory_paraclinicinputfield
            WHERE group_id in (SELECT "id" FROM directory_paraclinicinputgroups WHERE research_id=%(id_research)s)
              AND title = ANY(ARRAY[%(titles_field)s]))
 
-            SELECT field_id, issledovaniye_id, "value", title FROM public.directions_paraclinicresult
+            SELECT field_id, issledovaniye_id, "value", title, cda_option_id FROM public.directions_paraclinicresult
             LEFT JOIN t_field ON directions_paraclinicresult.field_id = t_field.id
             where field_id in (SELECT "id" FROM t_field) and issledovaniye_id = %(id_iss)s
-
-
          """,
             params={'id_iss': iss_pk, 'id_research': research_pk, 'titles_field': titles_field},
         )
@@ -244,6 +242,20 @@ def get_assignments_by_history(history_id: int):
             ORDER BY public.directions_napravleniya.data_sozdaniya
                   """,
             params={"history_id": history_id},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_title_fields_by_cda_relation(id_research, cda_id_field):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+               SELECT "id", title, cda_option_id FROM directory_paraclinicinputfield
+               WHERE group_id in (SELECT "id" FROM directory_paraclinicinputgroups WHERE research_id=%(id_research)s)
+               AND directory_paraclinicinputfield.cda_option_id IN %(cda_option)s
+            """,
+            params={"id_research": id_research, 'cda_option': cda_id_field},
         )
         rows = namedtuplefetchall(cursor)
     return rows
