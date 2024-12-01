@@ -14,7 +14,6 @@ from appconf.manager import SettingManager
 from directions.models import Napravleniya, Issledovaniya
 from directory.models import Fractions
 from hospitals.models import Hospitals
-from laboratory.settings import FONTS_FOLDER
 import locale
 import sys
 import os.path
@@ -22,7 +21,8 @@ from io import BytesIO
 from api.stationar.stationar_func import hosp_get_hosp_direction
 from api.sql_func import get_fraction_result
 from utils.dates import normalize_date
-from .forms_func import primary_reception_get_data, hosp_extract_get_data, hosp_get_clinical_diagnos, hosp_get_transfers_data, hosp_get_operation_data, closed_bl
+from .forms_func import primary_reception_get_data, hosp_extract_get_data, hosp_get_clinical_diagnos, hosp_get_transfers_data, hosp_get_operation_data, closed_bl, \
+    hosp_extract_get_data_by_cda, primary_reception_get_data_by_cda
 from laboratory.settings import FONTS_FOLDER, BASE_DIR
 import simplejson as json
 
@@ -1102,20 +1102,9 @@ def form_02(request_data):
     ############################################################################################################
     # Получение данных из выписки
     # Взять услугу типа выписка. Из полей "Дата выписки" - взять дату. Из поля "Время выписки" взять время
-    hosp_extract_data = hosp_extract_get_data(hosp_last_num)
     hosp_depart = hosp_nums_obj[0].get("research_title")
 
-    extrac_date, extract_time, outcome = "", "", ""
-    days_count = "__________________________"
-    result_hospital = ""
-    if hosp_extract_data:
-        extrac_date = hosp_extract_data["date_value"]
-        extract_time = hosp_extract_data["time_value"]
-        days_count = hosp_extract_data["days_count"]
-        if hosp_extract_data["outcome"]:
-            outcome = hosp_extract_data["outcome"]
-        if hosp_extract_data["result_hospital"]:
-            result_hospital = hosp_extract_data["result_hospital"]
+    hosp_extract_data = hosp_extract_get_data_by_cda(hosp_last_num)
 
     # Получить отделение - из названия услуги или самого главного направления
     first_bed_profile = hosp_nums_obj[0].get("research_title")
@@ -1125,7 +1114,7 @@ def form_02(request_data):
     ############################################################################################################
     # Получить данные из первичного приема (самого первого hosp-направления)
     hosp_first_num = hosp_nums_obj[0].get("direction")
-    primary_reception_data = primary_reception_get_data(hosp_first_num)
+    primary_reception_data = primary_reception_get_data_by_cda(hosp_first_num)
 
     ###########################################################################################################
     # Получение данных группы крови
@@ -1135,7 +1124,7 @@ def form_02(request_data):
     if group_blood_avo:
         group_blood_avo_value = group_blood_avo[0][5]
     else:
-        group_blood_avo_value = primary_reception_data["blood_group"]
+        group_blood_avo_value = primary_reception_data.get("blood_group")
 
     open_symbola = '<font face="Symbola" size=11>'
     close_symbola = "</font>"
@@ -1154,14 +1143,14 @@ def form_02(request_data):
     if group_blood_rezus:
         group_rezus_value = group_blood_rezus[0][5].replace("<br/>", " ")
     else:
-        group_rezus_value = primary_reception_data["resus_factor"]
+        group_rezus_value = primary_reception_data.get("resus_factor")
 
     #####################################################################################################
     # получить даные из переводного эпикриза: Дата перевода, Время перевода, в какое отделение переведен
     # у каждого hosp-направления найти подчиненное эпикриз Перевод*
 
     transfers_data = hosp_get_transfers_data(hosp_nums_obj)
-    transfers = f"Отделение <u>{hosp_depart}</u>; профиль коек________ палата N _______"
+    transfers = f"Отделение <u>{hosp_depart}</u>; профиль коек {first_bed_profile} палата N _______"
     for i in transfers_data:
         transfers = (
             f"{transfers}<br/> Переведен в отделение <u>{i['transfer_depart']}</u>; профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
@@ -1283,10 +1272,28 @@ def form_02(request_data):
     )
 
     table_data = {"operation": tbl_o, "transfers": transfers}
+    cda_data_result = {}
+    if hosp_extract_data.get('result_by_cda'):
+        cda_data_result.update(hosp_extract_data.get('result_by_cda'))
+
+    if primary_reception_data.get('result_by_cda'):
+        cda_data_result.update(primary_reception_data.get('result_by_cda'))
+
+    if not cda_data_result.get("п.п.-Группа крови"):
+        cda_data_result["п.п.-Группа крови"] = group_blood_avo_value
+
+    if not cda_data_result.get("п.п.-резус"):
+        cda_data_result["п.п.-резус"] = group_rezus_value
+
+    if not cda_data_result.get("п.п.-антиген К1"):
+        cda_data_result["п.п.-антиген К1"] = ""
+
+    if not cda_data_result.get("п.п.-Kell"):
+        cda_data_result["п.п.-Kell"] = ""
 
     if current_template_file:
         for section in body_paragraphs:
-            objs = check_section_param(objs, styles_obj, section, table_data, primary_reception_data.get('result_by_cda'))
+            objs = check_section_param(objs, styles_obj, section, table_data, cda_data_result)
 
     doc.build(objs)
     pdf = buffer.getvalue()
