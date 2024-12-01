@@ -924,10 +924,7 @@ def hosp_extract_get_data_by_cda(hosp_last_num):
         pass
 
     doc_fio = doc_confirm.get_fio()
-    return {
-        'result_by_cda': result_by_cda,
-        'doc_fio': doc_fio
-    }
+    return {'result_by_cda': result_by_cda, 'doc_fio': doc_fio}
 
 
 def hosp_get_clinical_diagnos(hosp_obj):
