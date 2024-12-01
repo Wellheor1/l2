@@ -1161,7 +1161,8 @@ def form_02(request_data):
     transfers = f"Отделение <u>{hosp_depart}</u>; профиль коек {first_bed_profile} палата N _______"
     for i in transfers_data:
         transfers = (
-            f"{transfers}<br/> Переведен в отделение <u>{i['transfer_depart']}</u>; профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
+            f"{transfers}<br/> Переведен в отделение <u>{i['transfer_depart']}</u>; "
+            f"профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
             f"время:{i['time_transfer_value']};<br/>"
         )
 
@@ -1183,15 +1184,15 @@ def form_02(request_data):
         Spacer(1, 0.5 * mm),
     ]
     objs.extend(title_page)
-    if not os.path.join(BASE_DIR, 'forms', 'pdf_templates'):
-        current_template_file = os.path.join(BASE_DIR, 'forms', 'pdf_templates', "template_federal_order_530_titul_page.json")
+    if not os.path.join(BASE_DIR, "forms", "pdf_templates"):
+        current_template_file = os.path.join(BASE_DIR, "forms", "pdf_templates", "template_federal_order_530_titul_page.json")
     else:
-        current_template_file = os.path.join(BASE_DIR, 'forms', 'pdf_templates', "template_federal_order_530_titul_page.json")
+        current_template_file = os.path.join(BASE_DIR, "forms", "pdf_templates", "template_federal_order_530_titul_page.json")
 
     if current_template_file:
         with open(current_template_file) as json_file:
             data = json.load(json_file)
-            body_paragraphs = data['body_paragraphs']
+            body_paragraphs = data["body_paragraphs"]
 
     styleLead = deepcopy(style)
     styleLead.leading = 12
@@ -1281,11 +1282,11 @@ def form_02(request_data):
 
     table_data = {"operation": tbl_o, "transfers": transfers}
     cda_data_result = {}
-    if hosp_extract_data.get('result_by_cda'):
-        cda_data_result.update(hosp_extract_data.get('result_by_cda'))
+    if hosp_extract_data.get("result_by_cda"):
+        cda_data_result.update(hosp_extract_data.get("result_by_cda"))
 
-    if primary_reception_data.get('result_by_cda'):
-        cda_data_result.update(primary_reception_data.get('result_by_cda'))
+    if primary_reception_data.get("result_by_cda"):
+        cda_data_result.update(primary_reception_data.get("result_by_cda"))
 
     if not cda_data_result.get("п.п.-Группа крови"):
         cda_data_result["п.п.-Группа крови"] = group_blood_avo_value
@@ -1311,20 +1312,20 @@ def form_02(request_data):
 
 
 def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles):
-    if section.get('Spacer'):
-        height_spacer = section.get('spacer_data')
+    if section.get("Spacer"):
+        height_spacer = section.get("spacer_data")
         objs.append(Spacer(1, height_spacer * mm))
-    elif section.get('page_break'):
+    elif section.get("page_break"):
         objs.append(PageBreak())
-    elif section.get('tbl'):
+    elif section.get("tbl"):
         if section.get("type") == "Операции":
             objs.append(tbl_specification.get("operation"))
         elif section.get("type") == "Движение":
-            objs.append(Paragraph(tbl_specification.get("transfers"), styles_obj[section.get('style')]))
-    elif section.get('text'):
-        cda_titles_sec = section.get('cdaTitles')
+            objs.append(Paragraph(tbl_specification.get("transfers"), styles_obj[section.get("style")]))
+    elif section.get("text"):
+        cda_titles_sec = section.get("cdaTitles")
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
         if len(data_cda) < 1:
             data_cda = ["" for count in range(len(cda_titles_sec))]
-        objs.append(Paragraph(section.get('text').format(*data_cda), styles_obj[section.get('style')]))
+        objs.append(Paragraph(section.get("text").format(*data_cda), styles_obj[section.get("style")]))
     return objs
