@@ -1290,17 +1290,17 @@ def form_02(request_data):
     if primary_reception_data.get("result_by_cda"):
         cda_data_result.update(primary_reception_data.get("result_by_cda"))
 
-    if not cda_data_result.get("п.п.-Группа крови"):
+    if not cda_data_result.get("п.п.-Группа крови") and group_blood_avo_value:
         cda_data_result["п.п.-Группа крови"] = group_blood_avo_value
 
-    if not cda_data_result.get("п.п.-резус"):
+    if not cda_data_result.get("п.п.-резус") and group_rezus_value:
         cda_data_result["п.п.-резус"] = group_rezus_value
 
     if not cda_data_result.get("п.п.-антиген К1"):
-        cda_data_result["п.п.-антиген К1"] = ""
+        cda_data_result["п.п.-антиген К1"] = " "
 
     if not cda_data_result.get("п.п.-Kell"):
-        cda_data_result["п.п.-Kell"] = ""
+        cda_data_result["п.п.-Kell"] = " "
 
     if current_template_file:
         for section in body_paragraphs:
@@ -1326,7 +1326,9 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
             objs.append(Paragraph(tbl_specification.get("transfers"), styles_obj[section.get("style")]))
     elif section.get("text"):
         cda_titles_sec = section.get("cdaTitles")
+        print(cda_titles_sec)
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
+        print(data_cda)
         if len(data_cda) < 1:
             data_cda = ["" for count in range(len(cda_titles_sec))]
         objs.append(Paragraph(section.get("text").format(*data_cda), styles_obj[section.get("style")]))
