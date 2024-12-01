@@ -1158,6 +1158,8 @@ def form_02(request_data):
     # у каждого hosp-направления найти подчиненное эпикриз Перевод*
 
     transfers_data = hosp_get_transfers_data(hosp_nums_obj)
+    if not first_hosp_depart:
+        first_hosp_depart = hosp_depart
     transfers = f"Отделение <u>{first_hosp_depart}</u>; профиль коек {first_bed_profile} палата N _______"
     for i in transfers_data:
         transfers = (
