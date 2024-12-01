@@ -741,7 +741,7 @@ def form_03_1(request_data):
     transfers = ""
     for i in transfers_data:
         transfers = (
-            f"{transfers}<br/> Переведен в отделение {i['transfer_depart']}; профиль коек {i['transfer_research_title']}<br/>Дата и время перевода {i['date_transfer_value']} "
+            f"{transfers}<br/> Переведен в отделение {i['transfer_depart']}; профиль коек {i['transfer_research_title']} палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
             f"время:{i['time_transfer_value']};<br/>"
         )
 
@@ -1103,6 +1103,7 @@ def form_02(request_data):
     # Получение данных из выписки
     # Взять услугу типа выписка. Из полей "Дата выписки" - взять дату. Из поля "Время выписки" взять время
     hosp_extract_data = hosp_extract_get_data(hosp_last_num)
+    hosp_depart = hosp_nums_obj[0].get("research_title")
 
     extrac_date, extract_time, outcome = "", "", ""
     days_count = "__________________________"
@@ -1125,7 +1126,6 @@ def form_02(request_data):
     # Получить данные из первичного приема (самого первого hosp-направления)
     hosp_first_num = hosp_nums_obj[0].get("direction")
     primary_reception_data = primary_reception_get_data(hosp_first_num)
-    print(primary_reception_data.get('result_by_cda'))
 
     ###########################################################################################################
     # Получение данных группы крови
@@ -1159,24 +1159,15 @@ def form_02(request_data):
     #####################################################################################################
     # получить даные из переводного эпикриза: Дата перевода, Время перевода, в какое отделение переведен
     # у каждого hosp-направления найти подчиненное эпикриз Перевод*
+
     transfers_data = hosp_get_transfers_data(hosp_nums_obj)
-    transfers = ""
+    transfers = f"Отделение <u>{hosp_depart}</u>; профиль коек________ палата N _______"
     for i in transfers_data:
         transfers = (
-            f"{transfers}<br/> Переведен в отделение {i['transfer_depart']}; профиль коек {i['transfer_research_title']}<br/>Дата и время перевода {i['date_transfer_value']} "
+            f"{transfers}<br/> Переведен в отделение <u>{i['transfer_depart']}</u>; профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
             f"время:{i['time_transfer_value']};<br/>"
         )
 
-    plan_form = primary_reception_data["plan_hospital"]
-    extra_hospital = primary_reception_data["extra_hospital"]
-    result_form = ""
-    if plan_form.lower() == "да":
-        result_form = "плановая — 1"
-    if extra_hospital.lower() == "да":
-        result_form = "экстренная — 2"
-    number_direction = normalize_date(primary_reception_data["ext_direction_date"])
-    bold_open = '<font fontname ="PTAstraSerifBold">'
-    bold_close = "</font>"
     title_page = [
         Indenter(left=0 * mm),
         Spacer(1, 2 * mm),
@@ -1194,13 +1185,8 @@ def form_02(request_data):
         Paragraph("Поступил в: стационар - 1", style),
         Spacer(1, 0.5 * mm),
     ]
-    current_template = SettingManager.get("template_federal_order_530_titul_page", default='', default_type='s')
     objs.extend(title_page)
-    if not os.path.join(
-        BASE_DIR,
-        'forms',
-        'pdf_templates',
-    ):
+    if not os.path.join(BASE_DIR, 'forms', 'pdf_templates'):
         current_template_file = os.path.join(BASE_DIR, 'forms', 'pdf_templates', "template_federal_order_530_titul_page.json")
     else:
         current_template_file = os.path.join(BASE_DIR, 'forms', 'pdf_templates', "template_federal_order_530_titul_page.json")
@@ -1245,12 +1231,62 @@ def form_02(request_data):
         "styleJustified": styleJustified,
         "styleRight": styleRight,
     }
+
+    # title_page.append(Paragraph("Проведенные оперативные вмешательства (операции):", style))
+    styleTO = deepcopy(style)
+    styleTO.alignment = TA_LEFT
+    styleTO.firstLineIndent = 0
+    styleTO.fontSize = 9.5
+    styleTO.leading = 10
+    styleTO.spaceAfter = 0.2 * mm
+
+    # Таблица для операции
+    opinion_oper = [
+        [
+            Paragraph("Дата проведения", styleTO),
+            Paragraph("Наименование оперативного вмешательства (операции), код согласно номенклатуре медицинских услуг", styleTO),
+            Paragraph("Вид анестезиологического пособия", styleTO),
+            Paragraph("Кровопотеря во время оперативного вмешательства (операции), мл", styleTO),
+        ]
+    ]
+
+    hosp_operation = hosp_get_operation_data(num_dir)
+    operation_result = []
+    for i in hosp_operation:
+        operation_template = [""] * 4
+        operation_template[0] = Paragraph(i["date"] + "<br/>" + i["time_start"] + "-" + i["time_end"], styleTO)
+        operation_template[1] = Paragraph(f"{i['name_operation']} <br/><font face=\"PTAstraSerifBold\" size=\"8.7\">({i['category_difficult']}), {i['doc_fio']}</font>", styleTO)
+        operation_template[2] = Paragraph(i["anesthesia method"], styleTO)
+        operation_template[3] = Paragraph(i["complications"], styleTO)
+        operation_result.append(operation_template.copy())
+
+    opinion_oper.extend(operation_result)
+
+    t_opinion_oper = opinion_oper.copy()
+    tbl_o = Table(
+        t_opinion_oper,
+        colWidths=(
+            22 * mm,
+            85 * mm,
+            45 * mm,
+            24 * mm,
+        ),
+    )
+    tbl_o.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 1.0, colors.black),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.1 * mm),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
+
+    table_data = {"operation": tbl_o, "transfers": transfers}
+
     if current_template_file:
         for section in body_paragraphs:
-            objs = check_section_param(objs, styles_obj, section, tbl, primary_reception_data.get('result_by_cda'))
-
-    if primary_reception_data.get("weight"):
-        title_page.append(Paragraph(f"Вес: {primary_reception_data['weight']}", styleRight))
+            objs = check_section_param(objs, styles_obj, section, table_data, primary_reception_data.get('result_by_cda'))
 
     doc.build(objs)
     pdf = buffer.getvalue()
@@ -1265,8 +1301,11 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
         objs.append(Spacer(1, height_spacer * mm))
     elif section.get('page_break'):
         objs.append(PageBreak())
-    elif section.get('specification'):
-        objs.append(tbl_specification)
+    elif section.get('tbl'):
+        if section.get("type") == "Операции":
+            objs.append(tbl_specification.get("operation"))
+        elif section.get("type") == "Движение":
+            objs.append(Paragraph(tbl_specification.get("transfers"), styles_obj[section.get('style')]))
     elif section.get('text'):
         cda_titles_sec = section.get('cdaTitles')
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
