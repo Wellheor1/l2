@@ -9,7 +9,6 @@ from django.db.models import Q
 from clients.models import Document, DispensaryReg, Card
 from directions.models import Napravleniya, Issledovaniya, ParaclinicResult, IstochnikiFinansirovaniya, PersonContract
 from directory.models import Researches
-from external_system.models import CdaFields
 from external_system.sql_func import cda_data_by_title
 from laboratory import utils
 from laboratory.settings import MEDEXAM_FIN_SOURCE_TITLE, CDA_TITLES_FIELDS_PRIMARY_RESEARCH, CDA_TITLES_FIELDS_EXTRACT_RESEARCH
