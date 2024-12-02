@@ -940,11 +940,21 @@
                   />
                 </div>
                 <div>
-                  <strong>Подсказка:</strong>
-                  <textarea
-                    v-model="row.helper"
-                    class="form-control"
-                  />
+                  <div>
+                    <strong>Подсказка:</strong>
+                    <textarea
+                      v-model="row.helper"
+                      class="form-control"
+                    />
+                  </div>
+                  <div class="change-field-group">
+                    <strong>В группу</strong>
+                    <Treeselect
+                      v-model="row.newGroupId"
+                      placeholder="Группа..."
+                      :options="possibleGroupsForField"
+                    />
+                  </div>
                 </div>
                 <div>
                   <strong>Видимость:</strong>
@@ -1297,6 +1307,7 @@ export default {
       showAllDepartmentForTemplateField: false,
       userDepartmentId: null,
       showPermissionsModal: false,
+      possibleGroupsForField: [],
     };
   },
   computed: {
@@ -1694,6 +1705,7 @@ export default {
       if (this.ex_deps.length > 0 && this.site_type === null) {
         this.site_type = this.ex_deps[0].pk;
       }
+      this.findPossibleGroupsForField();
     },
     cancel() {
       // eslint-disable-next-line no-restricted-globals,no-alert
@@ -1786,6 +1798,9 @@ export default {
     },
     closePermissionsModal() {
       this.showPermissionsModal = false;
+    },
+    findPossibleGroupsForField() {
+      this.possibleGroupsForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
   },
 };
@@ -1999,5 +2014,8 @@ export default {
 }
 .no-margin-left {
   margin-left: 0 !important;
+}
+.change-field-group {
+  margin-top: 6px;
 }
 </style>
