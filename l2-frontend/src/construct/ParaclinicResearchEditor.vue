@@ -940,11 +940,21 @@
                   />
                 </div>
                 <div>
-                  <strong>Подсказка:</strong>
-                  <textarea
-                    v-model="row.helper"
-                    class="form-control"
-                  />
+                  <div>
+                    <strong>Подсказка:</strong>
+                    <textarea
+                      v-model="row.helper"
+                      class="form-control"
+                    />
+                  </div>
+                  <div>
+                    <strong>Группа</strong>
+                    <Treeselect
+                      v-model="row.newGroupId"
+                      placeholder="Группа..."
+                      :options="possibleGroupForField"
+                    />
+                  </div>
                 </div>
                 <div>
                   <strong>Видимость:</strong>
@@ -1297,6 +1307,7 @@ export default {
       showAllDepartmentForTemplateField: false,
       userDepartmentId: null,
       showPermissionsModal: false,
+      possibleGroupForField: [],
     };
   },
   computed: {
@@ -1389,6 +1400,7 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
+    this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1786,6 +1798,9 @@ export default {
     },
     closePermissionsModal() {
       this.showPermissionsModal = false;
+    },
+    findPossibleGroupForField() {
+      this.possibleGroupForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
   },
 };
