@@ -952,7 +952,7 @@
                     <Treeselect
                       v-model="row.newGroupId"
                       placeholder="Группа..."
-                      :options="possibleGroupForField"
+                      :options="possibleGroupsForField"
                     />
                   </div>
                 </div>
@@ -1307,7 +1307,7 @@ export default {
       showAllDepartmentForTemplateField: false,
       userDepartmentId: null,
       showPermissionsModal: false,
-      possibleGroupForField: [],
+      possibleGroupsForField: [],
     };
   },
   computed: {
@@ -1705,7 +1705,7 @@ export default {
       if (this.ex_deps.length > 0 && this.site_type === null) {
         this.site_type = this.ex_deps[0].pk;
       }
-      this.findPossibleGroupForField();
+      this.findPossibleGroupsForField();
     },
     cancel() {
       // eslint-disable-next-line no-restricted-globals,no-alert
@@ -1799,8 +1799,8 @@ export default {
     closePermissionsModal() {
       this.showPermissionsModal = false;
     },
-    findPossibleGroupForField() {
-      this.possibleGroupForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
+    findPossibleGroupsForField() {
+      this.possibleGroupsForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
   },
 };
