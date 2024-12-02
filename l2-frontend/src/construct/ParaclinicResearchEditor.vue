@@ -940,11 +940,21 @@
                   />
                 </div>
                 <div>
-                  <strong>Подсказка:</strong>
-                  <textarea
-                    v-model="row.helper"
-                    class="form-control"
-                  />
+                  <div>
+                    <strong>Подсказка:</strong>
+                    <textarea
+                      v-model="row.helper"
+                      class="form-control"
+                    />
+                  </div>
+                  <div>
+                    <strong>Группа</strong>
+                    <Treeselect
+                      v-model="row.groupId"
+                      placeholder="Группа..."
+                      :options="possibleGroupForField"
+                    />
+                  </div>
                 </div>
                 <div>
                   <strong>Видимость:</strong>
@@ -1297,6 +1307,7 @@ export default {
       showAllDepartmentForTemplateField: false,
       userDepartmentId: null,
       showPermissionsModal: false,
+      possibleGroupForField: [],
     };
   },
   computed: {
@@ -1407,6 +1418,7 @@ export default {
     setTimeout(() => {
       this.has_unsaved = false;
     }, 2000);
+    this.findPossibleGroupForField();
   },
   methods: {
     onLoadFileGroup(importData) {
@@ -1786,6 +1798,9 @@ export default {
     },
     closePermissionsModal() {
       this.showPermissionsModal = false;
+    },
+    findPossibleGroupForField() {
+      this.possibleGroupForField = this.groups.map(group => ({ id: group.id, label: group.id }));
     },
   },
 };
