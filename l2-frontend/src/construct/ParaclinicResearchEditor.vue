@@ -1400,7 +1400,7 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
-    this.findPossibleGroupForField();
+    await this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1799,7 +1799,7 @@ export default {
     closePermissionsModal() {
       this.showPermissionsModal = false;
     },
-    findPossibleGroupForField() {
+    async findPossibleGroupForField() {
       this.possibleGroupForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
   },
