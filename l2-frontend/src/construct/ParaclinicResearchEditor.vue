@@ -948,7 +948,7 @@
                     />
                   </div>
                   <div>
-                    <strong>Группа</strong>
+                    <strong>В группу</strong>
                     <Treeselect
                       v-model="row.newGroupId"
                       placeholder="Группа..."
