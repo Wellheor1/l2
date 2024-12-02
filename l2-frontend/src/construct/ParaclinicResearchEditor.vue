@@ -950,7 +950,7 @@
                   <div>
                     <strong>Группа</strong>
                     <Treeselect
-                      v-model="row.groupId"
+                      v-model="row.newGroupId"
                       placeholder="Группа..."
                       :options="possibleGroupForField"
                     />
@@ -1400,6 +1400,7 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
+    this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1418,7 +1419,6 @@ export default {
     setTimeout(() => {
       this.has_unsaved = false;
     }, 2000);
-    this.findPossibleGroupForField();
   },
   methods: {
     onLoadFileGroup(importData) {
@@ -1800,7 +1800,7 @@ export default {
       this.showPermissionsModal = false;
     },
     findPossibleGroupForField() {
-      this.possibleGroupForField = this.groups.map(group => ({ id: group.id, label: group.id }));
+      this.possibleGroupForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
   },
 };

@@ -113,7 +113,7 @@ def get_researches_details(pk, templates_department_pk=None):
                         "patientControlParam": field.patient_control_param_id if field.patient_control_param else -1,
                         "cdaOption": field.cda_option_id if field.cda_option else -1,
                         "patternParam": field.statistic_pattern_param_id if field.statistic_pattern_param else -1,
-                        "groupId": field.group_id,
+                        "newGroupId": None,
                     }
                 )
             response["groups"].append(g)
