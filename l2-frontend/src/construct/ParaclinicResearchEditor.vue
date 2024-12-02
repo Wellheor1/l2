@@ -947,7 +947,7 @@
                       class="form-control"
                     />
                   </div>
-                  <div>
+                  <div class="change-field-group">
                     <strong>В группу</strong>
                     <Treeselect
                       v-model="row.newGroupId"
@@ -2014,5 +2014,8 @@ export default {
 }
 .no-margin-left {
   margin-left: 0 !important;
+}
+.change-field-group {
+  margin-top: 6px;
 }
 </style>
