@@ -1307,7 +1307,7 @@ export default {
       showAllDepartmentForTemplateField: false,
       userDepartmentId: null,
       showPermissionsModal: false,
-      possibleGroupsForField: [],
+      possibleGroupForField: [],
     };
   },
   computed: {
@@ -1400,6 +1400,7 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
+    this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1705,7 +1706,6 @@ export default {
       if (this.ex_deps.length > 0 && this.site_type === null) {
         this.site_type = this.ex_deps[0].pk;
       }
-      this.findPossibleGroupsForField();
     },
     cancel() {
       // eslint-disable-next-line no-restricted-globals,no-alert
@@ -1799,8 +1799,8 @@ export default {
     closePermissionsModal() {
       this.showPermissionsModal = false;
     },
-    findPossibleGroupsForField() {
-      this.possibleGroupsForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
+    findPossibleGroupForField() {
+      this.possibleGroupForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
   },
 };
@@ -2014,8 +2014,5 @@ export default {
 }
 .no-margin-left {
   margin-left: 0 !important;
-}
-.change-field-group {
-  margin-top: 6px;
 }
 </style>
