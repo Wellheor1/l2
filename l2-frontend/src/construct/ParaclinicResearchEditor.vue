@@ -947,12 +947,12 @@
                       class="form-control"
                     />
                   </div>
-                  <div>
-                    <strong>Группа</strong>
+                  <div class="change-field-group">
+                    <strong>В группу</strong>
                     <Treeselect
                       v-model="row.newGroupId"
                       placeholder="Группа..."
-                      :options="possibleGroupForField"
+                      :options="possibleGroupsForField"
                     />
                   </div>
                 </div>
@@ -1400,6 +1400,7 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
+    this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1705,7 +1706,6 @@ export default {
       if (this.ex_deps.length > 0 && this.site_type === null) {
         this.site_type = this.ex_deps[0].pk;
       }
-      this.findPossibleGroupForField();
     },
     cancel() {
       // eslint-disable-next-line no-restricted-globals,no-alert
@@ -1801,7 +1801,6 @@ export default {
     },
     findPossibleGroupForField() {
       this.possibleGroupForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
-      console.log(this.possibleGroupForField);
     },
   },
 };

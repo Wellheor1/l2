@@ -32,9 +32,9 @@ class Command(BaseCommand):
             else:
                 cda = CdaFields.objects.filter(title=cells[title])
                 if not cda.exists():
-                    if doc_refferal == 1:
+                    if int(doc_refferal) == 1:
                         is_doc_refferal = True
-                    if extract == 1:
+                    if int(extract) == 1:
                         is_extract = True
                     CdaFields(title=cells[title], is_doc_refferal=is_doc_refferal, is_extract=is_extract).save()
-                    self.stdout.write('сохранено', cells[title])
+                    self.stdout.write(f'сохранено {cells[title]}')
