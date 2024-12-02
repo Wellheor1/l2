@@ -1400,7 +1400,6 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
-    await this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1706,6 +1705,7 @@ export default {
       if (this.ex_deps.length > 0 && this.site_type === null) {
         this.site_type = this.ex_deps[0].pk;
       }
+      this.findPossibleGroupForField();
     },
     cancel() {
       // eslint-disable-next-line no-restricted-globals,no-alert
@@ -1799,8 +1799,9 @@ export default {
     closePermissionsModal() {
       this.showPermissionsModal = false;
     },
-    async findPossibleGroupForField() {
+    findPossibleGroupForField() {
       this.possibleGroupForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
+      console.log(this.possibleGroupForField);
     },
   },
 };
