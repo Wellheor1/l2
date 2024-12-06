@@ -896,7 +896,7 @@ def hosp_extract_get_data_by_cda(hosp_last_num):
     result_by_cda = {}
     titles_field = None
     if CDA_TITLES_FIELDS_EXTRACT_RESEARCH:
-        cda_ids_data = cda_data_by_title(tuple(CDA_TITLES_FIELDS_PRIMARY_RESEARCH))
+        cda_ids_data = cda_data_by_title(tuple(CDA_TITLES_FIELDS_EXTRACT_RESEARCH))
         cda_ids = [i.id for i in cda_ids_data]
         cda_dict_title = {i.id: i.title for i in cda_ids_data}
         fields_data = get_title_fields_by_cda_relation(extract_research_id, tuple(cda_ids))
@@ -906,7 +906,7 @@ def hosp_extract_get_data_by_cda(hosp_last_num):
     if titles_field and hosp_extract:
         list_values = get_result_value_iss(hosp_extract_iss, extract_research_id, titles_field)
 
-    if CDA_TITLES_FIELDS_EXTRACT_RESEARCH:
+    if CDA_TITLES_FIELDS_EXTRACT_RESEARCH and list_values:
         result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
 
     if list_values:
