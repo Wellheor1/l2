@@ -390,6 +390,7 @@
                   type="button"
                   style="border-radius: 0;width: 100%;"
                   :disabled="loaded_pk < 0"
+                  @click="openFileAddModal"
                 >
                   Файл печ. форм
                 </button>
@@ -1167,6 +1168,10 @@
       :departments="departmentsForPermissions"
       @hide="closePermissionsModal"
     />
+    <FileAddModal
+      v-if="showFileAddModal"
+      :iss_pk="loaded_pk"
+    />
   </div>
 </template>
 
@@ -1186,6 +1191,7 @@ import Localizations from '@/construct/Localizations.vue';
 import PermanentDirectories from '@/construct/PermanentDirectories.vue';
 import LoadFile from '@/ui-cards/LoadFile.vue';
 import ResearchPermissionsModal from '@/construct/ResearchPermissionsModal.vue';
+import FileAddModal from '@/modals/FileAddModal.vue';
 
 import FastTemplatesEditor from './FastTemplatesEditor.vue';
 
@@ -1194,6 +1200,7 @@ Vue.use(Vue2Filters);
 export default {
   name: 'ParaclinicResearchEditor',
   components: {
+    FileAddModal,
     ResearchPermissionsModal,
     LoadFile,
     PermanentDirectories,
@@ -1320,6 +1327,7 @@ export default {
       userDepartmentId: null,
       showPermissionsModal: false,
       possibleGroupsForField: [],
+      showFileAddModal: false,
     };
   },
   computed: {
@@ -1422,6 +1430,7 @@ export default {
       return undefined;
     });
     this.$root.$on('hide_fte', () => this.f_templates_hide());
+    this.$root.$on('file-add:modal:hide', this.closeFileAddModal);
     setTimeout(() => {
       this.has_unsaved = false;
     }, 300);
@@ -1431,6 +1440,10 @@ export default {
     setTimeout(() => {
       this.has_unsaved = false;
     }, 2000);
+  },
+  unmounted() {
+    this.$root.$off('file-add:modal:hide');
+    this.$root.$off('hide_fte');
   },
   methods: {
     onLoadFileGroup(importData) {
@@ -1814,6 +1827,12 @@ export default {
     },
     findPossibleGroupForField() {
       this.possibleGroupsForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
+    },
+    openFileAddModal() {
+      this.showFileAddModal = true;
+    },
+    closeFileAddModal() {
+      this.showFileAddModal = false;
     },
   },
 };
