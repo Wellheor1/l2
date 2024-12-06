@@ -1346,25 +1346,28 @@ def check_diagnos_row_is_dict(data_cda):
             is_dict = True
         except:
             is_dict = False
-        if is_dict and not field_json.get('columns'):
-            code = field_json.get("code")
-            title = field_json.get("title")
-            new_result = f"<u>{title}</u>, код по МКБ <u>{code}</u>"
-        elif is_dict and field_json.get('columns'):
+        try:
+            if is_dict and not field_json.get('columns'):
+                code = field_json.get("code")
+                title = field_json.get("title")
+                new_result = f"<u>{title}</u>, код по МКБ <u>{code}</u>"
+            elif is_dict and field_json.get('columns'):
+                new_result = ""
+                rows_data = field_json.get("rows")
+                for r_data in rows_data:
+                    for current_diag in r_data:
+                        diag_data = {}
+                        try:
+                            diag_data = json.loads(current_diag)
+                            is_dict = True
+                        except:
+                            is_dict = False
+                        if is_dict and diag_data.get('code'):
+                            title = diag_data.get("title")
+                            code = diag_data.get("code")
+                            new_result = f"{new_result}<u>{title}</u>, код по МКБ <u>{code}</u><br/>"
+        except:
             new_result = ""
-            rows_data = field_json.get("rows")
-            for r_data in rows_data:
-                for current_diag in r_data:
-                    diag_data = {}
-                    try:
-                        diag_data = json.loads(current_diag)
-                        is_dict = True
-                    except:
-                        is_dict = False
-                    if is_dict and diag_data.get('code'):
-                        title = diag_data.get("title")
-                        code = diag_data.get("code")
-                        new_result = f"{new_result}<u>{title}</u>, код по МКБ <u>{code}</u><br/>"
         if new_result:
             result = [new_result]
 
