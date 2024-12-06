@@ -1431,19 +1431,22 @@ export default {
     });
     this.$root.$on('hide_fte', () => this.f_templates_hide());
     this.$root.$on('file-add:modal:hide', this.closeFileAddModal);
-    setTimeout(() => {
+    const timeoutOne = setTimeout(() => {
       this.has_unsaved = false;
     }, 300);
-    setTimeout(() => {
+    const timeoutTwo = setTimeout(() => {
       this.has_unsaved = false;
     }, 1000);
-    setTimeout(() => {
+    const timeoutThree = setTimeout(() => {
       this.has_unsaved = false;
     }, 2000);
   },
   unmounted() {
     this.$root.$off('file-add:modal:hide');
     this.$root.$off('hide_fte');
+    clearTimeout(this.timeoutOne);
+    clearTimeout(this.timeoutTwo);
+    clearTimeout(this.timeoutThree);
   },
   methods: {
     onLoadFileGroup(importData) {
