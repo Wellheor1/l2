@@ -712,6 +712,7 @@ def primary_reception_get_data_by_cda(hosp_first_num, site_type=0):
     if CDA_TITLES_FIELDS_PRIMARY_RESEARCH:
         cda_ids_data = cda_data_by_title(tuple(CDA_TITLES_FIELDS_PRIMARY_RESEARCH))
         cda_ids = [i.id for i in cda_ids_data]
+
         cda_dict_title = {i.id: i.title for i in cda_ids_data}
         fields_data = get_title_fields_by_cda_relation(primary_research_id, tuple(cda_ids))
         titles_field = [i.title for i in fields_data]

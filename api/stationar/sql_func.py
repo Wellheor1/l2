@@ -251,8 +251,8 @@ def get_title_fields_by_cda_relation(id_research, cda_id_field):
     with connection.cursor() as cursor:
         cursor.execute(
             """
-               SELECT "id", title, cda_option_id FROM directory_paraclinicinputfield
-               WHERE group_id in (SELECT "id" FROM directory_paraclinicinputgroups WHERE research_id=%(id_research)s)
+               SELECT id, title, cda_option_id FROM directory_paraclinicinputfield
+               WHERE group_id in (SELECT id FROM directory_paraclinicinputgroups WHERE research_id=%(id_research)s)
                AND directory_paraclinicinputfield.cda_option_id IN %(cda_option)s
             """,
             params={"id_research": id_research, 'cda_option': cda_id_field},
