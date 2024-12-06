@@ -382,6 +382,18 @@
                 :append-to-body="true"
                 :clearable="false"
               />
+              <span
+                class="input-group-btn"
+              >
+                <button
+                  class="btn btn-blue-nb padding-like-treeselect"
+                  type="button"
+                  style="border-radius: 0;width: 100%;"
+                  :disabled="loaded_pk < 0"
+                >
+                  Файл печ. форм
+                </button>
+              </span>
             </div>
           </div>
         </div>
@@ -2016,4 +2028,7 @@ export default {
 .no-margin-left {
   margin-left: 0 !important;
 }
+.padding-like-treeselect {
+  padding: 7px 12px;
+};
 </style>
