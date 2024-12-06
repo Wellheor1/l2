@@ -238,7 +238,7 @@ def validate_med_exam_data(normalize_data: dict, inn_company) -> dict:
         errors.append("Подразделение не указано")
     if not normalize_data["gender"] in ["м", "ж"]:
         errors.append("Пол указан не верно")
-    if len(normalize_data["position"]) > 128:
+    if normalize_data["position"] and len(normalize_data["position"]) > 128:
         errors.append("Должность больше 128 символов")
 
     if errors:
