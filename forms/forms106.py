@@ -1369,6 +1369,3 @@ def check_diagnos_row_is_dict(data_cda):
             result = [new_result]
 
     return result
-
-
-
