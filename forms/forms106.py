@@ -1327,7 +1327,9 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
     elif section.get("text"):
         cda_titles_sec = section.get("cdaTitles")
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
-        if len(data_cda) < 1:
-            data_cda = ["" for count in range(len(cda_titles_sec))]
+        difference = len(cda_titles_sec) - len(data_cda)
+        if len(data_cda) < len(cda_titles_sec):
+            data_cda = [*data_cda, *["" for count in range(difference)]]
+        print(section)
         objs.append(Paragraph(section.get("text").format(*data_cda), styles_obj[section.get("style")]))
     return objs
