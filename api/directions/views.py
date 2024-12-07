@@ -4434,7 +4434,9 @@ def add_file(request):
         function = types.get(type)
         try:
             function(request_data={
-                entity_id: entity_id,
+                "file": file,
+                "form": form,
+                "entity_id": entity_id,
                 **request_data
             })
         except Exception as e:
