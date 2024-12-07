@@ -1172,6 +1172,7 @@
       v-if="showFileAddModal"
       :entity-id="loaded_pk"
       type="schemaPdf"
+      :max-count-files="1"
     />
   </div>
 </template>
