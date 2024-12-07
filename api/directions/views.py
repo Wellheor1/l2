@@ -4426,12 +4426,12 @@ def add_file(request):
     request_data = json.loads(form)
     pk = request_data.get("pk")
     entity_id = request_data.get("entityId")
-    type = request_data.get("type")
-    types = {
+    type_add = request_data.get("type")
+    add_types = {
         "schemaPdf": add_schema_pdf
     }
-    if type:
-        function = types.get(type)
+    if type_add:
+        function = add_types.get(type_add)
         try:
             function(request_data={
                 "file": file,
