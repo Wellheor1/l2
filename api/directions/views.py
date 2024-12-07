@@ -4478,7 +4478,8 @@ def file_log(request):
             result = function(
                 request_data={
                     "entity_id": entity_id,
-                })
+                }
+            )
             if result:
                 rows.append(
                     {
