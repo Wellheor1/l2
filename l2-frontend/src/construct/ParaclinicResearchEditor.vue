@@ -382,6 +382,19 @@
                 :append-to-body="true"
                 :clearable="false"
               />
+              <span
+                class="input-group-btn"
+              >
+                <button
+                  class="btn btn-blue-nb schema-pdf"
+                  type="button"
+                  style="border-radius: 0;width: 100%;"
+                  :disabled="loaded_pk < 0"
+                  @click="openFileAddModal"
+                >
+                  Схема PDF
+                </button>
+              </span>
             </div>
           </div>
         </div>
@@ -1155,6 +1168,12 @@
       :departments="departmentsForPermissions"
       @hide="closePermissionsModal"
     />
+    <FileAddModal
+      v-if="showFileAddModal"
+      :entity-id="loaded_pk"
+      type="schemaPdf"
+      :max-count-files="1"
+    />
   </div>
 </template>
 
@@ -1174,6 +1193,7 @@ import Localizations from '@/construct/Localizations.vue';
 import PermanentDirectories from '@/construct/PermanentDirectories.vue';
 import LoadFile from '@/ui-cards/LoadFile.vue';
 import ResearchPermissionsModal from '@/construct/ResearchPermissionsModal.vue';
+import FileAddModal from '@/modals/FileAddModal.vue';
 
 import FastTemplatesEditor from './FastTemplatesEditor.vue';
 
@@ -1182,6 +1202,7 @@ Vue.use(Vue2Filters);
 export default {
   name: 'ParaclinicResearchEditor',
   components: {
+    FileAddModal,
     ResearchPermissionsModal,
     LoadFile,
     PermanentDirectories,
@@ -1308,6 +1329,10 @@ export default {
       userDepartmentId: null,
       showPermissionsModal: false,
       possibleGroupsForField: [],
+      showFileAddModal: false,
+      timeoutOne: null,
+      timeoutTwo: null,
+      timeoutThree: null,
     };
   },
   computed: {
@@ -1410,15 +1435,23 @@ export default {
       return undefined;
     });
     this.$root.$on('hide_fte', () => this.f_templates_hide());
-    setTimeout(() => {
+    this.$root.$on('file-add:modal:hide', this.closeFileAddModal);
+    this.timeoutOne = setTimeout(() => {
       this.has_unsaved = false;
     }, 300);
-    setTimeout(() => {
+    this.timeoutTwo = setTimeout(() => {
       this.has_unsaved = false;
     }, 1000);
-    setTimeout(() => {
+    this.timeoutThree = setTimeout(() => {
       this.has_unsaved = false;
     }, 2000);
+  },
+  unmounted() {
+    this.$root.$off('file-add:modal:hide');
+    this.$root.$off('hide_fte');
+    clearTimeout(this.timeoutOne);
+    clearTimeout(this.timeoutTwo);
+    clearTimeout(this.timeoutThree);
   },
   methods: {
     onLoadFileGroup(importData) {
@@ -1803,6 +1836,12 @@ export default {
     findPossibleGroupForField() {
       this.possibleGroupsForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
+    openFileAddModal() {
+      this.showFileAddModal = true;
+    },
+    closeFileAddModal() {
+      this.showFileAddModal = false;
+    },
   },
 };
 </script>
@@ -2016,4 +2055,8 @@ export default {
 .no-margin-left {
   margin-left: 0 !important;
 }
+.schema-pdf {
+  padding: 7px 12px;
+  width: 116px !important;
+};
 </style>

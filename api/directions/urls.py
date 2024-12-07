@@ -60,6 +60,7 @@ urlpatterns = [
     path('send-to-l2vi', views.send_to_l2vi),
     path('add-file', views.add_file),
     path('file-log', views.file_log),
+    path('file-delete', views.file_delete),
     path('direction-history', views.direction_history),
     path('check-direction', views.check_direction),
     path('send-results-to-hospital', views.send_results_to_hospital),
