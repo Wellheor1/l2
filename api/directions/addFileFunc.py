@@ -1,10 +1,11 @@
 import os.path
 import re
+import tempfile
 from datetime import datetime
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-from laboratory.settings import BASE_DIR
+from laboratory.settings import BASE_DIR, MEDIA_URL
 
 
 def add_schema_pdf(request_data):
@@ -36,5 +37,5 @@ def get_schema_pdf_name(request_data):
         result["created_at"] = created_at
         result["pk"] = entity_id
         result["file_name"] = file_name
-        result["file"] = file_path
+        result["file"] = f"{MEDIA_URL}schemas-pdf/{file_name}"
     return result
