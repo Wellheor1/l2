@@ -30,7 +30,8 @@ def get_schema_pdf(request_data):
     path = os.path.join(BASE_DIR, 'media', 'schemas-pdf', str(entity_id))
     if os.path.exists(path):
         file_list = os.listdir(path)
-        file_name = file_list[0]
+        for file in file_list:
+            file_name = file
     if file_name:
         file_path = f"{path}/{file_name}"
         created_at = os.stat(file_path).st_ctime
