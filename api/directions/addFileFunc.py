@@ -30,12 +30,10 @@ def get_schema_pdf_name(request_data):
         if re.search(pattern, file_str):
             file_name = file_str
     file_path = f"{path}/{file_name}"
-    with open(file_path, "r") as file:
-        print(file)
-        created_at = os.stat(file_path).st_ctime
-        created_at = datetime.fromtimestamp(created_at).strftime('%d.%m.%Y %H:%M')
-        result["created_at"] = created_at
-        result["pk"] = entity_id
-        result["file_name"] = file_name
-        result["file"] = f"{MEDIA_URL}schemas-pdf/{file_name}"
+    created_at = os.stat(file_path).st_ctime
+    created_at = datetime.fromtimestamp(created_at).strftime('%d.%m.%Y %H:%M')
+    result["created_at"] = created_at
+    result["pk"] = entity_id
+    result["file_name"] = file_name
+    result["file"] = f"{MEDIA_URL}schemas-pdf/{file_name}"
     return result
