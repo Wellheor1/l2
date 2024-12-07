@@ -1170,7 +1170,8 @@
     />
     <FileAddModal
       v-if="showFileAddModal"
-      :iss_pk="loaded_pk"
+      :entity-id="loaded_pk"
+      type="schemaPdf"
     />
   </div>
 </template>

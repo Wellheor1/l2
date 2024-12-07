@@ -108,7 +108,7 @@ export default {
   props: {
     iss_pk: {
       type: Number,
-      required: true,
+      required: false,
     },
     maxCountFiles: {
       type: Number,
