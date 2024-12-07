@@ -1328,6 +1328,9 @@ export default {
       showPermissionsModal: false,
       possibleGroupsForField: [],
       showFileAddModal: false,
+      timeoutOne: null,
+      timeoutTwo: null,
+      timeoutThree: null,
     };
   },
   computed: {
@@ -1431,13 +1434,13 @@ export default {
     });
     this.$root.$on('hide_fte', () => this.f_templates_hide());
     this.$root.$on('file-add:modal:hide', this.closeFileAddModal);
-    const timeoutOne = setTimeout(() => {
+    this.timeoutOne = setTimeout(() => {
       this.has_unsaved = false;
     }, 300);
-    const timeoutTwo = setTimeout(() => {
+    this.timeoutTwo = setTimeout(() => {
       this.has_unsaved = false;
     }, 1000);
-    const timeoutThree = setTimeout(() => {
+    this.timeoutThree = setTimeout(() => {
       this.has_unsaved = false;
     }, 2000);
   },
