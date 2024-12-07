@@ -50,7 +50,5 @@ def delete_schema_pdf(request_data):
     path = os.path.join(BASE_DIR, 'media', 'schemas-pdf', str(entity_id))
     file_path = f"{path}/{file_name}"
     if os.path.exists(file_path):
-        print('Файл есть, ожно удалить')
-    else:
-        print('файла нет, нельзя удалить')
+        os.remove(file_path)
     return True
