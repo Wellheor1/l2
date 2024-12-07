@@ -4528,7 +4528,7 @@ def file_delete(request):
         "entity_id": entity_id,
         "file_name": file_name
     })
-    return True
+    return JsonResponse({"ok": True})
 
 
 def get_userdata(doc: DoctorProfile):
