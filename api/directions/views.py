@@ -4431,13 +4431,7 @@ def add_file(request):
     if type_add:
         function = add_types.get(type_add)
         try:
-            function(
-                request_data={
-                    "file": file,
-                    "form": form,
-                    "entity_id": entity_id,
-                    **request_data
-            })
+            function(request_data={"file": file, "form": form, "entity_id": entity_id, **request_data})
         except Exception:
             tb = traceback.format_exc()
             stdout.write(tb)
