@@ -4441,7 +4441,6 @@ def add_file(request):
             })
         except Exception as e:
             tb = traceback.format_exc()
-            exception_string = f"{e}"
             stdout.write(tb)
     else:
         iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
@@ -4484,17 +4483,18 @@ def file_log(request):
     }
     if type_views:
         function = types.get(type_views)
-        result = function(request_data={
-            "entity_id": entity_id,
-        })
-        if result:
-            rows.append({
-                "pk": result["pk"],
-                'author': None,
-                'createdAt': result["created_at"],
-                'file': result["file"],
-                'fileName': result["file_name"],
+        if function:
+            result = function(request_data={
+                "entity_id": entity_id,
             })
+            if result:
+                rows.append({
+                    "pk": result["pk"],
+                    'author': None,
+                    'createdAt': result["created_at"],
+                    'file': result["file"],
+                    'fileName': result["file_name"],
+                })
     else:
         for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
             rows.append(
@@ -4524,10 +4524,11 @@ def file_delete(request):
         "schemaPdf": delete_schema_pdf
     }
     function = types.get(type_views)
-    result = function(request_data={
-        "entity_id": entity_id,
-        "file_name": file_name
-    })
+    if function:
+        function(request_data={
+            "entity_id": entity_id,
+            "file_name": file_name
+        })
     return JsonResponse({"ok": True})
 
 
