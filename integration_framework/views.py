@@ -2673,6 +2673,7 @@ def results_by_direction(request):
     request_data = json.loads(request.body)
     token = request.headers.get("Authorization").split(" ")[1]
     token_obj = Application.objects.filter(key=token).first()
+    hospital = None
     if not token_obj.unlimited_access:
         if not hasattr(request.user, "hospitals"):
             return Response({"ok": False, "message": "Некорректный auth токен"})
@@ -2691,10 +2692,7 @@ def results_by_direction(request):
     directions_data = request_data.get("directions")
     if is_lab and not directions_data:
         if external_add_order:
-            ext_add_order_obj = directions.ExternalAdditionalOrder.objects.filter(external_add_order=external_add_order).first()
-            iss_data = directions.Issledovaniya.objects.filter(external_add_order=ext_add_order_obj).first()
-            direction = iss_data.napravleniye_id
-        directions_data = [direction]
+            directions_data = list(Napravleniya.objects.filter(hospital=hospital, id_in_hospital=external_add_order).values_list("pk", flat=True))
     else:
         directions_data = [direction]
     if not token_obj.unlimited_access:
@@ -2714,6 +2712,7 @@ def results_by_direction(request):
                 objs_result[r.direction]["services"][r.iss_id] = {
                     "title": r.research_title,
                     "internalCode": r.research_internal_code,
+                    "nmuCode": r.nmu_code,
                     "fio": short_fio_dots(r.fio) if r.fio else r.doc_confirmation_string,
                     "confirmedAt": r.date_confirm,
                     "fractions": [],

@@ -56,6 +56,7 @@ def get_laboratory_results_by_directions(list_dirs):
                 directions_issledovaniya.doc_confirmation_id as doctor_id,
                 directions_issledovaniya.doc_confirmation_string as doc_confirmation_string,
                 directory_researches.title as research_title,
+                directory_researches.code as nmu_code,
                 directory_researches.internal_code as research_internal_code,
                 directions_result.value as value,
                 directions_result.fraction_id,
