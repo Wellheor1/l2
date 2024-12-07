@@ -115,8 +115,12 @@ export default {
       required: false,
       default: 5,
     },
-    serviceId: {
+    entityId: {
       type: Number,
+      required: false,
+    },
+    type: {
+      type: String,
       required: false,
     },
   },
@@ -162,7 +166,8 @@ export default {
 
       const json = JSON.stringify({
         pk: this.iss_pk,
-        serviceId: this.serviceId,
+        entityId: this.entityId,
+        type: this.type,
       });
       const blob = new Blob([json], {
         type: 'application/json',
