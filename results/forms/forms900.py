@@ -1,12 +1,7 @@
 from reportlab.platypus import PageBreak
 import os.path
-
 from laboratory.settings import BASE_DIR
 import simplejson as json
-
-
-import json
-
 from reportlab.platypus import Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
