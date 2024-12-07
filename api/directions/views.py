@@ -1,7 +1,9 @@
 import base64
 import math
 import os
+import traceback
 import uuid
+from sys import stdout
 from typing import Optional
 
 from django.core.paginator import Paginator
@@ -4430,10 +4432,15 @@ def add_file(request):
     }
     if type:
         function = types.get(type)
-        function(request_data={
-            entity_id: entity_id,
-            **request_data
-        })
+        try:
+            function(request_data={
+                entity_id: entity_id,
+                **request_data
+            })
+        except Exception as e:
+            tb = traceback.format_exc()
+            exception_string = f"{e}"
+            stdout.write(tb)
     else:
         iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
 
