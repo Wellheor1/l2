@@ -4426,7 +4426,7 @@ def add_file(request):
     entity_id = request_data.get("entityId")
     type_id = request_data.get("typeId")
     types = {
-        "schemaPdf": add_schema_pdf()
+        "schemaPdf": add_schema_pdf
     }
     if type_id:
         function = types.get(type_id)
