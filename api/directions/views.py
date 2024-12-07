@@ -99,7 +99,7 @@ from utils.dates import normalize_date, date_iter_range, try_strptime
 from utils.dates import try_parse_range
 from utils.xh import check_float_is_valid, short_fio_dots
 from xml_generate.views import gen_resul_cpp_file, gen_result_cda_files
-from .addFileFunc import add_schema_pdf, get_schema_pdf_name
+from .addFileFunc import add_schema_pdf, get_schema_pdf, delete_schema_pdf
 from .sql_func import (
     get_history_dir,
     get_confirm_direction,
@@ -1054,10 +1054,10 @@ def directions_services(request):
             receive_datetime = None
             for i in (
                 Issledovaniya.objects.filter(napravleniye=n)
-                .filter(
+                    .filter(
                     Q(research__is_paraclinic=True) | Q(research__is_doc_refferal=True) | Q(research__is_microbiology=True) | Q(research__is_citology=True) | Q(research__is_gistology=True)
                 )
-                .distinct()
+                    .distinct()
             ):
                 researches.append(
                     {
@@ -2095,18 +2095,18 @@ def directions_paraclinic_result(request):
     if (
         force
         or diss.filter(
-            Q(research__podrazdeleniye=request.user.doctorprofile.podrazdeleniye)
-            | Q(research__is_doc_refferal=True)
-            | Q(research__is_paraclinic=True)
-            | Q(research__is_treatment=True)
-            | Q(research__is_gistology=True)
-            | Q(research__is_stom=True)
-            | Q(research__is_microbiology=True)
-            | Q(research__is_form=True)
-            | Q(research__is_monitoring=True)
-            | Q(research__is_expertise=True)
-            | Q(research__is_aux=True)
-        ).exists()
+        Q(research__podrazdeleniye=request.user.doctorprofile.podrazdeleniye)
+        | Q(research__is_doc_refferal=True)
+        | Q(research__is_paraclinic=True)
+        | Q(research__is_treatment=True)
+        | Q(research__is_gistology=True)
+        | Q(research__is_stom=True)
+        | Q(research__is_microbiology=True)
+        | Q(research__is_form=True)
+        | Q(research__is_monitoring=True)
+        | Q(research__is_expertise=True)
+        | Q(research__is_aux=True)
+    ).exists()
         or request.user.is_staff
     ):
         iss = Issledovaniya.objects.get(pk=pk)
@@ -2679,8 +2679,8 @@ def directions_paraclinic_history(request):
             | Q(issledovaniya__doc_confirmation=request.user.doctorprofile)
             | Q(issledovaniya__executor_confirmation=request.user.doctorprofile)
         )
-        .filter(Q(issledovaniya__time_confirmation__range=(date_start, date_end)) | Q(issledovaniya__time_save__range=(date_start, date_end)))
-        .order_by("-issledovaniya__time_save", "-issledovaniya__time_confirmation")
+            .filter(Q(issledovaniya__time_confirmation__range=(date_start, date_end)) | Q(issledovaniya__time_save__range=(date_start, date_end)))
+            .order_by("-issledovaniya__time_save", "-issledovaniya__time_confirmation")
     ):
         if direction.pk in has_dirs:
             continue
@@ -4480,7 +4480,7 @@ def file_log(request):
     type_views = request_data.get("type")
     rows = []
     types = {
-        "schemaPdf": get_schema_pdf_name
+        "schemaPdf": get_schema_pdf
     }
     if type_views:
         function = types.get(type_views)
@@ -4512,6 +4512,23 @@ def file_log(request):
             "rows": rows,
         }
     )
+
+
+@login_required
+def file_delete(request):
+    request_data = json.loads(request.body)
+    file_name = request_data.get("fileName")
+    entity_id = request_data.get("entityId")
+    type_views = request_data.get("type")
+    types = {
+        "schemaPdf": delete_schema_pdf
+    }
+    function = types.get(type_views)
+    result = function(request_data={
+        "entity_id": entity_id,
+        "file_name": file_name
+    })
+    return True
 
 
 def get_userdata(doc: DoctorProfile):
@@ -4588,8 +4605,8 @@ def direction_history(request):
                     180003,
                 ),
             )
-            .distinct()
-            .order_by('time')
+                .distinct()
+                .order_by('time')
         ):
             client_send.append([["title", "{}, {}".format(strdatetime(lg.time), lg.get_type_display())], *[[k, v] for k, v in json.loads(lg.body).items()]])
 
@@ -4672,7 +4689,7 @@ def send_results_to_hospital(request):
     if not directions_ids:
         return status_response(False, "Empty directions ids")
 
-    directions_ids_chunks = [directions_ids[i : i + 20] for i in range(0, len(directions_ids), 20)]
+    directions_ids_chunks = [directions_ids[i: i + 20] for i in range(0, len(directions_ids), 20)]
 
     for directions_ids_chunk in directions_ids_chunks:
         ids_from = directions_ids_chunk[0]

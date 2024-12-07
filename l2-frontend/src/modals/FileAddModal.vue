@@ -73,6 +73,10 @@
               target="_blank"
               class="rows-file a-under"
             >{{ row.fileName }}</a>
+            <i
+              class="fa fa-times delete"
+              @click="deleteFile(row.fileName)"
+            />
           </li>
         </ol>
       </template>
@@ -216,6 +220,17 @@ export default {
       }
       this.$root.$emit('file-add:modal:hide');
     },
+    async deleteFile(fileName: string) {
+      await this.$store.dispatch(actions.INC_LOADING);
+      await this.$api('directions/file-delete', {
+        pk: this.iss_pk,
+        type: this.type,
+        entityId: this.entityId,
+        fileName,
+      });
+      await this.$store.dispatch(actions.DEC_LOADING);
+      await this.loadRows();
+    },
   },
 };
 </script>
@@ -255,5 +270,8 @@ export default {
 
 .hrr {
   margin: 5px 0;
+}
+.delete {
+  cursor: pointer;
 }
 </style>

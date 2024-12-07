@@ -19,9 +19,9 @@ def add_schema_pdf(request_data):
     return True
 
 
-def get_schema_pdf_name(request_data):
-    file_name = ""
-    result = {}
+def get_schema_pdf(request_data):
+    file_name = None
+    result = None
     entity_id = request_data.get("entity_id")
     path = os.path.join(BASE_DIR, 'media', 'schemas-pdf')
     pattern = f'^service_id_{entity_id}__.*\.json$'
@@ -29,11 +29,25 @@ def get_schema_pdf_name(request_data):
     for file_str in file_list:
         if re.search(pattern, file_str):
             file_name = file_str
-    file_path = f"{path}/{file_name}"
-    created_at = os.stat(file_path).st_ctime
-    created_at = datetime.fromtimestamp(created_at).strftime('%d.%m.%Y %H:%M')
-    result["created_at"] = created_at
-    result["pk"] = entity_id
-    result["file_name"] = file_name
-    result["file"] = f"{MEDIA_URL}schemas-pdf/{file_name}"
+    if file_name:
+        file_path = f"{path}/{file_name}"
+        created_at = os.stat(file_path).st_ctime
+        created_at = datetime.fromtimestamp(created_at).strftime('%d.%m.%Y %H:%M')
+        result = {
+            "created_at": created_at,
+            "file_name": file_name,
+            "file": f"{MEDIA_URL}schemas-pdf/{file_name}",
+            "pk": entity_id,
+        }
     return result
+
+
+def delete_schema_pdf(request_data):
+    file_name = request_data.get("file_name")
+    path = os.path.join(BASE_DIR, 'media', 'schemas-pdf')
+    file_path = f"{path}/{file_name}"
+    if os.path.exists(file_path):
+        print('Файл есть, ожно удалить')
+    else:
+        print('файла нет, нельзя удалить')
+    return True
