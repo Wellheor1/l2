@@ -4422,27 +4422,31 @@ def add_file(request):
     form = request.FILES['form'].read()
     request_data = json.loads(form)
     pk = request_data["pk"]
+    service_id = request_data.get("serviceId")
+    if service_id:
 
-    iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
+        print('fdsfsd')
+    else:
+        iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
 
-    if file and iss_files.count() >= 5:
-        return JsonResponse(
-            {
-                "ok": False,
-                "message": "Вы добавили слишком много файлов в одну заявку",
-            }
-        )
+        if file and iss_files.count() >= 5:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": "Вы добавили слишком много файлов в одну заявку",
+                }
+            )
 
-    if file and file.size > 5242880:
-        return JsonResponse(
-            {
-                "ok": False,
-                "message": "Файл слишком большой",
-            }
-        )
+        if file and file.size > 5242880:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": "Файл слишком большой",
+                }
+            )
 
-    iss = IssledovaniyaFiles(issledovaniye_id=pk, uploaded_file=file, who_add_files=request.user.doctorprofile)
-    iss.save()
+        iss = IssledovaniyaFiles(issledovaniye_id=pk, uploaded_file=file, who_add_files=request.user.doctorprofile)
+        iss.save()
 
     return JsonResponse(
         {
