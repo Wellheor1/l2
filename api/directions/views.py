@@ -99,7 +99,7 @@ from utils.dates import normalize_date, date_iter_range, try_strptime
 from utils.dates import try_parse_range
 from utils.xh import check_float_is_valid, short_fio_dots
 from xml_generate.views import gen_resul_cpp_file, gen_result_cda_files
-from .addFileFunc import add_schema_pdf
+from .addFileFunc import add_schema_pdf, get_schema_pdf_name
 from .sql_func import (
     get_history_dir,
     get_confirm_direction,
@@ -4476,17 +4476,37 @@ def add_file(request):
 def file_log(request):
     request_data = json.loads(request.body)
     pk = request_data.get("pk")
+    entity_id = request_data.get("entityId")
+    type_views = request_data.get("type")
     rows = []
-    for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
-        rows.append(
-            {
-                'pk': row.pk,
-                'author': row.who_add_files.get_fio() if row.who_add_files else "-",
-                'createdAt': strfdatetime(row.created_at, "%d.%m.%Y %X"),
-                'file': row.uploaded_file.url if row.uploaded_file else None,
-                'fileName': os.path.basename(row.uploaded_file.name) if row.uploaded_file else None,
-            }
-        )
+    types = {
+        "schemaPdf": get_schema_pdf_name
+    }
+    if type_views:
+        function = types.get(type_views)
+        result = function(request_data={
+            "entity_id": entity_id,
+        })
+        if result:
+            rows.append({
+                "pk": result["pk"],
+                'author': None,
+                'createdAt': result["created_at"],
+                'file': result["file"],
+                'fileName': result["file_name"],
+            })
+    else:
+        for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
+            rows.append(
+                {
+                    'pk': row.pk,
+                    'author': row.who_add_files.get_fio() if row.who_add_files else "-",
+                    'createdAt': strfdatetime(row.created_at, "%d.%m.%Y %X"),
+                    'file': row.uploaded_file.url if row.uploaded_file else None,
+                    'fileName': os.path.basename(row.uploaded_file.name) if row.uploaded_file else None,
+                }
+            )
+
     return JsonResponse(
         {
             "rows": rows,

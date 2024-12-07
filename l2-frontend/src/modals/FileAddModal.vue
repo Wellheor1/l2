@@ -202,7 +202,11 @@ export default {
     },
     async loadRows() {
       await this.$store.dispatch(actions.INC_LOADING);
-      const { rows } = await this.$api('directions/file-log', { pk: this.iss_pk });
+      const { rows } = await this.$api('directions/file-log', {
+        pk: this.iss_pk,
+        type: this.type,
+        entityId: this.entityId,
+      });
       this.rows = rows;
       await this.$store.dispatch(actions.DEC_LOADING);
     },
