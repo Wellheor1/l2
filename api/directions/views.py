@@ -97,6 +97,7 @@ from utils.dates import normalize_date, date_iter_range, try_strptime
 from utils.dates import try_parse_range
 from utils.xh import check_float_is_valid, short_fio_dots
 from xml_generate.views import gen_resul_cpp_file, gen_result_cda_files
+from .addFileFunc import add_schema_pdf
 from .sql_func import (
     get_history_dir,
     get_confirm_direction,
@@ -4422,10 +4423,14 @@ def add_file(request):
     form = request.FILES['form'].read()
     request_data = json.loads(form)
     pk = request_data["pk"]
-    service_id = request_data.get("serviceId")
-    if service_id:
-
-        print('fdsfsd')
+    entity_id = request_data.get("entityId")
+    type_id = request_data.get("typeId")
+    types = {
+        "schemaPdf": add_schema_pdf()
+    }
+    if type_id:
+        function = types.get(type_id)
+        print(function)
     else:
         iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
 
