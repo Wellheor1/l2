@@ -14,23 +14,27 @@ def add_schema_pdf(request_data):
     file_name = file_in_memory.name
     entity_id = request_data.get("entity_id")
     path = os.path.join(BASE_DIR, 'media', 'schemas-pdf')
-    with open(f"{path}/service_id_{entity_id}__{file_name}", "wb") as file_on_disk:
+    path_entity = f"{path}/{entity_id}"
+    if not os.path.exists(path_entity):
+        os.makedirs(f"{path}/{entity_id}")
+    if len(os.listdir(path_entity)) > 1:
+        return False
+    with open(f"{path_entity}/{file_name}", "wb") as file_on_disk:
         file_on_disk.write(file_content)
     return True
 
 
 def get_schema_pdf(request_data):
     file_name = None
-    result = None
+    result = False
     entity_id = request_data.get("entity_id")
     path = os.path.join(BASE_DIR, 'media', 'schemas-pdf')
-    pattern = f'^service_id_{entity_id}__.*\.json$'
-    file_list = os.listdir(path)
-    for file_str in file_list:
-        if re.search(pattern, file_str):
-            file_name = file_str
+    path_entity = f"{path}/{entity_id}"
+    if os.path.exists(path_entity):
+        file_list = os.listdir(path_entity)
+        file_name = file_list[0]
     if file_name:
-        file_path = f"{path}/{file_name}"
+        file_path = f"{path_entity}/{file_name}"
         created_at = os.stat(file_path).st_ctime
         created_at = datetime.fromtimestamp(created_at).strftime('%d.%m.%Y %H:%M')
         result = {
