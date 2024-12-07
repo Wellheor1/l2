@@ -386,13 +386,13 @@
                 class="input-group-btn"
               >
                 <button
-                  class="btn btn-blue-nb padding-like-treeselect"
+                  class="btn btn-blue-nb schema-pdf"
                   type="button"
                   style="border-radius: 0;width: 100%;"
                   :disabled="loaded_pk < 0"
                   @click="openFileAddModal"
                 >
-                  Файл печ. форм
+                  Схема PDF
                 </button>
               </span>
             </div>
@@ -2053,7 +2053,8 @@ export default {
 .no-margin-left {
   margin-left: 0 !important;
 }
-.padding-like-treeselect {
+.schema-pdf {
   padding: 7px 12px;
+  width: 116px !important;
 };
 </style>
