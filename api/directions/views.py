@@ -4422,15 +4422,18 @@ def add_file(request):
     file = request.FILES.get('file')
     form = request.FILES['form'].read()
     request_data = json.loads(form)
-    pk = request_data["pk"]
+    pk = request_data.get("pk")
     entity_id = request_data.get("entityId")
-    type_id = request_data.get("typeId")
+    type = request_data.get("type")
     types = {
         "schemaPdf": add_schema_pdf
     }
-    if type_id:
-        function = types.get(type_id)
-        print(function)
+    if type:
+        function = types.get(type)
+        function(request_data={
+            entity_id: entity_id,
+            **request_data
+        })
     else:
         iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
 
@@ -4463,7 +4466,7 @@ def add_file(request):
 @login_required
 def file_log(request):
     request_data = json.loads(request.body)
-    pk = request_data["pk"]
+    pk = request_data.get("pk")
     rows = []
     for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
         rows.append(
