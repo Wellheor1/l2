@@ -1,10 +1,6 @@
 import os.path
-import re
-import tempfile
 from datetime import datetime
-
 from django.core.files.uploadedfile import InMemoryUploadedFile
-
 from laboratory.settings import BASE_DIR, MEDIA_URL
 
 
