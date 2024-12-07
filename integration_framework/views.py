@@ -3503,20 +3503,32 @@ def send_laboratory_order(request):
             return Response({"ok": False, "message": f"Номер {tube_number} уже существует"})
 
         internal_research_code_by_tube_number[tube_number] = []
-        for data_research in tube.get("researches"):
-            if not Researches.objects.filter(hide=False, internal_code=data_research.get("internalCode")).first():
-                return Response({"ok": False, "message": "Некорректный номер услуги internalCode"})
-            internal_research_code_by_tube_number[tube_number].append(data_research.get("internalCode"))
-            additional_order_number_by_service[data_research.get("internalCode")] = data_research.get("additionalNumber")
-    order_numbers = []
+        if hospital.use_internal_code_api_integration:
+            for data_research in tube.get("researches"):
+                if not Researches.objects.filter(hide=False, internal_code=data_research.get("internalCode")).first():
+                    return Response({"ok": False, "message": "Некорректный номер услуги internalCode"})
+                else:
+                    service_pk = Researches.objects.filter(hide=False, internal_code=data_research.get("internalCode")).first().pk
+                    internal_research_code_by_tube_number[tube_number].append(service_pk)
+                    additional_order_number_by_service[service_pk] = data_research.get("additionalNumber")
+        else:
+            for data_research in tube.get("researches"):
+                if not Researches.objects.filter(hide=False, code=data_research.get("serviceNMUCode")).first():
+                    return Response({"ok": False, "message": "Не найден код услуги по НМУ - https://nsi.rosminzdrav.ru/dictionaries/1.2.643.5.1.13.13.11.1070/passport/latest"})
+                else:
+                    service_pk = Researches.objects.filter(hide=False, code=data_research.get("serviceNMUCode")).first().pk
+                    internal_research_code_by_tube_number[tube_number].append(service_pk)
+                    additional_order_number_by_service[service_pk] = data_research.get("additionalNumber")
 
+    order_numbers = []
+    final_log_result = []
     with transaction.atomic():
         doc = DoctorProfile.get_system_profile()
         services_by_order_number = {}
         services_by_additional_order_num = {}
         for order_number, services_codes in internal_research_code_by_tube_number.items():
             for service_code in services_codes:
-                service = Researches.objects.filter(hide=False, internal_code=service_code).first()
+                service = Researches.objects.filter(hide=False, pk=service_code).first()
                 if not service:
                     raise ServiceNotFoundException(f"Service {service_code} not found")
                 if order_number not in services_by_order_number:
@@ -3580,8 +3592,9 @@ def send_laboratory_order(request):
                     "card": card.number_with_type(),
                 },
             )
+            final_log_result.extend(result["list_id"])
 
-    return Response({"ok": True, "message": "", "directions": result["list_id"]})
+    return Response({"ok": True, "message": "", "directions": final_log_result})
 
 
 @api_view(["POST"])

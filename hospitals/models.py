@@ -64,6 +64,8 @@ class Hospitals(models.Model):
     acronym_title = models.CharField(max_length=128, blank=True, default='', help_text="Акроним (Аббревиатура) наименование", db_index=True)
     send_result_after_time_min = models.PositiveSmallIntegerField(default=0, blank=True, null=True, verbose_name="Время (мин) отправки результатов")
     use_self_generate_tube = models.BooleanField(default=False, blank=True, help_text='Приоритет собственного генератора')
+    use_internal_code_api_integration = models.BooleanField(default=False, blank=True, help_text='Использовать внутренний код для интеграции')
+
 
     @staticmethod
     def get_default_hospital() -> Optional['Hospitals']:
