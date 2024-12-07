@@ -4518,11 +4518,7 @@ def file_delete(request):
     types = {"schemaPdf": delete_schema_pdf}
     function = types.get(type_views)
     if function:
-        function(
-            request_data={
-                "entity_id": entity_id,
-                "file_name": file_name
-        })
+        function(request_data={"entity_id": entity_id, "file_name": file_name})
     return JsonResponse({"ok": True})
 
 
