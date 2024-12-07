@@ -66,7 +66,6 @@ class Hospitals(models.Model):
     use_self_generate_tube = models.BooleanField(default=False, blank=True, help_text='Приоритет собственного генератора')
     use_internal_code_api_integration = models.BooleanField(default=True, blank=True, help_text='Использовать внутренний код для интеграции')
 
-
     @staticmethod
     def get_default_hospital() -> Optional['Hospitals']:
         hosp = Hospitals.objects.filter(hide=False, is_default=True).first()
