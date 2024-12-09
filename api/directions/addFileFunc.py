@@ -15,7 +15,6 @@ def add_schema_pdf(request_data):
 
 
 def get_schema_pdf(request_data):
-
     result = False
     entity_id = request_data.get("entity_id")
     service: Researches = Researches.objects.filter(pk=entity_id).first()

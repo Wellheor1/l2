@@ -4504,13 +4504,12 @@ def file_log(request):
 @login_required
 def file_delete(request):
     request_data = json.loads(request.body)
-    file_name = request_data.get("fileName")
     entity_id = request_data.get("entityId")
     type_views = request_data.get("type")
     types = {"schemaPdf": delete_schema_pdf}
     function = types.get(type_views)
     if function:
-        function(request_data={"entity_id": entity_id, "file_name": file_name})
+        function(request_data={"entity_id": entity_id})
     return JsonResponse({"ok": True})
 
 
