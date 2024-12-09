@@ -4481,15 +4481,7 @@ def file_log(request):
                 }
             )
             if result:
-                rows.append(
-                    {
-                        "pk": result["pk"],
-                        "author": None,
-                        "createdAt": result["created_at"],
-                        "file": result["file"],
-                        "fileName": result["file_name"],
-                    }
-                )
+                rows.append(result)
     else:
         for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
             rows.append(
