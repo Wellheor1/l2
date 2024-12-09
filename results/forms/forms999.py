@@ -87,22 +87,23 @@ def form_01(direction: Napravleniya, iss: Issledovaniya, fwb, doc, leftnone, use
             data = json.load(json_file)
             body_paragraphs = data["body_paragraphs"]
             header_paragraphs = data["header"]
+            show_title = data.get("showTitle", [])
 
     objs = []
     if current_template_file:
         for section in header_paragraphs:
-            objs = check_section_param(objs, styles_obj, section, result_data)
+            objs = check_section_param(objs, styles_obj, section, result_data, show_title)
         fwb.extend(objs)
         objs = []
         for section in body_paragraphs:
-            objs = check_section_param(objs, styles_obj, section, result_data)
+            objs = check_section_param(objs, styles_obj, section, result_data, show_title)
 
     fwb.extend(objs)
 
     return fwb
 
 
-def check_section_param(objs, styles_obj, section, field_titles_value):
+def check_section_param(objs, styles_obj, section, field_titles_value, show_title):
     if section.get("Spacer"):
         height_spacer = section.get("spacer_data")
         objs.append(Spacer(1, height_spacer * mm))
@@ -110,7 +111,7 @@ def check_section_param(objs, styles_obj, section, field_titles_value):
         objs.append(PageBreak())
     elif section.get("text"):
         field_titles_sec = section.get("fieldTitles")
-        data_fields = [field_titles_value.get(i) for i in field_titles_sec if field_titles_value.get(i)]
+        data_fields = [f"<u>{i}</u> - {field_titles_value.get(i)}" if i in show_title else field_titles_value.get(i) for i in field_titles_sec if field_titles_value.get(i)]
         difference = len(field_titles_sec) - len(data_fields)
         if len(data_fields) < len(field_titles_sec):
             data_fields = [*data_fields, *["" for count in range(difference)]]
