@@ -3,7 +3,7 @@ import shutil
 from datetime import datetime
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from directory.models import Researches
-from laboratory.settings import MEDIA_URL, BASE_DIR
+from laboratory.settings import BASE_DIR
 
 
 def add_schema_pdf(request_data):
