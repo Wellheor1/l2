@@ -428,6 +428,7 @@ def result_print(request):
         link_files = False
         is_extract = False
         is_gistology = False
+        schema_pdf_form = False
         current_size_form = None
         temp_iss = None
         has_own_form_result = False
@@ -467,6 +468,8 @@ def result_print(request):
                 is_gistology = True
             if iss.research.has_own_form_result:
                 has_own_form_result = True
+            if iss.research.schema_pdf:
+                schema_pdf_form = True
 
             current_size_form = iss.research.size_form
             temp_iss = iss
@@ -542,7 +545,8 @@ def result_print(request):
                 t = result_title_form(temp_iss)
             else:
                 t = default_title_result_form(direction, doc, date_t, has_paraclinic, individual_birthday, number_poliklinika, logo_col, is_extract)
-            fwb.append(t)
+            if not schema_pdf_form:
+                fwb.append(t)
             fwb.append(Spacer(1, 5 * mm))
             lk_address = SettingManager.get("lk_address", default='', default_type='s')
             if lk_address:
@@ -582,14 +586,16 @@ def result_print(request):
                         iss_title = "Исследование: " + iss.research.title
                     else:
                         iss_title = iss.research.title
-                    if not result_title_form:
+                    if not result_title_form and not schema_pdf_form:
                         fwb.append(Paragraph(f"<para align='center'><font size='9'>{iss_title}</font></para>", styleBold))
                 else:
-                    if not is_gistology and not has_own_form_result:
+                    if not is_gistology and not has_own_form_result and not schema_pdf_form:
                         fwb.append(Paragraph(iss.research.title + ' (' + str(dpk) + ')', styleBold))
 
                 type_form = iss.research.result_form
                 form_result = None
+                if schema_pdf_form:
+                    type_form = "99901"
                 if type_form != 0:
                     current_type_form = str(type_form)
                     form_result = import_string('results.forms.forms' + current_type_form[0:3] + '.form_' + current_type_form[3:5])
