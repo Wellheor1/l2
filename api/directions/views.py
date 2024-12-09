@@ -4481,15 +4481,7 @@ def file_log(request):
                 }
             )
             if result:
-                rows.append(
-                    {
-                        "pk": result["pk"],
-                        "author": None,
-                        "createdAt": result["created_at"],
-                        "file": result["file"],
-                        "fileName": result["file_name"],
-                    }
-                )
+                rows.append(result)
     else:
         for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
             rows.append(
@@ -4512,13 +4504,12 @@ def file_log(request):
 @login_required
 def file_delete(request):
     request_data = json.loads(request.body)
-    file_name = request_data.get("fileName")
     entity_id = request_data.get("entityId")
     type_views = request_data.get("type")
     types = {"schemaPdf": delete_schema_pdf}
     function = types.get(type_views)
     if function:
-        function(request_data={"entity_id": entity_id, "file_name": file_name})
+        function(request_data={"entity_id": entity_id})
     return JsonResponse({"ok": True})
 
 
