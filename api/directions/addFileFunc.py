@@ -1,7 +1,9 @@
 import os.path
+import shutil
 from datetime import datetime
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from directory.models import Researches
+from laboratory.settings import MEDIA_URL, BASE_DIR
 
 
 def add_schema_pdf(request_data):
@@ -34,7 +36,7 @@ def get_schema_pdf(request_data):
 def delete_schema_pdf(request_data):
     entity_id = request_data.get("entity_id")
     service: Researches = Researches.objects.filter(pk=entity_id).first()
-    if service:
+    if service and service.schema_pdf:
         service.schema_pdf.delete()
-        service.save()
+        shutil.rmtree(f"{BASE_DIR}/media/schemas-pdf/{entity_id}")
     return True
