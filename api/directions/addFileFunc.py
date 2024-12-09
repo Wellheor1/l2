@@ -18,13 +18,13 @@ def get_schema_pdf(request_data):
     result = False
     entity_id = request_data.get("entity_id")
     service: Researches = Researches.objects.filter(pk=entity_id).first()
-    # created_at = os.stat(service.schema_pdf.file).st_ctime
-    # created_at = datetime.fromtimestamp(created_at).strftime('%d.%m.%Y %H:%M')
     if service and service.schema_pdf:
+        created_at = os.stat(service.schema_pdf.path).st_ctime
+        created_at = datetime.fromtimestamp(created_at).strftime('%d.%m.%Y %H:%M')
         result = {
             'pk': service.pk,
             'author': None,
-            'createdAt': None,
+            'createdAt': created_at,
             'file': service.schema_pdf.url if service.schema_pdf else None,
             'fileName': os.path.basename(service.schema_pdf.name) if service.schema_pdf else None,
         }
