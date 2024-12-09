@@ -115,5 +115,6 @@ def check_section_param(objs, styles_obj, section, field_titles_value, show_titl
         difference = len(field_titles_sec) - len(data_fields)
         if len(data_fields) < len(field_titles_sec):
             data_fields = [*data_fields, *["" for count in range(difference)]]
-        objs.append(Paragraph(section.get("text").format(*data_fields), styles_obj[section.get("style")]))
+        if styles_obj.get(section.get("style")):
+            objs.append(Paragraph(section.get("text").format(*data_fields), styles_obj[section.get("style")]))
     return objs
