@@ -73,6 +73,10 @@
               target="_blank"
               class="rows-file a-under"
             >{{ row.fileName }}</a>
+            <i
+              class="fa fa-times delete"
+              @click="deleteFile(row.fileName)"
+            />
           </li>
         </ol>
       </template>
@@ -108,12 +112,20 @@ export default {
   props: {
     iss_pk: {
       type: Number,
-      required: true,
+      required: false,
     },
     maxCountFiles: {
       type: Number,
       required: false,
       default: 5,
+    },
+    entityId: {
+      type: Number,
+      required: false,
+    },
+    type: {
+      type: String,
+      required: false,
     },
   },
   data() {
@@ -158,6 +170,8 @@ export default {
 
       const json = JSON.stringify({
         pk: this.iss_pk,
+        entityId: this.entityId,
+        type: this.type,
       });
       const blob = new Blob([json], {
         type: 'application/json',
@@ -192,7 +206,11 @@ export default {
     },
     async loadRows() {
       await this.$store.dispatch(actions.INC_LOADING);
-      const { rows } = await this.$api('directions/file-log', { pk: this.iss_pk });
+      const { rows } = await this.$api('directions/file-log', {
+        pk: this.iss_pk,
+        type: this.type,
+        entityId: this.entityId,
+      });
       this.rows = rows;
       await this.$store.dispatch(actions.DEC_LOADING);
     },
@@ -201,6 +219,17 @@ export default {
         this.$refs.modal.$el.style.display = 'none';
       }
       this.$root.$emit('file-add:modal:hide');
+    },
+    async deleteFile(fileName: string) {
+      await this.$store.dispatch(actions.INC_LOADING);
+      await this.$api('directions/file-delete', {
+        pk: this.iss_pk,
+        type: this.type,
+        entityId: this.entityId,
+        fileName,
+      });
+      await this.$store.dispatch(actions.DEC_LOADING);
+      await this.loadRows();
     },
   },
 };
@@ -241,5 +270,8 @@ export default {
 
 .hrr {
   margin: 5px 0;
+}
+.delete {
+  cursor: pointer;
 }
 </style>

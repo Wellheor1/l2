@@ -1,7 +1,9 @@
 import base64
 import math
 import os
+import traceback
 import uuid
+from sys import stdout
 from typing import Optional
 
 from django.core.paginator import Paginator
@@ -98,6 +100,7 @@ from utils.dates import normalize_date, date_iter_range, try_strptime
 from utils.dates import try_parse_range
 from utils.xh import check_float_is_valid, short_fio_dots
 from xml_generate.views import gen_resul_cpp_file, gen_result_cda_files
+from .addFileFunc import add_schema_pdf, get_schema_pdf, delete_schema_pdf
 from .sql_func import (
     get_history_dir,
     get_confirm_direction,
@@ -4454,28 +4457,38 @@ def add_file(request):
     file = request.FILES.get('file')
     form = request.FILES['form'].read()
     request_data = json.loads(form)
-    pk = request_data["pk"]
+    pk = request_data.get("pk")
+    entity_id = request_data.get("entityId")
+    type_add = request_data.get("type")
+    add_types = {"schemaPdf": add_schema_pdf}
+    if type_add:
+        function = add_types.get(type_add)
+        try:
+            function(request_data={"file": file, "form": form, "entity_id": entity_id, **request_data})
+        except Exception:
+            tb = traceback.format_exc()
+            stdout.write(tb)
+    else:
+        iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
 
-    iss_files = IssledovaniyaFiles.objects.filter(issledovaniye_id=pk)
+        if file and iss_files.count() >= 5:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": "Вы добавили слишком много файлов в одну заявку",
+                }
+            )
 
-    if file and iss_files.count() >= 5:
-        return JsonResponse(
-            {
-                "ok": False,
-                "message": "Вы добавили слишком много файлов в одну заявку",
-            }
-        )
+        if file and file.size > 5242880:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "message": "Файл слишком большой",
+                }
+            )
 
-    if file and file.size > 5242880:
-        return JsonResponse(
-            {
-                "ok": False,
-                "message": "Файл слишком большой",
-            }
-        )
-
-    iss = IssledovaniyaFiles(issledovaniye_id=pk, uploaded_file=file, who_add_files=request.user.doctorprofile)
-    iss.save()
+        iss = IssledovaniyaFiles(issledovaniye_id=pk, uploaded_file=file, who_add_files=request.user.doctorprofile)
+        iss.save()
 
     return JsonResponse(
         {
@@ -4487,23 +4500,50 @@ def add_file(request):
 @login_required
 def file_log(request):
     request_data = json.loads(request.body)
-    pk = request_data["pk"]
+    pk = request_data.get("pk")
+    entity_id = request_data.get("entityId")
+    type_views = request_data.get("type")
     rows = []
-    for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
-        rows.append(
-            {
-                'pk': row.pk,
-                'author': row.who_add_files.get_fio() if row.who_add_files else "-",
-                'createdAt': strfdatetime(row.created_at, "%d.%m.%Y %X"),
-                'file': row.uploaded_file.url if row.uploaded_file else None,
-                'fileName': os.path.basename(row.uploaded_file.name) if row.uploaded_file else None,
-            }
-        )
+    types = {"schemaPdf": get_schema_pdf}
+    if type_views:
+        function = types.get(type_views)
+        if function:
+            result = function(
+                request_data={
+                    "entity_id": entity_id,
+                }
+            )
+            if result:
+                rows.append(result)
+    else:
+        for row in IssledovaniyaFiles.objects.filter(issledovaniye_id=pk).order_by('-created_at'):
+            rows.append(
+                {
+                    'pk': row.pk,
+                    'author': row.who_add_files.get_fio() if row.who_add_files else "-",
+                    'createdAt': strfdatetime(row.created_at, "%d.%m.%Y %X"),
+                    'file': row.uploaded_file.url if row.uploaded_file else None,
+                    'fileName': os.path.basename(row.uploaded_file.name) if row.uploaded_file else None,
+                }
+            )
+
     return JsonResponse(
         {
             "rows": rows,
         }
     )
+
+
+@login_required
+def file_delete(request):
+    request_data = json.loads(request.body)
+    entity_id = request_data.get("entityId")
+    type_views = request_data.get("type")
+    types = {"schemaPdf": delete_schema_pdf}
+    function = types.get(type_views)
+    if function:
+        function(request_data={"entity_id": entity_id})
+    return JsonResponse({"ok": True})
 
 
 def get_userdata(doc: DoctorProfile):

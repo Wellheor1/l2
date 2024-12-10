@@ -1,3 +1,6 @@
+import os
+import uuid
+
 from django.contrib.auth.models import Group
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
@@ -208,6 +211,9 @@ class SubGroupPadrazdeleniye(models.Model):
         verbose_name_plural = "Связи погрупп и подздалений"
 
 
+def get_file_path_to_schemas(instance: 'Researches', filename):
+    return os.path.join('schemas-pdf', str(instance.pk), str(uuid.uuid4()), filename)
+
 class Researches(models.Model):
     """
     Вид исследования
@@ -387,6 +393,7 @@ class Researches(models.Model):
     is_need_send_egisz = models.BooleanField(blank=True, default=False, help_text="Требуется отправка документав ЕГИСЗ")
     count_volume_material_for_tube = models.FloatField(default=0, verbose_name="Количество материала для емкости в долях", blank=True)
     templates_by_department = models.BooleanField(default=None, help_text="Искать шаблоны заполнения по подразделению", null=True, blank=True)
+    schema_pdf = models.FileField(upload_to=get_file_path_to_schemas, default=None, null=True, blank=True)
 
     @staticmethod
     def save_plan_performer(tb_data):

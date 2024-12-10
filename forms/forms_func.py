@@ -9,11 +9,12 @@ from django.db.models import Q
 from clients.models import Document, DispensaryReg, Card
 from directions.models import Napravleniya, Issledovaniya, ParaclinicResult, IstochnikiFinansirovaniya, PersonContract
 from directory.models import Researches
+from external_system.sql_func import cda_data_by_title
 from laboratory import utils
-from laboratory.settings import MEDEXAM_FIN_SOURCE_TITLE
+from laboratory.settings import MEDEXAM_FIN_SOURCE_TITLE, CDA_TITLES_FIELDS_PRIMARY_RESEARCH, CDA_TITLES_FIELDS_EXTRACT_RESEARCH
 from laboratory.utils import strdate
 from api.stationar.stationar_func import hosp_get_data_direction, check_transfer_epicrisis
-from api.stationar.sql_func import get_result_value_iss
+from api.stationar.sql_func import get_result_value_iss, get_title_fields_by_cda_relation
 from utils.dates import normalize_date
 import json
 
@@ -457,6 +458,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'Время установления диагноза',
         'Кому доверяю',
     ]
+
     list_values = None
     if titles_field and hosp_primary_receptions:
         list_values = get_result_value_iss(hosp_primary_iss, primary_research_id, titles_field)
@@ -684,6 +686,37 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
     }
 
 
+def primary_reception_get_data_by_cda(hosp_first_num, site_type=0):
+    # Получение данных из певичного приема
+    hosp_primary_receptions = hosp_get_data_direction(hosp_first_num, site_type=site_type, type_service='None', level=2)
+    hosp_primary_iss, primary_research_id = None, None
+    if hosp_primary_receptions:
+        hosp_primary_iss = hosp_primary_receptions[0].get('iss')
+        primary_research_id = hosp_primary_receptions[0].get('research_id')
+
+    cda_dict_title = {}
+    result_by_cda = {}
+    titles_field = None
+    if CDA_TITLES_FIELDS_PRIMARY_RESEARCH:
+        cda_ids_data = cda_data_by_title(tuple(CDA_TITLES_FIELDS_PRIMARY_RESEARCH))
+        cda_ids = [i.id for i in cda_ids_data]
+
+        cda_dict_title = {i.id: i.title for i in cda_ids_data}
+        fields_data = get_title_fields_by_cda_relation(primary_research_id, tuple(cda_ids))
+        titles_field = [i.title for i in fields_data]
+
+    list_values = None
+    if titles_field and hosp_primary_receptions:
+        list_values = get_result_value_iss(hosp_primary_iss, primary_research_id, titles_field)
+
+    if CDA_TITLES_FIELDS_PRIMARY_RESEARCH and list_values:
+        result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
+
+    return {
+        'result_by_cda': result_by_cda,
+    }
+
+
 def hosp_extract_get_data(hosp_last_num):
     # Получение данных из выписки
     hosp_extract = hosp_get_data_direction(hosp_last_num, site_type=7, type_service='None', level=2)
@@ -720,6 +753,7 @@ def hosp_extract_get_data(hosp_last_num):
         'Отметка о выдаче листка нетрудоспособности',
         'Отметка о выдаче листка нетрудоспособности через врачебную комиссию',
     ]
+
     list_values = None
     if titles_field and hosp_extract:
         list_values = get_result_value_iss(hosp_extract_iss, extract_research_id, titles_field)
@@ -843,6 +877,43 @@ def hosp_extract_get_data(hosp_last_num):
         'ln_vk_data': ln_vk_data,
         'additional_data_ill': additional_data_ill,
     }
+
+
+def hosp_extract_get_data_by_cda(hosp_last_num):
+    # Получение данных из выписки
+    hosp_extract = hosp_get_data_direction(hosp_last_num, site_type=7, type_service='None', level=2)
+    if not hosp_extract:
+        return {}
+    hosp_extract_iss, extract_research_id, doc_confirm = None, None, None
+    if hosp_extract:
+        hosp_extract_iss = hosp_extract[0].get('iss')
+        doc_confirm = Issledovaniya.objects.get(pk=hosp_extract_iss).doc_confirmation
+        if not doc_confirm:
+            return {}
+        extract_research_id = hosp_extract[0].get('research_id')
+
+    cda_dict_title = {}
+    result_by_cda = {}
+    titles_field = None
+    if CDA_TITLES_FIELDS_EXTRACT_RESEARCH:
+        cda_ids_data = cda_data_by_title(tuple(CDA_TITLES_FIELDS_EXTRACT_RESEARCH))
+        cda_ids = [i.id for i in cda_ids_data]
+        cda_dict_title = {i.id: i.title for i in cda_ids_data}
+        fields_data = get_title_fields_by_cda_relation(extract_research_id, tuple(cda_ids))
+        titles_field = [i.title for i in fields_data]
+
+    list_values = None
+    if titles_field and hosp_extract:
+        list_values = get_result_value_iss(hosp_extract_iss, extract_research_id, titles_field)
+
+    if CDA_TITLES_FIELDS_EXTRACT_RESEARCH and list_values:
+        result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
+
+    if list_values:
+        pass
+
+    doc_fio = doc_confirm.get_fio()
+    return {'result_by_cda': result_by_cda, 'doc_fio': doc_fio}
 
 
 def hosp_get_clinical_diagnos(hosp_obj):
