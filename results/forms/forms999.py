@@ -81,6 +81,7 @@ def form_01(direction: Napravleniya, iss: Issledovaniya, fwb, doc, leftnone, use
 
     fields_values = get_paraclinic_result_by_iss(iss.pk)
     result_data = {i.field_title: i.field_value for i in fields_values}
+    result_data_by_id = {i.field_id: i.field_value for i in fields_values}
 
     if current_template_file:
         with open(current_template_file) as json_file:
@@ -92,11 +93,11 @@ def form_01(direction: Napravleniya, iss: Issledovaniya, fwb, doc, leftnone, use
     objs = []
     if current_template_file:
         for section in header_paragraphs:
-            objs = check_section_param(objs, styles_obj, section, result_data, show_title)
+            objs = check_section_param(objs, styles_obj, section, result_data, show_title, result_data_by_id)
         fwb.extend(objs)
         objs = []
         for section in body_paragraphs:
-            objs = check_section_param(objs, styles_obj, section, result_data, show_title)
+            objs = check_section_param(objs, styles_obj, section, result_data, show_title, result_data_by_id)
 
     fwb.extend(objs)
 
@@ -115,6 +116,29 @@ def check_section_param(objs, styles_obj, section, field_titles_value, show_titl
         difference = len(field_titles_sec) - len(data_fields)
         if len(data_fields) < len(field_titles_sec):
             data_fields = [*data_fields, *["" for count in range(difference)]]
+        if styles_obj.get(section.get("style")):
+            objs.append(Paragraph(section.get("text").format(*data_fields), styles_obj[section.get("style")]))
+    return objs
+
+
+def check_section_param_with_field_id(objs, styles_obj, section, field_titles_value, show_title, field_id_value):
+    if section.get("Spacer"):
+        height_spacer = section.get("spacer_data")
+        objs.append(Spacer(1, height_spacer * mm))
+    elif section.get("page_break"):
+        objs.append(PageBreak())
+    elif section.get("text"):
+        field_titles_sec = section.get("fieldTitles")
+        data_fields = []
+        for i in field_titles_sec:
+            field_value = ""
+            if field_titles_value.get(i):
+                field_value = field_titles_value.get(i)
+            elif field_id_value.get(i):
+                field_value = field_id_value.get(i)
+            if i in show_title:
+                field_value = f"<u>{i}</u> - {field_value}"
+            data_fields.append(field_value)
         if styles_obj.get(section.get("style")):
             objs.append(Paragraph(section.get("text").format(*data_fields), styles_obj[section.get("style")]))
     return objs
