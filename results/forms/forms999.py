@@ -121,7 +121,7 @@ def check_section_param(objs, styles_obj, section, field_titles_value, show_titl
     return objs
 
 
-def check_section_param_with_field_id(objs, styles_obj, section, field_titles_value, show_title, field_id_value ):
+def check_section_param_with_field_id(objs, styles_obj, section, field_titles_value, show_title, field_id_value):
     if section.get("Spacer"):
         height_spacer = section.get("spacer_data")
         objs.append(Spacer(1, height_spacer * mm))
