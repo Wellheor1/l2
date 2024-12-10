@@ -2061,4 +2061,7 @@ export default {
   padding: 7px 12px;
   width: 116px !important;
 };
+.change-field-group {
+  margin: 6px 0;
+}
 </style>
