@@ -126,7 +126,7 @@ def check_section_param(objs, styles_obj, section, field_titles_value, show_titl
             elif field_id_value.get(i):
                 field_value = field_id_value.get(i)
                 field_type = result_field_type_by_id.get(i)
-            if field_type in [17, 38]:
+            if field_type in [17, 38, 16]:
                 field_value = prepare_aggr_desc(field_value, field_type)
                 objs.extend(field_value)
                 return objs
@@ -158,4 +158,13 @@ def prepare_aggr_desc(field_value, field_type):
         if not previous_procedure_result:
             return []
         return previous_procedure_result
+
+    if field_type == 16:
+        v = json.loads(v)
+        if not v['directions']:
+            return []
+        aggr_lab = lab_iss_to_pdf(v)
+        if not aggr_lab:
+            return []
+        return aggr_lab
 
