@@ -130,6 +130,7 @@ def get_paraclinic_result_by_iss(pk_iss):
               SELECT 
                 directions_paraclinicresult.value as field_value,
                 directions_paraclinicresult.field_id as field_id,
+                directions_paraclinicresult.field_type as field_type,
                 directory_paraclinicInputField.title as field_title,
                 directory_paraclinicinputgroups.title as group_title
                 FROM directions_paraclinicresult

@@ -1316,7 +1316,7 @@ class ConstructorEditAccessResearch(models.Model):
     doctor = models.ForeignKey(DoctorProfile, default=None, null=True, blank=True, verbose_name="Пользователь", on_delete=models.CASCADE, db_index=True)
 
     def __str__(self):
-        return f"{self.research.title} - {self.department.title}"
+        return f"{self.research.title} - {self.department} {self.doctor}"
 
     class Meta:
         verbose_name = "Доступ подразделений к изменению услуги(не создание)"
