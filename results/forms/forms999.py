@@ -15,6 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 from results.prepare_data import lab_iss_to_pdf, text_iss_to_pdf, previous_procedure_list_result
 from results.sql_func import get_paraclinic_result_by_iss
+from utils.dates import normalize_date
 
 
 def form_01(direction: Napravleniya, iss: Issledovaniya, fwb, doc, leftnone, user=None, **kwargs):
@@ -130,6 +131,8 @@ def check_section_param(objs, styles_obj, section, field_titles_value, show_titl
                 field_value = prepare_aggr_desc(field_value, field_type)
                 objs.extend(field_value)
                 return objs
+            if field_type == 1:
+                field_value = normalize_date(field_value)
             if i in show_title:
                 field_value = f"<u>{i}</u> - {field_value}"
             data_fields.append(field_value)
