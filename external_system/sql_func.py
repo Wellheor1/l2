@@ -29,3 +29,19 @@ def get_nsi_code_fsidi(method):
         )
         rows = namedtuplefetchall(cursor)
     return rows
+
+
+def cda_data_by_title(cda_title):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+                SELECT 
+                id, 
+                title
+                from external_system_cdafields
+                where title in %(cda_title)s
+        """,
+            params={'cda_title': cda_title},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows

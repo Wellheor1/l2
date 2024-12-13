@@ -82,6 +82,8 @@ def change_tube_for_fractions(request):
     fractions_id = request_data.get("fractionsIds")
     old_tube = request_data.get("oldTube")
     new_tube = request_data.get("newTube")
+    if not new_tube:
+        return JsonResponse({"ok": False, "message": "Не выбрана пробирка"})
     result = Fractions.change_relation_tube(fractions_id, old_tube, new_tube)
     if result:
         Log.log(

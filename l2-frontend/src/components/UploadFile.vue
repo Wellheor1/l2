@@ -111,6 +111,7 @@
     </template>
 
     <div
+      v-if="selectedForm"
       id="tp"
       :class="props.showResults ? 'tp-high' : 'tp'"
     >

@@ -719,6 +719,19 @@ def researches_update(request):
                                 f.save()
                                 if department_template_field:
                                     department_template_field.save()
+                            if field.get("newGroupId"):
+                                new_group_id = field.get("newGroupId")
+                                new_group = ParaclinicInputGroups.objects.filter(pk=new_group_id).first()
+                                if new_group.research != res:
+                                    request_data["changeGroup"] = "Попытка указать id из другой услуги"
+                                else:
+                                    old_group_id = f.group_id
+                                    fields_new_group = ParaclinicInputField.objects.filter(group_id=field.get("newGroupId")).order_by('order').last()
+                                    new_order_number = fields_new_group.order + 1
+                                    f.group_id = new_group_id
+                                    f.order = new_order_number
+                                    f.save()
+                                    request_data["changeGroup"] = f"Изменена группа с {old_group_id} на {new_group_id}"
 
                             if f.default_value == '':
                                 continue
@@ -1259,4 +1272,26 @@ def save_research_permissions(request):
     department_id = request_data.get('departmentId')
     user_ids = request_data.get('userIds')
     result = ConstructorEditAccessResearch.save_permissions(research_id, department_id, user_ids)
+    return JsonResponse(result)
+
+
+@login_required
+@group_required("Оператор", "Конструктор: Параклинические (описательные) исследования")
+def change_group_field(request):
+    request_data = json.loads(request.body)
+    field_id = request_data.get('fieldId')
+    new_group_id = request_data.get('groupId')
+    research_id = request_data.get('researchId')
+    current_field = ParaclinicInputField.objects.filter(id=field_id).first()
+    current_research_id = current_field.group.research_id
+    if current_research_id != research_id:
+        result = {"ok": False, "message": "ошибка услуги"}
+    else:
+        fields_new_group = ParaclinicInputField.objects.filter(group_id=new_group_id).order_by('order').last()
+        new_order_number = fields_new_group.order + 1
+        current_field.group_id = new_group_id
+        current_field.order = new_order_number
+        current_field.save()
+        result = {"ok": True, "message": "Группа изменена"}
+
     return JsonResponse(result)

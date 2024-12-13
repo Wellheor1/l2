@@ -18,11 +18,10 @@ from api.parse_file.pdf import extract_text_from_pdf
 import simplejson as json
 
 from api.patients.sql_func import search_cards_by_numbers
-from api.patients.views import patients_search_card
 from api.views import endpoint
 from openpyxl import load_workbook
 from appconf.manager import SettingManager
-from contracts.models import PriceCoast, Company, MedicalExamination, CompanyDepartment, PriceName
+from contracts.models import PriceCoast
 import directions.models as directions
 from directory.models import SetOrderResearch, Researches, ParaclinicInputGroups, ParaclinicInputField
 from directory.sql_func import is_paraclinic_filter_research, is_lab_filter_research
@@ -33,8 +32,7 @@ from results.sql_func import check_lab_instrumental_results_by_cards_and_period
 from slog.models import Log
 from statistic.views import commercial_offer_xls_save_file, data_xls_save_file, data_xls_save_headers_file
 from users.models import AssignmentResearches, DoctorProfile
-from clients.models import Individual, HarmfulFactor, PatientHarmfullFactor, Card, CardBase, DocumentType, Document
-from integration_framework.views import check_enp
+from clients.models import Individual, HarmfulFactor, Card, DocumentType, Document
 from utils.dates import age_for_year, normalize_dots_date
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q

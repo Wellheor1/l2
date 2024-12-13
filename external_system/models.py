@@ -109,7 +109,14 @@ class CdaFields(models.Model):
             result = [{"id": -1, "label": "Пусто"}, *[{"id": x.pk, "label": f"{x.title} - {x.code}"} for x in CdaFields.objects.filter(is_form=True).order_by("title")]]
         elif is_extract:
             result = [{"id": -1, "label": "Пусто"}, *[{"id": x.pk, "label": f"{x.title} - {x.code}"} for x in CdaFields.objects.filter(is_extract=True).order_by("title")]]
+        else:
+            result = [{"id": -1, "label": "Пусто"}, *[{"id": x.pk, "label": f"{x.title} - {x.code}"} for x in CdaFields.objects.filter(is_doc_refferal=True).order_by("title")]]
 
+        return result
+
+    @staticmethod
+    def get_cda_id_by_titles(cda_titles):
+        result = CdaFields.objects.filter(title__in=cda_titles)
         return result
 
 

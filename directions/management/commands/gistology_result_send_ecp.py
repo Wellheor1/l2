@@ -33,12 +33,13 @@ class Command(BaseCommand):
 
         date_end = current_time(only_date=False) + relativedelta(hours=-current_time_ecp_upload)
         date_end = date_end.strftime('%Y%m%d %H:%M:%S')
-
-        dirs = kwargs["dirs"]
-        dirs = dirs.split(",")
-        if len(dirs) > 0:
-            dirs = [int(i) for i in dirs]
-            d_qs = get_directions_for_send_ecp_by_dirs(tuple(REMD_ONLY_RESEARCH), tuple(dirs))
+        d_qs = []
+        if kwargs["dirs"]:
+            dirs = kwargs["dirs"]
+            dirs = dirs.split(",")
+            if len(dirs) > 0:
+                dirs = [int(i) for i in dirs]
+                d_qs = get_directions_for_send_ecp_by_dirs(tuple(REMD_ONLY_RESEARCH), tuple(dirs))
         else:
             d_qs = get_directions_for_send_ecp_by_researches(tuple(REMD_ONLY_RESEARCH), date_start, date_end)
         directions = [i.napravleniye_id for i in d_qs]

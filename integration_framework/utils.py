@@ -163,7 +163,7 @@ def get_json_protocol_data(pk, is_paraclinic=False):
         if not data.get("Состояние код"):
             data["Состояние код"] = "1"
             data["Состояние наименование"] = "Удовлетворительное"
-        if not data.get("Дата осмотра"):
+        if not data.get("Дата осмотра") and iss.medical_examination:
             data["Дата осмотра"] = iss.medical_examination.strftime("%Y-%m-%d")
         if data.get("Дата заключения"):
             val = data.get("Дата заключения")
@@ -184,7 +184,9 @@ def get_json_protocol_data(pk, is_paraclinic=False):
     document["id"] = pk
     time_confirm = iss.time_confirmation
     confirmed_time = time_confirm.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y%m%d%H%M')
+    create_date = time_confirm.astimezone(pytz.timezone(settings.TIME_ZONE)).strftime('%Y%m%d')
     document["confirmedAt"] = f"{confirmed_time}+0800"
+    document["createAt"] = create_date
     document["legalAuthenticator"] = legal_auth_data
     document["author"] = author_data
     document["content"] = data

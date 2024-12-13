@@ -9,9 +9,9 @@
       </div>
       <button
         v-tippy
-        class="height-button-change-tube"
+        class="height-button-change-tube btn"
         title="Изменить пробирку"
-        :disabled="selectedTubeTypeId===-1"
+        :disabled="!selectedTubeTypeId"
         @click="changeTube()"
       >
         Изменить
@@ -254,16 +254,20 @@ const addFraction = () => {
   }
 };
 
-const selectedTubeTypeId = ref(-1);
+const selectedTubeTypeId = ref(null);
 
 const changeTube = async () => {
-  const fractionsIds = props.tube.fractions.map(t => t.id);
-  await api('construct/laboratory/change-tube-for-fractions', {
-    oldTube: props.tube.id,
-    newTube: selectedTubeTypeId.value,
-    fractionsIds,
-  });
-  emit('changeTube');
+  if (selectedTubeTypeId.value) {
+    const fractionsIds = props.tube.fractions.map(t => t.id);
+    await api('construct/laboratory/change-tube-for-fractions', {
+      oldTube: props.tube.id,
+      newTube: selectedTubeTypeId.value,
+      fractionsIds,
+    });
+    emit('changeTube');
+  } else {
+    root.$emit('msg', 'error', 'Пробирка не выбрана');
+  }
 };
 </script>
 
@@ -310,7 +314,7 @@ const changeTube = async () => {
   border: 1px solid #AAB2BD;
   border-radius: 4px;
   padding: 3px 2px;
-  margin: 0px 1px;
+  margin: 0 1px;
 }
 .transparent-button:hover {
   background-color: #434a54;
@@ -356,12 +360,12 @@ const changeTube = async () => {
     background-image: linear-gradient(#6c7a89, #56616c);
     color: #fff;
     cursor: not-allowed;
-    line-height: 28px !important;
+    line-height: 26px !important;
   }
 }
 ::v-deep .hide-treeselect .vue-treeselect {
   &__placeholder {
-    line-height: 28px !important;
+    line-height: 26px !important;
   }
 }
 
@@ -393,5 +397,7 @@ const changeTube = async () => {
 
 .height-button-change-tube {
   height: 26px;
+  padding: 0 6px;
+  border-radius: 4px;
 }
 </style>

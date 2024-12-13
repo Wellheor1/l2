@@ -302,9 +302,9 @@ def direction_data(request):
 
             signed_documents.append(document)
 
-    doctor_direction_create = direction.doc.additional_info
     additional_data_create_direction = None
-    if direction.doc.additional_info:
+    if direction.doc and direction.doc.additional_info:
+        doctor_direction_create = direction.doc.additional_info
         if "{" in doctor_direction_create and "}" in doctor_direction_create:
             try:
                 additional_data_create_direction = json.loads(doctor_direction_create)
@@ -2673,6 +2673,7 @@ def results_by_direction(request):
     request_data = json.loads(request.body)
     token = request.headers.get("Authorization").split(" ")[1]
     token_obj = Application.objects.filter(key=token).first()
+    hospital = None
     if not token_obj.unlimited_access:
         if not hasattr(request.user, "hospitals"):
             return Response({"ok": False, "message": "Некорректный auth токен"})
@@ -2691,10 +2692,7 @@ def results_by_direction(request):
     directions_data = request_data.get("directions")
     if is_lab and not directions_data:
         if external_add_order:
-            ext_add_order_obj = directions.ExternalAdditionalOrder.objects.filter(external_add_order=external_add_order).first()
-            iss_data = directions.Issledovaniya.objects.filter(external_add_order=ext_add_order_obj).first()
-            direction = iss_data.napravleniye_id
-        directions_data = [direction]
+            directions_data = list(Napravleniya.objects.filter(hospital=hospital, id_in_hospital=external_add_order).values_list("pk", flat=True))
     else:
         directions_data = [direction]
     if not token_obj.unlimited_access:
@@ -2714,6 +2712,7 @@ def results_by_direction(request):
                 objs_result[r.direction]["services"][r.iss_id] = {
                     "title": r.research_title,
                     "internalCode": r.research_internal_code,
+                    "nmuCode": r.nmu_code,
                     "fio": short_fio_dots(r.fio) if r.fio else r.doc_confirmation_string,
                     "confirmedAt": r.date_confirm,
                     "fractions": [],
@@ -3503,20 +3502,32 @@ def send_laboratory_order(request):
             return Response({"ok": False, "message": f"Номер {tube_number} уже существует"})
 
         internal_research_code_by_tube_number[tube_number] = []
-        for data_research in tube.get("researches"):
-            if not Researches.objects.filter(hide=False, internal_code=data_research.get("internalCode")).first():
-                return Response({"ok": False, "message": "Некорректный номер услуги internalCode"})
-            internal_research_code_by_tube_number[tube_number].append(data_research.get("internalCode"))
-            additional_order_number_by_service[data_research.get("internalCode")] = data_research.get("additionalNumber")
-    order_numbers = []
+        if hospital.use_internal_code_api_integration:
+            for data_research in tube.get("researches"):
+                if not Researches.objects.filter(hide=False, internal_code=data_research.get("internalCode")).first():
+                    return Response({"ok": False, "message": "Некорректный номер услуги internalCode"})
+                else:
+                    service_pk = Researches.objects.filter(hide=False, internal_code=data_research.get("internalCode")).first().pk
+                    internal_research_code_by_tube_number[tube_number].append(service_pk)
+                    additional_order_number_by_service[service_pk] = data_research.get("additionalNumber")
+        else:
+            for data_research in tube.get("researches"):
+                if not Researches.objects.filter(hide=False, code=data_research.get("serviceNMUCode")).first():
+                    return Response({"ok": False, "message": "Не найден код услуги по НМУ - https://nsi.rosminzdrav.ru/dictionaries/1.2.643.5.1.13.13.11.1070/passport/latest"})
+                else:
+                    service_pk = Researches.objects.filter(hide=False, code=data_research.get("serviceNMUCode")).first().pk
+                    internal_research_code_by_tube_number[tube_number].append(service_pk)
+                    additional_order_number_by_service[service_pk] = data_research.get("additionalNumber")
 
+    order_numbers = []
+    final_log_result = []
     with transaction.atomic():
         doc = DoctorProfile.get_system_profile()
         services_by_order_number = {}
         services_by_additional_order_num = {}
         for order_number, services_codes in internal_research_code_by_tube_number.items():
             for service_code in services_codes:
-                service = Researches.objects.filter(hide=False, internal_code=service_code).first()
+                service = Researches.objects.filter(hide=False, pk=service_code).first()
                 if not service:
                     raise ServiceNotFoundException(f"Service {service_code} not found")
                 if order_number not in services_by_order_number:
@@ -3580,8 +3591,9 @@ def send_laboratory_order(request):
                     "card": card.number_with_type(),
                 },
             )
+            final_log_result.extend(result["list_id"])
 
-    return Response({"ok": True, "message": "", "directions": result["list_id"]})
+    return Response({"ok": True, "message": "", "directions": final_log_result})
 
 
 @api_view(["POST"])

@@ -56,6 +56,7 @@ def get_laboratory_results_by_directions(list_dirs):
                 directions_issledovaniya.doc_confirmation_id as doctor_id,
                 directions_issledovaniya.doc_confirmation_string as doc_confirmation_string,
                 directory_researches.title as research_title,
+                directory_researches.code as nmu_code,
                 directory_researches.internal_code as research_internal_code,
                 directions_result.value as value,
                 directions_result.fraction_id,
@@ -117,6 +118,29 @@ def get_paraclinic_results_by_direction(pk_dir):
 
         """,
             params={'num_dir': pk_dir},
+        )
+        rows = namedtuplefetchall(cursor)
+    return rows
+
+
+def get_paraclinic_result_by_iss(pk_iss):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+              SELECT 
+                directions_paraclinicresult.value as field_value,
+                directions_paraclinicresult.field_id as field_id,
+                directions_paraclinicresult.field_type as field_type,
+                directory_paraclinicInputField.title as field_title,
+                directory_paraclinicinputgroups.title as group_title
+                FROM directions_paraclinicresult
+                LEFT JOIN directory_paraclinicinputfield ON
+                directions_paraclinicresult.field_id=directory_paraclinicinputfield.id
+                LEFT JOIN directory_paraclinicinputgroups ON
+                directory_paraclinicInputField.group_id=directory_paraclinicinputgroups.id
+              WHERE directions_paraclinicresult.issledovaniye_id = %(pk_iss)s
+        """,
+            params={'pk_iss': pk_iss},
         )
         rows = namedtuplefetchall(cursor)
     return rows
