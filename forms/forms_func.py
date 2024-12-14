@@ -1100,6 +1100,8 @@ def hosp_get_operation_data(num_dir):
 
         operation_result = []
         for fields_operation in list_values:
+            if len(fields_operation) < 1:
+                continue
             pk_iss_operation = fields_operation[0][1]
             operation_data = {
                 'name_operation': '',
