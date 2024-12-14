@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-
 from django.db import models, transaction
 from jsonfield import JSONField
 from cash_registers import sql_func
