@@ -2259,7 +2259,6 @@ def directions_paraclinic_result(request):
                     f_result = ParaclinicResult(issledovaniye=iss, field=f, value="")
                 else:
                     f_result = ParaclinicResult.objects.filter(issledovaniye=iss, field=f)[0]
-                print(field)
                 if not field["value"]:
                     f_result.value = ""
                 else:
