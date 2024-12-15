@@ -2259,7 +2259,11 @@ def directions_paraclinic_result(request):
                     f_result = ParaclinicResult(issledovaniye=iss, field=f, value="")
                 else:
                     f_result = ParaclinicResult.objects.filter(issledovaniye=iss, field=f)[0]
-                f_result.value = field["value"]
+                print(field)
+                if not field["value"]:
+                    f_result.value = ""
+                else:
+                    f_result.value = field["value"]
                 f_result.field_type = f.field_type
                 if f.field_type in [27, 28, 29, 32, 33, 34, 35]:
                     try:
