@@ -35,12 +35,5 @@ class Command(BaseCommand):
             else:
                 r = Diagnoses.objects.filter(code=cells[code], d_type=mode)
                 if not r.exists():
-                    Diagnoses(
-                        d_type=mode,
-                        code=cells[code],
-                        title=cells[title],
-                        nsi_id=cells[nsi_id],
-                        hide=False,
-                        m_type=2
-                    ).save()
+                    Diagnoses(d_type=mode, code=cells[code], title=cells[title], nsi_id=cells[nsi_id], hide=False, m_type=2).save()
                     print('сохранено', cells[code])  # noqa: T001
