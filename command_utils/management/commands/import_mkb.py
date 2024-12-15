@@ -1,9 +1,6 @@
-from concurrent.futures import ThreadPoolExecutor
-
 from django.core.management import BaseCommand
 from directions.models import Diagnoses
 import requests
-from django.db import transaction
 from openpyxl import load_workbook
 
 
