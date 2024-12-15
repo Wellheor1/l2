@@ -965,7 +965,7 @@
                     <Treeselect
                       v-model="row.newGroupId"
                       placeholder="Группа..."
-                      :options="possibleGroupsForField"
+                      :options="findPossibleGroupForField"
                     />
                   </div>
                 </div>
@@ -1396,6 +1396,13 @@ export default {
     expertise() {
       return this.$store.getters.modules.l2_expertise;
     },
+    findPossibleGroupForField() {
+      const filtered = this.groups.filter((group) => {
+        const newFields = group.fields.filter((field) => field.pk === -1);
+        return newFields.length < 1;
+      });
+      return filtered.map(group => ({ id: group.pk, label: group.pk }));
+    },
   },
   watch: {
     pk() {
@@ -1425,7 +1432,6 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
-    this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1739,7 +1745,6 @@ export default {
       if (this.ex_deps.length > 0 && this.site_type === null) {
         this.site_type = this.ex_deps[0].pk;
       }
-      this.findPossibleGroupForField();
     },
     cancel() {
       // eslint-disable-next-line no-restricted-globals,no-alert
@@ -1832,9 +1837,6 @@ export default {
     },
     closePermissionsModal() {
       this.showPermissionsModal = false;
-    },
-    findPossibleGroupForField() {
-      this.possibleGroupsForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
     openFileAddModal() {
       this.showFileAddModal = true;
@@ -2059,4 +2061,7 @@ export default {
   padding: 7px 12px;
   width: 116px !important;
 };
+.change-field-group {
+  margin: 6px 0;
+}
 </style>
