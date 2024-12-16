@@ -1349,7 +1349,6 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
 
 def join_diag_title_row(data_cda):
     code, title = "", ""
-    space_symbol = "&nbsp;"
     for i in data_cda:
         if "code" in i:
             field_json = json.loads(i)
@@ -1361,13 +1360,10 @@ def join_diag_title_row(data_cda):
     return [result, code]
 
 
-
-
 def check_diagnos_row_is_dict(data_cda):
     result = data_cda
     new_result = ""
     field_json = {}
-    space_symbol = "&nbsp;"
     if len(data_cda) > 0:
         try:
             field_json = json.loads(data_cda[0])
