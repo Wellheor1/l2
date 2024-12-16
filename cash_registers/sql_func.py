@@ -110,14 +110,16 @@ def get_patient_cheque(date_start, date_end, patient_card_pk):
         cursor.execute(
             """
             SELECT 
-
-            *
-
+            cash_registers_cheque.id,
+            cash_registers_cheque.created_at,
+            cash_registers_cheque.shift_id,
+            cash_registers_cheque.payment_at,
+            cash_registers_cheque.cancelled,
+            cash_registers_cheque.payment_cash,
+            cash_registers_cheque.payment_electronic
             FROM cash_registers_cheque
-
             WHERE cash_registers_cheque.created_at AT TIME ZONE %(tz)s BETWEEN %(date_start)s AND %(date_end)s
             AND cash_registers_cheque.card_id = %(patient_card_pk)s
-
             ORDER BY created_at DESC
             """,
             params={"tz": TIME_ZONE, "date_start": date_start, "date_end": date_end, "patient_card_pk": patient_card_pk},
