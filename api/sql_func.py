@@ -158,7 +158,9 @@ def users_by_group(title_groups, hosp_id):
           FROM users_doctorprofile
           LEFT JOIN
           t_podrazdeleniye ON users_doctorprofile.podrazdeleniye_id = t_podrazdeleniye.id
-          WHERE user_id in (SELECT user_id FROM t_users_id) and hospital_id = %(hosp_id)s) 
+          WHERE user_id in (SELECT user_id FROM t_users_id) and hospital_id = %(hosp_id)s
+          and users_doctorprofile.dismissed = false
+          )
     
         SELECT doc_id, fio, podrazdeleniye_id, title_podr, short_title, position_id FROM t_users
         ORDER BY podrazdeleniye_id, fio DESC              
