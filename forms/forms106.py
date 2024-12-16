@@ -1336,6 +1336,8 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
     elif section.get("text"):
         cda_titles_sec = section.get("cdaTitles")
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
+        if section.get("joinDiagTitle"):
+            data_cda = join_diag_title_row(data_cda)
         difference = len(cda_titles_sec) - len(data_cda)
         if len(data_cda) < len(cda_titles_sec):
             data_cda = [*data_cda, *["" for count in range(difference)]]
@@ -1343,6 +1345,19 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
 
         objs.append(Paragraph(section.get("text").format(*data_cda), styles_obj[section.get("style")]))
     return objs
+
+
+def join_diag_title_row(data_cda):
+    code, title = "", ""
+    for i in data_cda:
+        if "code" in i:
+            field_json = json.loads(i)
+            code = field_json.get("code")
+            title = field_json.get("title")
+            data_cda.remove(i)
+    result = ";".join(data_cda)
+    result = f"{result}; {title}"
+    return [result, code]
 
 
 def check_diagnos_row_is_dict(data_cda):
@@ -1359,7 +1374,7 @@ def check_diagnos_row_is_dict(data_cda):
             if is_dict and not field_json.get("columns"):
                 code = field_json.get("code")
                 title = field_json.get("title")
-                new_result = f"<u>{title}</u>, код по МКБ <u>{code}</u>"
+                new_result = f"<u>{title}</u>  код по МКБ <u>{code}</u>"
             elif is_dict and field_json.get("columns"):
                 new_result = ""
                 rows_data = field_json.get("rows")
@@ -1374,7 +1389,7 @@ def check_diagnos_row_is_dict(data_cda):
                         if is_dict and diag_data.get("code"):
                             title = diag_data.get("title")
                             code = diag_data.get("code")
-                            new_result = f"{new_result}<u>{title}</u>, код по МКБ <u>{code}</u><br/>"
+                            new_result = f"{new_result}<u>{title}</u> код по МКБ <u>{code}</u><br/>"
         except:
             new_result = ""
         if new_result:
