@@ -114,6 +114,9 @@
             <th v-if="active_type === 7">
               № случ.
             </th>
+            <th v-if="active_type === 9">
+              № чека
+            </th>
             <th v-else-if="active_type === 8">
               № компл.
             </th>
@@ -128,7 +131,7 @@
             </th>
             <th>Назначения</th>
             <th
-              v-if="active_type !== 5"
+              v-if="![5, 9].includes(active_type)"
               class="text-center"
             >
               Статус
@@ -275,7 +278,7 @@
             </td>
             <td class="button-td">
               <div
-                v-if="!row.is_application && active_type !== 5 && active_type !== 6 && active_type !== 8"
+                v-if="!row.is_application && ![5, 6, 8, 9].includes(active_type)"
                 class="button-td-inner"
                 :class="[
                   {
@@ -434,6 +437,16 @@
                   Талон-А6
                 </button>
               </div>
+              <div
+                v-else-if="active_type===9"
+                class="button-td-inner button-td-inner-single"
+              >
+                <button
+                  class="btn btn-blue-nb"
+                >
+                  Чек
+                </button>
+              </div>
             </td>
             <td class="nopd">
               <input
@@ -552,6 +565,7 @@ export default {
         { pk: 6, title: 'Регистратура пациента', module: 'rmisQueue' },
         { pk: 7, title: 'Случаи пациента' },
         { pk: 8, title: 'Комплексы пациента' },
+        { pk: 9, title: 'Чеки пациента' },
       ],
       active_type: this.onlyType || 3,
       checked_obj: {},
@@ -582,7 +596,7 @@ export default {
     },
     role_can_use_stationar() {
       for (const g of this.$store.getters.user_data.groups || []) {
-        if (g === 'Врач стационара') {
+        if (g === 'Врач стационара' || 't, ad, p') {
           return true;
         }
       }
