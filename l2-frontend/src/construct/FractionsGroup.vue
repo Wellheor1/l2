@@ -21,6 +21,7 @@
         :options="props.tubesData"
         :multiple="false"
         class="treeselect-wide treeselect-26px"
+        placeholder="Выберите пробирку"
       />
     </div>
     <table class="table">
