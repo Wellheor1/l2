@@ -584,10 +584,10 @@ class Researches(models.Model):
         return self.site_type_id
 
     @staticmethod
-    def as_json(research):
+    def as_json(research, pk_in_title=False):
         result = {
             "pk": research.pk,
-            "title": research.title,
+            "title": research.title if not pk_in_title else f"{research.title} ({research.pk})",
             "internalCode": research.internal_code,
             "code": research.code,
             "hide": research.hide,
@@ -658,10 +658,10 @@ class Researches(models.Model):
             tubes_info = [value for _, value in research_tubes.items()]
             tubes_keys = tuple(research_tubes.keys())
             if tubes.get(tubes_keys):
-                tubes[tubes_keys]["researches"].append(research.as_json(research))
+                tubes[tubes_keys]["researches"].append(research.as_json(research, True))
             else:
                 tubes[tubes_keys] = {
-                    "researches": [research.as_json(research)],
+                    "researches": [research.as_json(research, True)],
                     "tubes": tubes_info,
                 }
 
