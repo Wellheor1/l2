@@ -63,8 +63,8 @@ class ReleationsFT(models.Model):
 
     @staticmethod
     def get_all_relation():
-        relations = ReleationsFT.objects.all()
-        data = [{"id": i.pk, "label": f"{i.tube.title}-({i.pk})"} for i in relations]
+        relations = ReleationsFT.objects.all().select_related('tube').order_by('tube__title')
+        data = [{"id": i.pk, "label": f"{i.tube.title} ({i.pk})", "color": i.tube.color} for i in relations]
         return data
 
 

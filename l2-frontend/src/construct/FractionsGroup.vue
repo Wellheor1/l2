@@ -22,7 +22,26 @@
         :multiple="false"
         class="treeselect-wide treeselect-26px"
         placeholder="Выберите пробирку"
-      />
+      >
+        <div
+          slot="value-label"
+          slot-scope="{ node }"
+        >
+          <ColorTitled
+            :title="node.label"
+            :color="node.raw.color"
+          />
+        </div>
+        <div
+          slot="option-label"
+          slot-scope="{ node }"
+        >
+          <ColorTitled
+            :title="node.label"
+            :color="node.raw.color"
+          />
+        </div>
+      </Treeselect>
     </div>
     <table class="table">
       <colgroup>

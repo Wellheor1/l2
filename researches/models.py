@@ -69,7 +69,7 @@ class Tubes(models.Model):
                 "label": tube.title if not pk_in_title else f"{tube.title} ({tube.pk})",
                 "color": tube.color,
             }
-            for tube in Tubes.objects.all()
+            for tube in Tubes.objects.all().order_by("title")
         ]
         return result
 
