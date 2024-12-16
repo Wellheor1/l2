@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from django.db import models, transaction
 from jsonfield import JSONField
 from cash_registers import sql_func
@@ -59,7 +60,7 @@ class Shift(models.Model):
     open_uuid = models.UUIDField(verbose_name='UUID открытия', help_text='abbfg-45fsd2', null=True, blank=True)
     close_uuid = models.UUIDField(verbose_name='UUID Закрытия', help_text='abbfg-45fsd2', null=True, blank=True)
     open_status = models.BooleanField(verbose_name='Статус открытия смены', default=False)
-    close_status = models.BooleanField(verbose_name='Статус открытия смены', default=False)
+    close_status = models.BooleanField(verbose_name='Статус закрытия смены', default=False)
 
     class Meta:
         verbose_name = "Кассовая смена"
@@ -166,6 +167,7 @@ class Cheque(models.Model):
         (CASH_OUT, "Выплата"),
     )
 
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания', db_index=True)
     shift = models.ForeignKey(Shift, verbose_name='Смена', help_text='1', null=True, on_delete=models.CASCADE, db_index=True)
     type = models.CharField(max_length=20, choices=TYPES, verbose_name='Тип операции', help_text='sell, buy и т.д', db_index=True)
     uuid = models.UUIDField(verbose_name='UUID', help_text='abbfg-45fsd2')
@@ -233,6 +235,13 @@ class Cheque(models.Model):
             new_cheque.save()
         return new_cheque.pk
 
+    @staticmethod
+    def get_patient_cheque(date_start, date_end, patient_card_pk):
+        date_start_str = datetime.strftime(date_start, "%Y-%m-%d %H:%M")
+        date_end_str = datetime.strftime(date_end, "%Y-%m-%d %H:%M")
+        result = sql_func.get_patient_cheque(date_start_str, date_end_str, patient_card_pk)
+        return result
+
 
 class ChequeItems(models.Model):
     cheque = models.ForeignKey(Cheque, verbose_name='Чек', on_delete=models.CASCADE, db_index=True)
@@ -282,3 +291,9 @@ class ChequeForDirection(models.Model):
 
     def __str__(self):
         return f"{self.cheque} - {self.direction_id}"
+
+    @staticmethod
+    def create(cheque_id: int, directions_ids: list):
+        for direction_id in directions_ids:
+            cheque_for_direction = ChequeForDirection(cheque_id=cheque_id, direction_id=direction_id)
+            cheque_for_direction.save()

@@ -9,6 +9,7 @@ from typing import Optional
 from django.core.paginator import Paginator
 
 from barcodes.views import tubes
+from cash_registers.models import Cheque
 from cda.integration import cdator_gen_xml, render_cda
 from contracts.models import PriceCategory, PriceCoast, PriceName, Company
 from ecp_integration.integration import get_ecp_time_table_list_patient, get_ecp_evn_direction, fill_slot_ecp_free_nearest
@@ -358,8 +359,40 @@ def directions_history(request):
     # status: 4 - выписано пользователем, 0 - только выписанные, 1 - Материал получен лабораторией. 2 - результат подтвержден, 3 - направления пациента,  -1 - отменено,
     if req_status == 4:
         user_creater = request.user.doctorprofile.pk
-    if req_status in [0, 1, 2, 3, 5, 7, 8]:
+    if req_status in [0, 1, 2, 3, 5, 7, 8, 9]:
         patient_card = pk
+
+    if req_status == 9:
+        patient_cheque_data = Cheque.get_patient_cheque(date_start, date_end, patient_card)
+
+        final_result = [
+            {
+                "date": cheque.created_at.strftime('%d.%m.%y'),
+                "pk": cheque.id,
+                "researches": f"Смена: {cheque.shift_id}, Оплачен: {cheque.payment_at if cheque.payment_at else 'нет' }, Отменен: {'да' if cheque.cancelled else 'нет'} ",
+                "status": f"{cheque.payment_cash + cheque.payment_electronic}р",
+                "checked": False,
+                "pacs": False,
+                "has_hosp": False,
+                "has_descriptive": False,
+                "maybe_onco": False,
+                "is_application": False,
+                "lab": "",
+                "parent": parent_obj,
+                "is_expertise": False,
+                "expertise_status": False,
+                "person_contract_pk": "",
+                "person_contract_dirs": "",
+                "isComplex": False,
+                'planed_doctor': "",
+                'register_number': "",
+                'cancel': False,
+            }
+            for cheque in patient_cheque_data
+        ]
+        res['directions'] = final_result
+
+        return JsonResponse(res)
 
     if req_status == 8:
         patient_complex_data = ComplexResearchAccountPerson.get_patient_complex_research(date_start, date_end, patient_card)
