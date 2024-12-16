@@ -118,7 +118,7 @@ def get_lab_ref_books(request):
     materials = LaboratoryMaterial.get_materials()
     subgroups = SubGroupPadrazdeleniye.get_subgroup_podrazdeleniye(request_data["departmentId"])
     variants = ResultVariants.get_all()
-    tubes = Tubes.get_all()
+    tubes = Tubes.get_all(True)
     relations_tubes = ReleationsFT.get_all_relation()
     result = {"units": units, "materials": materials, "subGroups": subgroups, "variants": variants, "tubes": tubes, "relations": relations_tubes}
     return JsonResponse({"result": result})
