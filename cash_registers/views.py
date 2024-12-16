@@ -1,6 +1,6 @@
 import uuid
 import pytz
-from cash_registers.models import CashRegister, Shift, Cheque, ChequeItems
+from cash_registers.models import CashRegister, Shift, Cheque, ChequeItems, ChequeForDirection
 import cash_registers.req as cash_req
 import cash_registers.sql_func as sql_func
 from directions.models import IstochnikiFinansirovaniya, Napravleniya
@@ -153,10 +153,14 @@ def check_count_items(directions_ids, service_coasts):
     Проверка совпадения кол-ва услуг в чеке и кол-ва исследований в направлениях
     """
     total_items_count = 0
+    total_issledovaniya_count = 0
     for service in service_coasts:
         total_items_count += int(service["count"])
-    total_issledovaniya_count = sql_func.get_total_count_issledovania(directions_ids)
-    if total_items_count <= total_issledovaniya_count:
+    local_ids = tuple(directions_ids)
+    total_issledovaniya_count = sql_func.get_total_count_issledovania(local_ids)
+    if total_issledovaniya_count:
+        total_issledovaniya_count = total_issledovaniya_count[0].count
+    if total_items_count < total_issledovaniya_count:
         return False
     return True
 
@@ -183,6 +187,7 @@ def payment(shift_id, service_coasts, total_coast, cash, received_cash, electron
         job_result = cash_req.send_job(job_body)
         if job_result["ok"]:
             cheq_id = Cheque.create_cheque(shift_id, type_operations, uuid_data, cash, received_cash, electronic, card_id, items)
+            ChequeForDirection.create(cheq_id, directions_ids)
             result["cheqId"] = cheq_id
         else:
             result = job_result

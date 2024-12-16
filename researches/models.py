@@ -62,14 +62,14 @@ class Tubes(models.Model):
         return pr
 
     @staticmethod
-    def get_all():
+    def get_all(pk_in_title=False):
         result = [
             {
                 "id": tube.pk,
-                "label": f"{tube.title} - tube.pk",
+                "label": tube.title if not pk_in_title else f"{tube.title} ({tube.pk})",
                 "color": tube.color,
             }
-            for tube in Tubes.objects.all()
+            for tube in Tubes.objects.all().order_by("title")
         ]
         return result
 

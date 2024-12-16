@@ -30,7 +30,6 @@
           >
             <table class="table">
               <colgroup>
-                <col style="width: 35px">
                 <col>
                 <col style="width: 90px">
                 <col style="width: 75px">
@@ -41,7 +40,6 @@
               </colgroup>
               <thead class="sticky">
                 <tr>
-                  <th />
                   <th class="text-center tbl-header-footer">
                     <strong>Услуга</strong>
                   </th>
@@ -69,18 +67,6 @@
                 v-for="(service, idx) in servicesCoasts"
                 :key="service.id"
               >
-                <td class="text-center border">
-                  <div class="button">
-                    <button
-                      v-tippy
-                      class="btn last btn-blue-nb nbr"
-                      title="Удалить позицию"
-                      @click="deleteItem(idx)"
-                    >
-                      <i class="fa fa-times" />
-                    </button>
-                  </div>
-                </td>
                 <VueTippyTd
                   class="text-left padding service-title border"
                   :text="service.title"
@@ -122,7 +108,6 @@
               </tr>
               <tfoot class="sticky-footer">
                 <tr>
-                  <td />
                   <td class="tbl-header-footer" />
                   <td class="tbl-header-footer" />
                   <td class="tbl-header-footer" />
@@ -452,10 +437,6 @@ const payment = async () => {
       loading.value = false;
     }
   }
-};
-
-const deleteItem = (idx) => {
-  servicesCoasts.value.splice(idx, 1);
 };
 
 </script>
