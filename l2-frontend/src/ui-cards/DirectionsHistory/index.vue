@@ -596,7 +596,7 @@ export default {
     },
     role_can_use_stationar() {
       for (const g of this.$store.getters.user_data.groups || []) {
-        if (g === 'Врач стационара' || 't, ad, p') {
+        if (g === 'Врач стационара' || g === 't, ad, p') {
           return true;
         }
       }
