@@ -1025,6 +1025,7 @@ def table_part_result(value, width_max_table=None):
                 if isinstance(row_data, list):
                     result = '<br/>'.join(row_data)
                 elif isinstance(row_data, dict):
+                    temp_data = []
                     if row_data.get("code", None):
                         result_mkb_code = f"{row_data.get('code')}"
                     if row_data.get("title", None):
@@ -1040,9 +1041,8 @@ def table_part_result(value, width_max_table=None):
                         result = f"{result} ({position})"
             except:
                 result = value_raw
-            if is_diag_table:
+            if is_diag_table and result:
                 temp_data.append([Paragraph(f"<u>{result}</u>", style), Paragraph(f"код по МКБ {space_symbol * 3}<u>{result_mkb_code}</u>", style)])
-                temp_data.append([Paragraph("", style), Paragraph("", style)])
             else:
                 temp_data.append(Paragraph(f"{result}", style))
         opinion.append(temp_data)
