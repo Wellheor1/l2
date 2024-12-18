@@ -1010,15 +1010,27 @@ def table_part_result(value, width_max_table=None):
     opinion = [[Paragraph(f"{t}", style) for t in table_titles]]
 
     table_rows = value['rows']
+    space_symbol = "&nbsp;"
     for t in table_rows:
         temp_data = []
         for value_raw in t:
             result = ""
+            result_mkb_code = ""
+            result_mkb_title = ""
+            clinic_diag_text = ""
+            is_diag_table = False
             try:
                 row_data = json.loads(value_raw)
 
                 if isinstance(row_data, list):
                     result = '<br/>'.join(row_data)
+                elif isinstance(row_data, dict):
+                    if row_data.get("code", None):
+                        result_mkb_code = f"{row_data.get('code')}"
+                    if row_data.get("title", None):
+                        result_mkb_title = f"{row_data.get('title')}"
+                    result = f"{result_mkb_title}; {clinic_diag_text}"
+                    is_diag_table = True
                 else:
                     if row_data.get('fio', None):
                         result = f"{row_data.get('family')} {row_data.get('name')} {row_data.get('patronymic')}"
@@ -1028,7 +1040,11 @@ def table_part_result(value, width_max_table=None):
                         result = f"{result} ({position})"
             except:
                 result = value_raw
-            temp_data.append(Paragraph(f"{result}", style))
+            if is_diag_table:
+                temp_data.append([Paragraph(f"<u>{result}</u>", style), Paragraph(f"код по МКБ {space_symbol * 3}<u>{result_mkb_code}</u>", style)])
+                temp_data.append([Paragraph("", style), Paragraph("", style)])
+            else:
+                temp_data.append(Paragraph(f"{result}", style))
         opinion.append(temp_data)
 
     table_width = []
