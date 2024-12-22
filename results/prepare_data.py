@@ -1016,26 +1016,21 @@ def table_part_result(value, width_max_table=None):
         for value_raw in t:
             result = ""
             result_mkb_code = ""
-            result_mkb_title = ""
             clinic_diag_text = ""
             is_diag_table = False
             try:
                 row_data = json.loads(value_raw)
-
                 if isinstance(row_data, list):
                     result = '<br/>'.join(row_data)
                 elif isinstance(row_data, dict):
-                    temp_data = []
-                    if row_data.get("code", None):
+                    if row_data.get("code", None) and row_data.get("title", None):
+                        is_diag_table = True
                         result_mkb_code = f"{row_data.get('code')}"
-                    if row_data.get("title", None):
                         result_mkb_title = f"{row_data.get('title')}"
-                    result = f"{result_mkb_title}; {clinic_diag_text}"
-                    is_diag_table = True
-                else:
+                        result = f"{result_mkb_title}; {clinic_diag_text}"
                     if row_data.get('fio', None):
                         result = f"{row_data.get('family')} {row_data.get('name')} {row_data.get('patronymic')}"
-                    if row_data.get('id', None):
+                    if row_data.get('id', None) and not is_diag_table:
                         doctor = DoctorProfile.objects.get(pk=row_data.get('id'))
                         position = doctor.position.title if doctor.position else ""
                         result = f"{result} ({position})"
