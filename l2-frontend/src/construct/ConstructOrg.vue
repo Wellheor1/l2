@@ -100,11 +100,19 @@
         </div>
 
         <template v-if="ftp && hasAccessToAllHospitals">
-          <div class="full-width">
+          <div
+            class="full-width; show-layout"
+          >
             <FormulateInput
               type="checkbox"
               name="strictDataOwnership"
               label="У организации доступ только к собственной картотеке"
+            />
+            <FormulateInput
+              class="layout-padding-send-mail"
+              type="checkbox"
+              name="needSendMail"
+              label="Отправлять результаты на почту"
             />
           </div>
           <div class="full-width">
@@ -471,6 +479,14 @@ export default class ConstructOrg extends Vue {
 
 .full-width ::v-deep .formulate-input .formulate-input-element {
   max-width: 100%;
+}
+
+.show-layout {
+  display: flex;
+}
+
+.layout-padding-send-mail {
+  padding-left: 40px;
 }
 
 .f-row {
