@@ -663,6 +663,7 @@ def researches_update(request):
                                     required=field.get("required", False),
                                     not_edit=field.get("not_edit", False),
                                     operator_enter_param=field.get("operator_enter_param", False),
+                                    is_diag_table=field.get("is_diag_table", False),
                                     attached=field.get("attached", ''),
                                     control_param=field.get("controlParam", ""),
                                     cda_option_id=field.get("cdaOption", -1) if field.get("cdaOption", -1) != -1 else None,
@@ -696,6 +697,7 @@ def researches_update(request):
                                 f.required = field.get("required", False)
                                 f.not_edit = field.get("not_edit", False)
                                 f.operator_enter_param = field.get("operator_enter_param", False)
+                                f.is_diag_table = field.get("is_diag_table", False)
                                 f.for_talon = field.get("for_talon", False)
                                 f.for_med_certificate = field.get("for_med_certificate", False)
                                 f.helper = field.get("helper", '')
@@ -1117,6 +1119,7 @@ def group_as_json(request):
             'for_extract_card': f.for_extract_card,
             'for_talon': f.for_talon,
             'operator_enter_param': f.operator_enter_param,
+            'is_diag_table': f.is_diag_table,
             'for_med_certificate': f.for_med_certificate,
             'visibility': f.visibility,
             'not_edit': f.not_edit,
