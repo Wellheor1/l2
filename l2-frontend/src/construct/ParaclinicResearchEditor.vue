@@ -997,9 +997,9 @@
                     type="checkbox"
                   > в талон </label>
                   <label> <input
-                    v-model="row.for_extract_card"
+                    v-model="row.is_diag_table"
                     type="checkbox"
-                  > в выписку </label>
+                  > Табл.диагнозы </label>
                   <label> <input
                     v-model="row.for_med_certificate"
                     type="checkbox"
@@ -1644,6 +1644,7 @@ export default {
         for_talon: field.for_talon ?? false,
         for_med_certificate: field.for_med_certificate ?? false,
         operator_enter_param: field.operator_enter_param ?? false,
+        is_diag_table: field.is_diag_table ?? false,
         not_edit: field.not_edit ?? false,
         required: field.required ?? false,
         visibility: field.visibility ?? '',
@@ -1783,6 +1784,7 @@ export default {
         'type_period',
         'not_edit',
         'operator_enter_param',
+        'is_diag_table',
         'currentNsiResearchCode',
       ];
       const moreData = {
