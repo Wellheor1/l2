@@ -2177,6 +2177,7 @@ def organization_data(request):
         "licenseData": hospital.license_data,
         "currentManager": hospital.current_manager,
         "okpo": hospital.okpo,
+        "needSendMail": hospital.need_send_result,
     }
 
     if SettingManager.l2("ftp") and request.user.doctorprofile.has_group("Конструктор: Настройка всех организаций"):
@@ -2219,6 +2220,7 @@ def organization_data_update(request):
         "hl7SenderApplication": str,
         "hl7ReceiverAapplication": str,
         "isAutotransfer": bool,
+        "needSendMail": bool,
     }
 
     data = data_parse(
@@ -2238,6 +2240,7 @@ def organization_data_update(request):
             "hl7SenderApplication": None,
             "hl7ReceiverAapplication": None,
             "isAutotransfer": False,
+            "needSendMail": False,
         },
     )
 
@@ -2262,6 +2265,7 @@ def organization_data_update(request):
     hl7_sender_application: Optional[str] = data[18] or None
     hl7_receiver_appplication: Optional[str] = data[19] or None
     is_auto_transfer = data[20] if data[20] else False
+    need_send_mail = data[21] if data[21] else False
 
     if not title:
         return status_response(False, "Название не может быть пустым")
@@ -2284,6 +2288,7 @@ def organization_data_update(request):
         "license_data": hospital.license_data,
         "www": hospital.www,
         "email": hospital.email,
+        "need_send_mail": hospital.need_send_result,
         "okpo": hospital.okpo,
         **(
             {
@@ -2310,6 +2315,7 @@ def organization_data_update(request):
         "license_data": license_data,
         "www": www,
         "email": email,
+        "need_send_mail": need_send_mail,
         "okpo": okpo,
         **(
             {
@@ -2341,6 +2347,7 @@ def organization_data_update(request):
     hospital.hl7_receiver_appplication = hl7_receiver_appplication
     hospital.hl7_sender_application = hl7_sender_application
     hospital.is_auto_transfer_hl7_file = is_auto_transfer
+    hospital.need_send_result = need_send_mail
 
     if has_full_ftp_access:
         hospital.orders_pull_by_numbers = orders_pull_by_numbers
