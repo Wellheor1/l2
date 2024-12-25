@@ -562,8 +562,16 @@ def structure_data_for_result(iss, fwb, doc, leftnone, med_certificate):
                             fwb.append(Paragraph("<font face=\"FreeSansBold\">{}</font>".format(r.field.get_title(force_type=field_type).replace('<', '&lt;').replace('>', '&gt;')), style))
                             fwb = previous_doc_refferal_result(v, fwb)
                         continue
-                    elif field_type == 27:
+                    elif field_type == 27 and not r.field.is_diag_table:
                         table_results = table_part_result(v)
+                        if not table_results:
+                            continue
+                        fwb.append(Spacer(1, 2 * mm))
+                        fwb.append(Paragraph("<font face=\"FreeSansBold\">{}</font>".format(r.field.get_title(force_type=field_type).replace('<', '&lt;').replace('>', '&gt;')), style))
+                        fwb.append(table_results)
+                        continue
+                    elif field_type == 27 and r.field.is_diag_table:
+                        table_results = table_part_result_diag(v)
                         if not table_results:
                             continue
                         fwb.append(Spacer(1, 2 * mm))
@@ -706,7 +714,7 @@ def plaint_tex_for_result(iss, fwb, doc, leftnone, protocol_plain_text, med_cert
                         fwb.append(Paragraph(r.field.get_title(), styleBold))
                         fwb = previous_doc_refferal_result(v, fwb)
                     continue
-                elif field_type == 27:
+                elif field_type == 27 and not r.field.is_diag_table:
                     txt += "; ".join(vals)
                     fwb.append(Paragraph(txt, style))
                     txt = ''
@@ -714,6 +722,18 @@ def plaint_tex_for_result(iss, fwb, doc, leftnone, protocol_plain_text, med_cert
                     fwb.append(Spacer(1, 2 * mm))
                     fwb.append(Paragraph(r.field.get_title(), styleBold))
                     table_results = table_part_result(v)
+                    if not table_results:
+                        continue
+                    fwb.append(table_results)
+                    continue
+                elif field_type == 27 and r.field.is_diag_table:
+                    txt += "; ".join(vals)
+                    fwb.append(Paragraph(txt, style))
+                    txt = ''
+                    vals = []
+                    fwb.append(Spacer(1, 2 * mm))
+                    fwb.append(Paragraph(r.field.get_title(), styleBold))
+                    table_results = table_part_result_diag(v)
                     if not table_results:
                         continue
                     fwb.append(table_results)
@@ -989,7 +1009,7 @@ def previous_doc_refferal_result(value, fwb):
     return fwb
 
 
-def table_part_result(value, width_max_table=None):
+def table_part_result_diag(value, width_max_table=None):
     try:
         value = json.loads(value)
     except:
@@ -1040,6 +1060,93 @@ def table_part_result(value, width_max_table=None):
                 temp_data.append([Paragraph(f"<u>{result}</u>", style), Paragraph(f"код по МКБ {space_symbol * 3}<u>{result_mkb_code}</u>", style)])
             else:
                 temp_data.append(Paragraph(f"{result}", style))
+        opinion.append(temp_data)
+
+    table_width = []
+    for t in table_settings:
+        if '%' in t['width']:
+            table_width.append(float(t['width'].replace('%', '')))
+        elif t['width'] and float(t['width']) > 0:
+            table_width.append(float(t['width']) / 1024 * 100)
+        else:
+            table_width.append(t['width'])
+
+    if not width_max_table:
+        width_max_table = 170
+    width_min_column = width_max_table / 100
+    empty_count = 0
+    not_empty_sum = 0
+    width_for_empty_element = 0
+
+    for k in table_width:
+        if not k:
+            empty_count += 1
+        else:
+            not_empty_sum += float(k)
+    if empty_count > 0:
+        width_for_empty_element = (width_max_table - width_min_column * not_empty_sum) // empty_count
+
+    table_width_elements = []
+    for t in table_width:
+        if not t:
+            table_width_elements.append(width_for_empty_element)
+        else:
+            table_width_elements.append(t * width_min_column)
+
+    tbl = Table(opinion, hAlign='LEFT', colWidths=[k * mm for k in table_width_elements])
+    tbl.setStyle(
+        TableStyle(
+            [
+                ('GRID', (0, 0), (-1, -1), 1.0, colors.black),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5 * mm),
+                ('VALIGN', (0, 0), (0, -1), 'TOP')
+            ]
+        )
+    )
+
+    return tbl
+
+
+def table_part_result(value, width_max_table=None):
+    try:
+        value = json.loads(value)
+    except:
+        return None
+
+    if not value:
+        return None
+
+    styleSheet = getSampleStyleSheet()
+    style = styleSheet["Normal"]
+    style.fontName = "FreeSans"
+    style.fontSize = 8
+    style.alignment = TA_JUSTIFY
+
+    table_titles = value['columns']['titles']
+    table_settings = value['columns']['settings']
+
+    opinion = [[Paragraph(f"{t}", style) for t in table_titles]]
+
+    table_rows = value['rows']
+    for t in table_rows:
+        temp_data = []
+        for value_raw in t:
+            result = ""
+            try:
+                row_data = json.loads(value_raw)
+
+                if isinstance(row_data, list):
+                    result = '<br/>'.join(row_data)
+                else:
+                    if row_data.get('fio', None):
+                        result = f"{row_data.get('family')} {row_data.get('name')} {row_data.get('patronymic')}"
+                    if row_data.get('id', None):
+                        doctor = DoctorProfile.objects.get(pk=row_data.get('id'))
+                        position = doctor.position.title if doctor.position else ""
+                        result = f"{result} ({position})"
+            except:
+                result = value_raw
+            temp_data.append(Paragraph(f"{result}", style))
         opinion.append(temp_data)
 
     table_width = []
