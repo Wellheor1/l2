@@ -1429,6 +1429,10 @@ def parse_accompanement_diagnos(accompanement_data, style):
         accomponement_result.append([Paragraph(f"<u>{result}</u>", style), Paragraph(f"код по МКБ {space_symbol * 3}<u>{result_mkb_code}</u>", style)])
         accomponement_result.append([Paragraph("", style), Paragraph("", style)])
     opinion.extend(accomponement_result)
+    if len(opinion) < 1:
+        opinion = [
+            [Paragraph("", style), Paragraph("", style)]
+        ]
 
     tbl_o = Table(
         opinion,
