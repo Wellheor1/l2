@@ -1090,6 +1090,11 @@ def hosp_get_operation_data(num_dir):
         'Фенотип донора:',
         'Наименование компонента донорской крови',
         '№ единицы компонентов крови:',
+
+        'Наименование оперативного вмешательства (операции)',
+        'Дата начала оперативного вмешательства',
+        'Вид анестезиологического пособия',
+        'Осложнения, возникшие в ходе оперативного вмешательства (операции)'
     ]
     list_values = []
 
@@ -1134,10 +1139,10 @@ def hosp_get_operation_data(num_dir):
                 operation_data['doc_code'] = ''
             category_difficult = ''
             for field in fields_operation:
-                if field[3] == 'Название операции' or field[3] == 'Название манипуляции':
+                if field[3] == 'Название операции' or field[3] == 'Название манипуляции' or field[3] == 'Наименование оперативного вмешательства (операции)' :
                     operation_data['name_operation'] = field[2]
                     continue
-                if field[3] == 'Дата проведения':
+                if field[3] == 'Дата проведения' or field[3] == 'Дата начала оперативного вмешательства':
                     operation_data['date'] = normalize_date(field[2])
                     continue
                 if field[3] == 'Время начала':
@@ -1146,10 +1151,10 @@ def hosp_get_operation_data(num_dir):
                 if field[3] == 'Время окончания':
                     operation_data['time_end'] = field[2]
                     continue
-                if field[3] == 'Метод обезболивания':
+                if field[3] == 'Метод обезболивания' or field[3] == 'Вид анестезиологического пособия':
                     operation_data['anesthesia method'] = field[2]
                     continue
-                if field[3] == 'Осложнения' or field[3] == 'Реакции и осложнения:':
+                if field[3] == 'Осложнения' or field[3] == 'Реакции и осложнения:' or field[3] == 'Осложнения, возникшие в ходе оперативного вмешательства (операции)':
                     operation_data['complications'] = field[2]
                     continue
                 if field[3] == 'Код операции':

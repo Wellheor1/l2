@@ -1255,7 +1255,7 @@ def form_02(request_data):
     for i in hosp_operation:
         operation_template = [""] * 4
         operation_template[0] = Paragraph(i["date"] + "<br/>" + i["time_start"] + "-" + i["time_end"], styleTO)
-        operation_template[1] = Paragraph(f"{i['name_operation']} <br/><font face=\"PTAstraSerifBold\" size=\"8.7\">({i['category_difficult']}), {i['doc_fio']}</font>", styleTO)
+        operation_template[1] = Paragraph(f"{i['name_operation']} - {i['code_operation']} <br/><font face=\"PTAstraSerifBold\" size=\"8.7\">({i['category_difficult']}), {i['doc_fio']}</font>", styleTO)
         operation_template[2] = Paragraph(i["anesthesia method"], styleTO)
         operation_template[3] = Paragraph(i["complications"], styleTO)
         operation_result.append(operation_template.copy())
