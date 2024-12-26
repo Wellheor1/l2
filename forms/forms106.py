@@ -1432,9 +1432,7 @@ def parse_accompanement_diagnos(accompanement_data, style):
         accomponement_result.append([Paragraph("", style), Paragraph("", style)])
     opinion.extend(accomponement_result)
     if len(opinion) < 1:
-        opinion = [
-            [Paragraph("", style), Paragraph("", style)]
-        ]
+        opinion = [[Paragraph("", style), Paragraph("", style)]]
 
     tbl_o = Table(
         opinion,
