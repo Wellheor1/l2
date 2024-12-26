@@ -1139,7 +1139,7 @@ def hosp_get_operation_data(num_dir):
                 operation_data['doc_code'] = ''
             category_difficult = ''
             for field in fields_operation:
-                if field[3] == 'Название операции' or field[3] == 'Название манипуляции' or field[3] == 'Наименование оперативного вмешательства (операции)' :
+                if field[3] == 'Название операции' or field[3] == 'Название манипуляции' or field[3] == 'Наименование оперативного вмешательства (операции)':
                     operation_data['name_operation'] = field[2]
                     continue
                 if field[3] == 'Дата проведения' or field[3] == 'Дата начала оперативного вмешательства':
