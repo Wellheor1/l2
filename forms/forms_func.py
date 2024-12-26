@@ -1094,6 +1094,7 @@ def hosp_get_operation_data(num_dir):
         'Дата начала оперативного вмешательства',
         'Вид анестезиологического пособия',
         'Осложнения, возникшие в ходе оперативного вмешательства (операции)',
+        'Оперирующий врач'
     ]
     list_values = []
 
@@ -1138,7 +1139,7 @@ def hosp_get_operation_data(num_dir):
                 operation_data['doc_code'] = ''
             category_difficult = ''
             for field in fields_operation:
-                if field[3] == 'Название операции' or field[3] == 'Название манипуляции' or field[3] == 'Наименование оперативного вмешательства (операции)':
+                if field[3] == 'Название операции' or field[3] == 'Название манипуляции' or field[3] == 'Наименование оперативного вмешательства (операции)' :
                     operation_data['name_operation'] = field[2]
                     continue
                 if field[3] == 'Дата проведения' or field[3] == 'Дата начала оперативного вмешательства':
@@ -1180,7 +1181,7 @@ def hosp_get_operation_data(num_dir):
                 if field[3] == 'МКБ 10':
                     operation_data['mkb10'] = field[2]
                     continue
-                if field[3] == 'Оперировал':
+                if field[3] == 'Оперировал' or field[3] =='Оперирующий врач':
                     if field[2]:
                         operation_data['doc_fio'] = field[2]
                     continue
