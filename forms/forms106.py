@@ -1309,6 +1309,18 @@ def form_02(request_data):
         accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Сопутствующие табл"), style)
         table_data["Сопутствующие"] = accomponement_tbl
 
+    if cda_data_result.get("п.п.-Осложнения табл"):
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Осложнения табл"), style)
+        table_data["Осложнения"] = accomponement_tbl
+
+    if cda_data_result.get("в.э.-Осложнения табл"):
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Осложнения табл"), style)
+        table_data["в.э.-Осложнения табл"] = accomponement_tbl
+
+    if cda_data_result.get("в.э.-Сопутствующие табл"):
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Сопутствующие табл"), style)
+        table_data["в.э.-Сопутствующие табл"] = accomponement_tbl
+
     if current_template_file:
         for section in body_paragraphs:
             objs = check_section_param(objs, styles_obj, section, table_data, cda_data_result)
@@ -1334,6 +1346,10 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
             objs.append(tbl_specification.get("Сопутствующие"))
         elif section.get("type") == "Осложнения":
             objs.append(tbl_specification.get("Осложнения"))
+        elif section.get("type") == "в.э.-Сопутствующие табл":
+            objs.append(tbl_specification.get("в.э.-Сопутствующие табл"))
+        elif section.get("type") == "в.э.-Осложнения табл":
+            objs.append(tbl_specification.get("в.э.-Осложнения табл"))
     elif section.get("text"):
         cda_titles_sec = section.get("cdaTitles")
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
