@@ -710,7 +710,7 @@ def primary_reception_get_data_by_cda(hosp_first_num, site_type=0):
         list_values = get_result_value_iss(hosp_primary_iss, primary_research_id, titles_field)
 
     if CDA_TITLES_FIELDS_PRIMARY_RESEARCH and list_values:
-        result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
+        result_by_cda = {cda_dict_title.get(value[4]): normalize_date(value[2]) for value in list_values}
 
     return {
         'result_by_cda': result_by_cda,
@@ -907,7 +907,7 @@ def hosp_extract_get_data_by_cda(hosp_last_num):
         list_values = get_result_value_iss(hosp_extract_iss, extract_research_id, titles_field)
 
     if CDA_TITLES_FIELDS_EXTRACT_RESEARCH and list_values:
-        result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
+        result_by_cda = {cda_dict_title.get(value[4]): normalize_date(value[2]) for value in list_values}
 
     if list_values:
         pass

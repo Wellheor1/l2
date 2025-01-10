@@ -1316,7 +1316,6 @@ def form_02(request_data):
     doc.build(objs)
     pdf = buffer.getvalue()
     buffer.close()
-
     return pdf
 
 
