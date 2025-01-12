@@ -1332,6 +1332,7 @@ def form_02(request_data):
 
 
 def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles):
+    default_empty_table_data = Paragraph("", styles_obj[section.get("style")])
     if section.get("Spacer"):
         height_spacer = section.get("spacer_data")
         objs.append(Spacer(1, height_spacer * mm))
@@ -1342,14 +1343,18 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
             objs.append(tbl_specification.get("operation"))
         elif section.get("type") == "Движение":
             objs.append(Paragraph(tbl_specification.get("transfers"), styles_obj[section.get("style")]))
+
         elif section.get("type") == "Сопутствующие":
-            objs.append(tbl_specification.get("Сопутствующие"))
+            objs.append(tbl_specification.get("Сопутствующие") if tbl_specification.get("Сопутствующие") else default_empty_table_data)
+
         elif section.get("type") == "Осложнения":
-            objs.append(tbl_specification.get("Осложнения"))
+            objs.append(tbl_specification.get("Осложнения") if tbl_specification.get("Осложнения") else default_empty_table_data)
+
         elif section.get("type") == "в.э.-Сопутствующие табл":
-            objs.append(tbl_specification.get("в.э.-Сопутствующие табл"))
+            objs.append(tbl_specification.get("в.э.-Сопутствующие табл") if tbl_specification.get("в.э.-Сопутствующие табл") else default_empty_table_data)
+
         elif section.get("type") == "в.э.-Осложнения табл":
-            objs.append(tbl_specification.get("в.э.-Осложнения табл"))
+            objs.append(tbl_specification.get("в.э.-Осложнения табл") if tbl_specification.get("в.э.-Осложнения табл") else default_empty_table_data)
     elif section.get("text"):
         cda_titles_sec = section.get("cdaTitles")
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
