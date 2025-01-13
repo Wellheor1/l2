@@ -691,7 +691,7 @@ def researches_update(request):
                                 f.visibility = field.get("visibility", "")
                                 su = request.user.is_superuser or request.user.doctorprofile.all_hospitals_users_control
                                 if field_data.field_type != field.get("field_type", 0) and not su:
-                                    if field_data.field_type == 0 and field.get("field_type", 0) in [13, 14, 0]:
+                                    if field_data.field_type in [13, 14, 0] and field.get("field_type", 0) in [13, 14, 0]:
                                         pass
                                     else:
                                         return JsonResponse(response)
