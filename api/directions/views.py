@@ -3091,6 +3091,7 @@ def last_field_result(request):
             result = {"value": ""}
         else:
             if data[1] == "cda":
+                # %root_hosp#cda#code
                 cda_code = data[2]
                 cda_id = list(CdaFields.get_cda_id_by_codes([int(cda_code)]))
                 paraclinic_field = ParaclinicInputField.objects.filter(cda_option_id=cda_id[0]).first()
