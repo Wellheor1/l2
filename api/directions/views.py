@@ -13,7 +13,7 @@ from cash_registers.models import Cheque
 from cda.integration import cdator_gen_xml, render_cda
 from contracts.models import PriceCategory, PriceCoast, PriceName, Company
 from ecp_integration.integration import get_ecp_time_table_list_patient, get_ecp_evn_direction, fill_slot_ecp_free_nearest
-from external_system.models import ProfessionsWorkersPositionsRefbook
+from external_system.models import ProfessionsWorkersPositionsRefbook, CdaFields
 from integration_framework.common_func import directions_pdf_result
 from l2vi.integration import gen_cda_xml, send_cda_xml, send_lab_direction_to_ecp
 import collections
@@ -3090,7 +3090,13 @@ def last_field_result(request):
         if len(data) < 2:
             result = {"value": ""}
         else:
-            field_pks = [data[1]]
+            if data[1] == "cda":
+                cda_code = data[2]
+                cda_id = list(CdaFields.get_cda_id_by_codes([int(cda_code)]))
+                paraclinic_field = ParaclinicInputField.objects.filter(cda_option_id=cda_id[0]).first()
+                field_pks = [paraclinic_field.pk]
+            else:
+                field_pks = [data[1]]
             logical_or = True
             hosp_dirs = hosp_get_hosp_direction(num_dir)
             parent_iss = [i['issledovaniye'] for i in hosp_dirs]
