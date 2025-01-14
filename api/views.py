@@ -2680,8 +2680,8 @@ def statistic_pattern_search(request):
         result.extend(statistic_pattern_result)
     else:
         for el in statistic_pattern_result:
-            if el.get("title") in user_groups:
-                result.extend(el)
+            if el.get("label") in user_groups:
+                result.append(el)
 
     return JsonResponse({"rows": result})
 
