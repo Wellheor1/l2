@@ -617,7 +617,6 @@ def form_03(request_data):
             hospitalized = f"{hospitalized}; в плановом порядке -4"
         if primary_reception_data['extra_hospital'].lower().replace(' ', '') == 'да':
             hospitalized = f"{hospitalized}; по экстренным показаниям - 3"
-    print(primary_reception_data['type_hospital'])
 
     # Получить отделение - из названия услуги или самого главного направления
     hosp_depart = hosp_nums_obj[0].get('research_title')
