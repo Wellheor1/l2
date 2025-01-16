@@ -422,6 +422,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'Диагноз при поступлении',
         'Госпитализирован по поводу данного заболевания',
         'Общее состояние',
+        'Тяжесть состояния пациента',
         'Социальный статус',
         'Категория льготности',
         'Всего госпитализаций',
@@ -457,6 +458,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'Дата установления диагноза',
         'Время установления диагноза',
         'Кому доверяю',
+        'Форма оказания медицинской помощи',
     ]
 
     list_values = None
@@ -494,7 +496,9 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
             if i[3] == 'Кем направлен больной':
                 who_directed = i[2]
                 continue
-            if i[3] == 'Вид госпитализации':
+            if (i[3]).strip() == 'Вид госпитализации':
+                type_hospital = i[2]
+            if (i[3]).strip() == 'Форма оказания медицинской помощи':
                 type_hospital = i[2]
             if type_hospital.lower() == 'экстренная':
                 time_start_ill_obj = get_result_value_iss(hosp_primary_iss, primary_research_id, ['Время через, которое доставлен после начала заболевания, получения травмы'])
@@ -514,7 +518,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
             if i[3] == 'Госпитализирован по поводу данного заболевания':
                 what_time_hospitalized = i[2]
                 continue
-            if i[3] == 'Общее состояние':
+            if i[3] == 'Общее состояние' or i[3] == 'Тяжесть состояния пациента':
                 state = i[2]
                 continue
             if i[3] == 'Социальный статус':
