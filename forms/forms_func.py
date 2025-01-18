@@ -1096,7 +1096,6 @@ def hosp_get_transfers_data(hosp_nums_obj):
 def hosp_patient_movement(hosp_nums_obj):
     titles_field = ['Дата перевода']
     patient_movement = []
-    list_values = None
 
     for i in range(len(hosp_nums_obj)):
         date_out, diagnos_mkb, doc_confirm_code = '', '', ''
