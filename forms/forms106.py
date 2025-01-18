@@ -1168,7 +1168,8 @@ def form_02(request_data):
             f"профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
             f"время:{i['time_transfer_value']};<br/>"
         )
-
+    age_patinet = direction_obj.client.individual.age_s(direction=direction_obj)
+    space_symbol = "&nbsp;"
     title_page = [
         Indenter(left=0 * mm),
         Spacer(1, 2 * mm),
@@ -1181,7 +1182,7 @@ def form_02(request_data):
         Spacer(1, 2 * mm),
         Paragraph(f"Фамилия, имя, отчество:&nbsp; {patient_data['fio']}", style),
         Spacer(1, 0.2 * mm),
-        Paragraph(f"Дата рождения: {patient_data['born']} Пол: {patient_data['sex']}", style),
+        Paragraph(f"Дата рождения: {patient_data['born']} ({age_patinet}) {space_symbol * 20} Пол: {patient_data['sex']}", style),
         Spacer(1, 0.5 * mm),
         Paragraph("Поступил в: стационар - 1", style),
         Spacer(1, 0.5 * mm),
