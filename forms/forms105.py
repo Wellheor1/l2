@@ -843,7 +843,6 @@ def form_03(request_data):
     hosp_last_num = hosp_nums_obj[-1].get('direction')
     hosp_extract_data = hosp_extract_get_data(hosp_last_num)
 
-
     if hosp_extract_data and not (hosp_extract_data.get('near_diagnos_table') or hosp_extract_data.get('other_diagnos_table')):
         opinion_diagnos = [
             [
