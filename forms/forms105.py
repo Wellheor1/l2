@@ -888,8 +888,8 @@ def form_03(request_data):
         objs.append(Paragraph('Основной', styleBold))
         opinion_diagnos = [
             [
-            Paragraph(hosp_extract_data['final_diagnos'], styleT),
-            Paragraph(f"код по МКБ {space_symbol * 3}{hosp_extract_data['final_diagnos_mkb']}", styleT),
+                Paragraph(hosp_extract_data['final_diagnos'], styleT),
+                Paragraph(f"код по МКБ {space_symbol * 3}{hosp_extract_data['final_diagnos_mkb']}", styleT),
             ]
         ]
         tbl_act = Table(opinion_diagnos, colWidths=(138 * mm, 40 * mm))
