@@ -29,7 +29,8 @@ from .forms_func import (
     hosp_get_operation_data,
     closed_bl,
     hosp_extract_get_data_by_cda,
-    primary_reception_get_data_by_cda, parse_accompanement_diagnos,
+    primary_reception_get_data_by_cda,
+    parse_accompanement_diagnos,
 )
 from laboratory.settings import FONTS_FOLDER, BASE_DIR
 import simplejson as json
