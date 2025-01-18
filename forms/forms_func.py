@@ -741,7 +741,13 @@ def hosp_extract_get_data(hosp_last_num):
 
     near_cda_id = CdaFields.objects.filter(title="в.э.-Осложнения табл").first()
     other_cda_id = CdaFields.objects.filter(title="в.э.-Сопутствующие табл").first()
-    fields_data = get_title_fields_by_cda_relation(extract_research_id, (near_cda_id.pk, other_cda_id.pk,))
+    fields_data = get_title_fields_by_cda_relation(
+        extract_research_id,
+        (
+            near_cda_id.pk,
+            other_cda_id.pk,
+        ),
+    )
     titles_field_diag = [i.title for i in fields_data]
 
     titles_field = [
