@@ -812,7 +812,15 @@
                   <div v-else-if="row.field_type === 38">
                     <strong>Результаты процедурного листа:</strong>
                   </div>
-                  <div v-else-if="row.field_type === 27">
+                  <div v-else-if="row.field_type === 27 && row.is_diag_table">
+                    <strong>Ссылка на поле (%):</strong>
+                    <input
+                      v-model="row.default"
+                      class="form-control"
+                    >
+                    <strong>Таблица:</strong>
+                  </div>
+                  <div v-else-if="row.field_type === 27 && !row.is_diag_table">
                     <strong>Таблица:</strong>
                   </div>
                   <div v-else-if="row.field_type === 39">

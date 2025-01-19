@@ -18,7 +18,24 @@
       </colgroup>
       <thead>
         <tr>
-          <td v-if="params.dynamicRows && !disabled" />
+          <td
+            v-if="params.dynamicRows && !disabled"
+            class="cl-td"
+          >
+            <div v-if="is_diag_table && field_link_pk">
+              <button
+                v-tippy
+                class="btn btn-blue-nb nbr"
+                title="Загрузить данные"
+                @click="loadLastDiadnoseResult"
+              >
+                <i
+                  class="fa fa-circle"
+                  style="font-size:10px"
+                />
+              </button>
+            </div>
+          </td>
           <th
             v-for="(t, i) in params.columns.titles"
             :key="i"
@@ -214,6 +231,7 @@ import MKBFieldTreeselect from '@/fields/MKBFieldTreeselect.vue';
 import SearchFieldValueField from '@/fields/SearchFieldValueField.vue';
 import DoctorProfileTreeselectField from '@/fields/DoctorProfileTreeselectField.vue';
 import TreeSelectMultiField from '@/fields/TreeSelectMultiField.vue';
+import directionsPoint from '@/api/directions-point';
 
 const DEFAULT_SETTINGS = () => ({
   type: 0,
@@ -248,6 +266,9 @@ export default {
     fieldPk: {
       required: true,
     },
+    field_link_pk: {
+      required: false,
+    },
     fields: {
       required: true,
     },
@@ -258,6 +279,11 @@ export default {
     },
     card_pk: Number,
     iss_pk: Number,
+    is_diag_table: {
+      required: false,
+      default: false,
+      type: Boolean,
+    },
   },
   data() {
     return {
@@ -269,6 +295,7 @@ export default {
         },
         dynamicRows: true,
       },
+      val: this.value,
       rows: [],
       validators: {},
       errors: {},
@@ -325,9 +352,16 @@ export default {
         this.$root.$emit('table-field:errors:set', this.fieldPk, this.hasErrors);
       },
     },
+    val() {
+      this.changeValue(this.val);
+    },
+    value() {
+      this.val = this.value;
+    },
   },
   mounted() {
     this.checkTable();
+    this.loadLastDiadnoseResult();
     this.$root.$on('checkTables', () => setTimeout(() => this.checkTable(), 50));
   },
   beforeDestroy() {
@@ -407,6 +441,20 @@ export default {
       this.hasErrors = false;
 
       this.validate();
+    },
+    loadLastDiadnoseResult() {
+      this.loadLast();
+      this.loadLast();
+    },
+    async loadLast() {
+      const { result } = await directionsPoint.lastFieldResult(this, ['card_pk', 'iss_pk'], {
+        fieldPk: this.field_link_pk,
+        isDiagTable: true,
+      });
+      if (result) {
+        this.val = result.value;
+        this.checkTable();
+      }
     },
     addRow() {
       this.rows.push([]);

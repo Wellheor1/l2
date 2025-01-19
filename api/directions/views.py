@@ -8,6 +8,7 @@ from typing import Optional
 
 from django.core.paginator import Paginator
 
+import directions.models
 from barcodes.views import tubes
 from cash_registers.models import Cheque
 from cda.integration import cdator_gen_xml, render_cda
@@ -1991,9 +1992,12 @@ def directions_paraclinic_form(request):
                                 "not_edit": field.not_edit,
                                 "operator_enter_param": field.operator_enter_param,
                                 "deniedGroup": field.denied_group.name if field.denied_group else "",
+                                "isDiagTable": field.is_diag_table,
                             }
                         )
                     iss["research"]["groups"].append(g)
+                    print("g")
+                    print(g)
                 if not without_issledovaniye or iss['pk'] not in without_issledovaniye:
                     response["researches"].append(iss)
             if not force_form and response["has_doc_referral"]:
@@ -2812,10 +2816,12 @@ def last_fraction_result(request):
 @login_required
 def last_field_result(request):
     request_data = {"fieldPk": "null", **json.loads(request.body)}
-    client_pk = request_data["clientPk"]
+    client_pk = request_data.get("clientPk")
+    if not client_pk:
+        client_pk = request_data.get("card_pk")
     logical_or, logical_and, logical_group_or = False, False, False
     field_is_link, field_is_aggregate_operation, field_is_aggregate_proto_description = False, False, False
-    field_pks, operations_data, aggregate_data = None, None, None
+    field_pks, operations_data, aggregate_data, is_diag_table = None, None, None, None
     result = None
 
     c = Card.objects.get(pk=client_pk)
@@ -3146,13 +3152,21 @@ def last_field_result(request):
         field_pks = [request_data["fieldPk"]]
         logical_or = True
         field_is_link = True
+        is_diag_table = request_data.get("isDiagTable")
+        print(is_diag_table)
 
-    if field_is_link:
+    if field_is_link and is_diag_table:
+        parent_iss = Napravleniya.objects.get(pk=num_dir).parent_id
+        result = field_get_link_diag_table(field_pks, client_pk, parent_iss=(parent_iss,))
+    elif field_is_link:
         result = field_get_link_data(field_pks, client_pk, logical_or, logical_and, logical_group_or)
+
     elif field_is_aggregate_operation:
         result = field_get_aggregate_operation_data(operations_data)
     elif field_is_aggregate_proto_description:
         result = field_get_aggregate_text_protocol_data(aggregate_data)
+    print("result")
+    print(result)
 
     return JsonResponse({"result": result})
 
@@ -3206,6 +3220,28 @@ def field_get_link_data(
 
         if logical_group_or and temp_value or logical_or_inside and value:
             break
+    return result
+
+
+def field_get_link_diag_table(field_pks, client_pk, parent_iss=(-1,), use_current_year=False, months_ago='-1', use_root_hosp=False, use_current_hosp=True):
+    result, value, temp_value = None, None, None
+    for current_field_pk in field_pks:
+        group_fields = [current_field_pk]
+        for field_pk in group_fields:
+            if field_pk.isdigit():
+                if use_current_year:
+                    c_year = current_year()
+                    c_year = f"{c_year}-01-01 00:00:00"
+                else:
+                    c_year = "1900-01-01 00:00:00"
+                use_parent_iss = '-1'
+                if use_root_hosp or use_current_hosp:
+                    use_parent_iss = '1'
+                rows = get_field_result(client_pk, int(field_pk), count=1, current_year=c_year, months_ago=months_ago, parent_iss=parent_iss, use_parent_iss=use_parent_iss)
+                if rows:
+                    row = rows[0]
+                    result = {"value": row[5]}
+                    break
     return result
 
 
