@@ -8,7 +8,6 @@ from typing import Optional
 
 from django.core.paginator import Paginator
 
-import directions.models
 from barcodes.views import tubes
 from cash_registers.models import Cheque
 from cda.integration import cdator_gen_xml, render_cda
@@ -1996,8 +1995,6 @@ def directions_paraclinic_form(request):
                             }
                         )
                     iss["research"]["groups"].append(g)
-                    print("g")
-                    print(g)
                 if not without_issledovaniye or iss['pk'] not in without_issledovaniye:
                     response["researches"].append(iss)
             if not force_form and response["has_doc_referral"]:
@@ -3153,7 +3150,6 @@ def last_field_result(request):
         logical_or = True
         field_is_link = True
         is_diag_table = request_data.get("isDiagTable")
-        print(is_diag_table)
 
     if field_is_link and is_diag_table:
         parent_iss = Napravleniya.objects.get(pk=num_dir).parent_id
@@ -3165,8 +3161,6 @@ def last_field_result(request):
         result = field_get_aggregate_operation_data(operations_data)
     elif field_is_aggregate_proto_description:
         result = field_get_aggregate_text_protocol_data(aggregate_data)
-    print("result")
-    print(result)
 
     return JsonResponse({"result": result})
 
@@ -3224,7 +3218,7 @@ def field_get_link_data(
 
 
 def field_get_link_diag_table(field_pks, client_pk, parent_iss=(-1,), use_current_year=False, months_ago='-1', use_root_hosp=False, use_current_hosp=True):
-    result, value, temp_value = None, None, None
+    result = None
     for current_field_pk in field_pks:
         group_fields = [current_field_pk]
         for field_pk in group_fields:
