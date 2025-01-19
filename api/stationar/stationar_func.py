@@ -1,3 +1,4 @@
+import datetime
 from collections import OrderedDict
 from copy import deepcopy
 from typing import List
@@ -120,12 +121,13 @@ def get_direction_attrs(direction, site_type=-1, type_service='None', level=-1):
                 'researches_short': [dir_attr.get('research_short_title')],
                 'podrazdeleniye': dir_attr.get('podrazdeleniye_title'),
             }
-
+    short_week_days = {0: "ПН", 1: "ВТ", 2: "СР", 3: "ЧТ", 4: "ПТ", 5: "СБ", 6: "ВС"}
     for k, v in dict_temp.items():
+        date_create = v['date_create'].split(".")
         dict_result = {
             'type': v['type'],
             'pk': k,
-            'date_create': v['date_create'],
+            'date_create': f"{v['date_create']} - {short_week_days.get(datetime.datetime(int(date_create[2]), int(date_create[1]), int(date_create[0])).weekday())}",
             'confirm': v['confirm'],
             'researches': v['researches'],
             'researches_short': v['researches_short'],

@@ -30,6 +30,7 @@ from .forms_func import (
     closed_bl,
     hosp_extract_get_data_by_cda,
     primary_reception_get_data_by_cda,
+    parse_accompanement_diagnos,
 )
 from laboratory.settings import FONTS_FOLDER, BASE_DIR
 import simplejson as json
@@ -1167,7 +1168,8 @@ def form_02(request_data):
             f"профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
             f"время:{i['time_transfer_value']};<br/>"
         )
-
+    age_patinet = direction_obj.client.individual.age_s(direction=direction_obj)
+    space_symbol = "&nbsp;"
     title_page = [
         Indenter(left=0 * mm),
         Spacer(1, 2 * mm),
@@ -1180,7 +1182,7 @@ def form_02(request_data):
         Spacer(1, 2 * mm),
         Paragraph(f"Фамилия, имя, отчество:&nbsp; {patient_data['fio']}", style),
         Spacer(1, 0.2 * mm),
-        Paragraph(f"Дата рождения: {patient_data['born']} Пол: {patient_data['sex']}", style),
+        Paragraph(f"Дата рождения: {patient_data['born']} ({age_patinet}) {space_symbol * 20} Пол: {patient_data['sex']}", style),
         Spacer(1, 0.5 * mm),
         Paragraph("Поступил в: стационар - 1", style),
         Spacer(1, 0.5 * mm),
@@ -1306,19 +1308,19 @@ def form_02(request_data):
         cda_data_result["п.п.-Kell"] = " "
 
     if cda_data_result.get("п.п.-Сопутствующие табл"):
-        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Сопутствующие табл"), style)
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Сопутствующие табл"))
         table_data["Сопутствующие"] = accomponement_tbl
 
     if cda_data_result.get("п.п.-Осложнения табл"):
-        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Осложнения табл"), style)
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Осложнения табл"))
         table_data["Осложнения"] = accomponement_tbl
 
     if cda_data_result.get("в.э.-Осложнения табл"):
-        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Осложнения табл"), style)
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Осложнения табл"))
         table_data["в.э.-Осложнения табл"] = accomponement_tbl
 
     if cda_data_result.get("в.э.-Сопутствующие табл"):
-        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Сопутствующие табл"), style)
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Сопутствующие табл"))
         table_data["в.э.-Сопутствующие табл"] = accomponement_tbl
 
     if current_template_file:
@@ -1418,56 +1420,3 @@ def check_diagnos_row_is_dict(data_cda):
             result = [new_result]
 
     return result
-
-
-def parse_accompanement_diagnos(accompanement_data, style):
-    try:
-        value = json.loads(accompanement_data)
-    except:
-        return None
-
-    if not value:
-        return None
-    opinion = []
-    table_rows = value["rows"]
-    accomponement_result = []
-    space_symbol = "&nbsp;"
-    for t in table_rows:
-        result = ""
-        result_mkb_code = ""
-        result_mkb_title = ""
-        clinic_diag_text = ""
-        for value_raw in t:
-            try:
-                row_data = json.loads(value_raw)
-                if isinstance(row_data, dict):
-                    if row_data.get("code", None):
-                        result_mkb_code = f"{row_data.get('code')}"
-                    if row_data.get("title", None):
-                        result_mkb_title = f"{row_data.get('title')}"
-            except:
-                clinic_diag_text = value_raw
-            result = f"{result_mkb_title}; {clinic_diag_text}"
-        accomponement_result.append([Paragraph(f"<u>{result}</u>", style), Paragraph(f"код по МКБ {space_symbol * 3}<u>{result_mkb_code}</u>", style)])
-        accomponement_result.append([Paragraph("", style), Paragraph("", style)])
-    opinion.extend(accomponement_result)
-    if len(opinion) < 1:
-        opinion = [[Paragraph("", style), Paragraph("", style)]]
-
-    tbl_o = Table(
-        opinion,
-        colWidths=(
-            138 * mm,
-            40 * mm,
-        ),
-    )
-    tbl_o.setStyle(
-        TableStyle(
-            [
-                ("GRID", (0, 0), (-1, -1), 1.0, colors.white),
-                ("TOPPADDING", (0, 0), (-1, -1), 1 * mm),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ]
-        )
-    )
-    return tbl_o
