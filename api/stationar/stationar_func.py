@@ -123,7 +123,7 @@ def get_direction_attrs(direction, site_type=-1, type_service='None', level=-1):
                 'researches': [dir_attr.get('research_title')],
                 'researches_short': [dir_attr.get('research_short_title')],
                 'podrazdeleniye': dir_attr.get('podrazdeleniye_title'),
-                'another_color_in_stationar_panel': another_color_in_stationar_panel
+                'another_color_in_stationar_panel': another_color_in_stationar_panel,
             }
     short_week_days = {0: "ПН", 1: "ВТ", 2: "СР", 3: "ЧТ", 4: "ПТ", 5: "СБ", 6: "ВС"}
     for k, v in dict_temp.items():
