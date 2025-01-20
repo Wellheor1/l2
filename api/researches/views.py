@@ -919,7 +919,7 @@ def hospital_service_details(request):
             "hide": hs.hide,
             "main_service_pk": hs.main_research_id,
             "slave_service_pk": hs.slave_research_id,
-            "another_color_in_stationar_panel": hs.slave_research.a,
+            "another_color_in_stationar_panel": hs.slave_research.another_color_in_stationar_panel,
         }
     )
 
