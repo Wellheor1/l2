@@ -1254,6 +1254,11 @@ export default {
       required: false,
       default: false,
     },
+    another_color_in_stationar_panel: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
     direction_forms: {
       type: Array,
       required: false,
@@ -1800,7 +1805,7 @@ export default {
         simple: this.simple,
       };
       if (this.simple) {
-        props.push('main_service_pk', 'hide_main', 'hs_pk');
+        props.push('main_service_pk', 'hide_main', 'hs_pk', 'another_color_in_stationar_panel');
       }
       constructPoint
         .updateResearch(this, props, moreData)

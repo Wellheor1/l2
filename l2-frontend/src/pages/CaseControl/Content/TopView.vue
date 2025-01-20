@@ -96,7 +96,7 @@ const openDirection = (d: Direction) => {
       v-for="d in directions"
       :key="d.pk"
       :class="[
-        Boolean(d.confirm) && $style.confirmed,
+        Boolean(d.confirm) && $style.confirmed,,
         props.value === d.pk && $style.active,
         $style.block,
         $style.direction,
