@@ -3062,6 +3062,7 @@ def last_field_result(request):
         field_pks = request_data["fieldPk"].split('|')
         if request_data["fieldPk"].find('@') > -1:
             logical_group_or = True
+        is_diag_table = request_data.get("isDiagTable")
     elif request_data["fieldPk"].find("&") > -1:
         field_is_link = True
         logical_and = True

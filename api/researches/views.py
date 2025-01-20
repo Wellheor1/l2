@@ -358,6 +358,7 @@ def researches_by_department(request):
                         "is_hospital_service": True,
                         "title": hospital_service.get_title(),
                         "hide": hospital_service.hide,
+                        "another_color_in_stationar_panel": hospital_service.slave_research.another_color_in_stationar_panel,
                     }
                 )
 
@@ -471,6 +472,7 @@ def researches_update(request):
         own_form_result = result_current_form > 0
         info = request_data.get("info", "").strip()
         hide = request_data.get("hide")
+        another_color_in_stationar_panel = request_data.get("another_color_in_stationar_panel")
         templates_by_department = request_data.get("templatesByDepartment")
         department_template_pk = request_data.get("departmentForTemplatesField")
         site_type = request_data.get("site_type", None)
@@ -509,6 +511,7 @@ def researches_update(request):
                     is_paraclinic=not desc and department.p_type == 3,
                     paraclinic_info=info,
                     hide=hide,
+                    another_color_in_stationar_panel=another_color_in_stationar_panel,
                     is_doc_refferal=department_pk == -2,
                     is_treatment=department_pk == -3,
                     is_stom=department_pk == -4,
@@ -580,6 +583,7 @@ def researches_update(request):
                 res.microbiology_tube_id = tube if department_pk == -6 else None
                 res.paraclinic_info = info
                 res.hide = hide
+                res.another_color_in_stationar_panel = another_color_in_stationar_panel
                 res.site_type_id = site_type
                 res.internal_code = internal_code
                 res.uet_refferal_doc = uet_refferal_doc
@@ -915,6 +919,7 @@ def hospital_service_details(request):
             "hide": hs.hide,
             "main_service_pk": hs.main_research_id,
             "slave_service_pk": hs.slave_research_id,
+            "another_color_in_stationar_panel": hs.slave_research.another_color_in_stationar_panel,
         }
     )
 

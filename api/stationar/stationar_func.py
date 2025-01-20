@@ -84,6 +84,7 @@ def hosp_get_data_direction(main_direction, site_type=-1, type_service='None', l
                     "is_citology": i[26],
                     "is_gistology": i[27],
                     "is_form": i[28],
+                    "another_color_in_stationar_panel": i[29],
                 }
             )
 
@@ -103,6 +104,7 @@ def get_direction_attrs(direction, site_type=-1, type_service='None', level=-1):
 
     for dir_attr in data_direction:
         num_dir = dir_attr.get('direction')
+        another_color_in_stationar_panel = False
         if dict_temp.get(num_dir):
             dict_by_dir = dict_temp.get(num_dir)
             dict_by_dir['researches'] = [*dict_by_dir['researches'], dir_attr.get('research_title')]
@@ -113,6 +115,7 @@ def get_direction_attrs(direction, site_type=-1, type_service='None', level=-1):
             confirm = bool(dir_attr.get('date_confirm'))
             if dir_attr.get('is_slave_hospital'):
                 type_dir = 'stationar'
+                another_color_in_stationar_panel = dir_attr.get('another_color_in_stationar_panel')
             dict_temp[num_dir] = {
                 'type': type_dir,
                 'date_create': dir_attr.get('date_create'),
@@ -120,6 +123,7 @@ def get_direction_attrs(direction, site_type=-1, type_service='None', level=-1):
                 'researches': [dir_attr.get('research_title')],
                 'researches_short': [dir_attr.get('research_short_title')],
                 'podrazdeleniye': dir_attr.get('podrazdeleniye_title'),
+                'another_color_in_stationar_panel': another_color_in_stationar_panel,
             }
     short_week_days = {0: "ПН", 1: "ВТ", 2: "СР", 3: "ЧТ", 4: "ПТ", 5: "СБ", 6: "ВС"}
     for k, v in dict_temp.items():
@@ -132,6 +136,7 @@ def get_direction_attrs(direction, site_type=-1, type_service='None', level=-1):
             'researches': v['researches'],
             'researches_short': v['researches_short'],
             'podrazdeleniye': v['podrazdeleniye'],
+            'another_color': v['another_color_in_stationar_panel'],
         }
         data.append(dict_result)
 

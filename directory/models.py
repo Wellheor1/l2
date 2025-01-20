@@ -394,6 +394,7 @@ class Researches(models.Model):
     count_volume_material_for_tube = models.FloatField(default=0, verbose_name="Количество материала для емкости в долях", blank=True)
     templates_by_department = models.BooleanField(default=None, help_text="Искать шаблоны заполнения по подразделению", null=True, blank=True)
     schema_pdf = models.FileField(upload_to=get_file_path_to_schemas, default=None, null=True, blank=True)
+    another_color_in_stationar_panel = models.BooleanField(default=None, help_text="Другой цвет на ленте стационарных услуг", null=True, blank=True)
 
     @staticmethod
     def save_plan_performer(tb_data):
