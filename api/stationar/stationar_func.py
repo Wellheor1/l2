@@ -136,7 +136,7 @@ def get_direction_attrs(direction, site_type=-1, type_service='None', level=-1):
             'researches': v['researches'],
             'researches_short': v['researches_short'],
             'podrazdeleniye': v['podrazdeleniye'],
-            'another_color': v['another_color_in_stationar_panel']
+            'another_color': v['another_color_in_stationar_panel'],
         }
         data.append(dict_result)
 
