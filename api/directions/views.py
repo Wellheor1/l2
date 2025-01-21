@@ -223,7 +223,8 @@ def directions_generate(request):
             for pk in result["directions"]:
                 d: Napravleniya = Napravleniya.objects.get(pk=pk)
                 d.fill_acsn()
-                fill_slot_ecp_free_nearest(d)
+                if SettingManager.get('fill_slots_ecp', default='false', default_type='b'):
+                    fill_slot_ecp_free_nearest(d)
                 if SettingManager.get("auto_create_tubes_with_direction", default='false', default_type='b'):
                     resp = tubes(request, direction_implict_id=pk)
                     content_type = resp.headers.get("content-type")
@@ -289,7 +290,8 @@ def aux_directions_generate(request):
             for pk in result["directions"]:
                 d: Napravleniya = Napravleniya.objects.get(pk=pk)
                 d.fill_acsn()
-                fill_slot_ecp_free_nearest(d)
+                if SettingManager.get('fill_slots_ecp', default='false', default_type='b'):
+                    fill_slot_ecp_free_nearest(d)
     return JsonResponse(result)
 
 
@@ -2882,6 +2884,19 @@ def last_field_result(request):
         result = {"value": mother_data['patronymic']}
     elif request_data["fieldPk"].find('%patient_born') != -1:
         result = {"value": data['born']}
+    elif request_data["fieldPk"].find('%agent') != -1:
+        agent_status = False
+        p_agent = None
+        agent_person_data = {}
+        result_val = ''
+        if c.who_is_agent:
+            p_agent = getattr(c, c.who_is_agent)
+            agent_status = bool(p_agent)
+        if agent_status:
+            agent_person_data = p_agent.get_data_individual()
+            result_val = f"{agent_person_data.get('fio')}, {agent_person_data.get('phone')}"
+
+        result = {"value": result_val}
     elif request_data["fieldPk"].find('%mother_born') != -1:
         result = {"value": mother_data['born']}
     elif request_data["fieldPk"].find('%snils') != -1:
