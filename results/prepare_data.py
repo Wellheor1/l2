@@ -391,7 +391,7 @@ def gen_hospital_stamp(direction):
     return gentbl
 
 
-def default_title_result_form(direction, doc, date_t, has_paraclinic, individual_birthday, number_poliklinika, logo_col_func, is_extract):
+def default_title_result_form(direction, doc, date_t, has_paraclinic, individual_birthday, number_poliklinika, logo_col_func, is_extract, is_form):
     styleSheet = getSampleStyleSheet()
     style = styleSheet["Normal"]
     style.fontName = "FreeSans"
@@ -441,8 +441,10 @@ def default_title_result_form(direction, doc, date_t, has_paraclinic, individual
             tube = TubesRegistration.objects.filter(issledovaniya__napravleniye=direction).first()
             if tube and (tube.time_get or tube.time_recive):
                 data += [["Забор биоматериала:", strfdatetime((tube.time_get or tube.time_recive), "%d.%m.%Y %H:%M")]]
-        elif not direction.imported_from_rmis and not is_extract and direction.doc:
+        elif not direction.imported_from_rmis and not is_extract and direction.doc and not is_form:
             data.append(["Врач:", "<font>%s<br/>%s</font>" % (direction.doc.get_fio(), direction.get_doc_podrazdeleniye_title())])
+        elif direction.doc and is_form:
+            data.append(["Создал:", "<font>%s<br/>%s</font>" % (direction.doc.get_fio(), direction.get_doc_podrazdeleniye_title())])
         elif direction.imported_org:
             data.append(["<font>Направляющая<br/>организация:</font>", direction.imported_org.title])
         rows = len(data)
