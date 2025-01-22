@@ -13,6 +13,17 @@
       <div class="right">
         <div class="input-group">
           <label
+            v-tippy
+            class="input-group-addon"
+            style="height: 34px;text-align: left;"
+            title="Другой цвет в ленте стационара"
+          >
+            <input
+              v-model="another_color_in_stationar_panel"
+              type="checkbox"
+            > Изм. цвет
+          </label>
+          <label
             class="input-group-addon"
             style="height: 34px;text-align: left;"
           >
@@ -33,6 +44,7 @@
         :hide_main="hide"
         :pk="slave_service_pk"
         :department="department"
+        :another_color_in_stationar_panel="another_color_in_stationar_panel"
       />
     </div>
   </div>
@@ -67,6 +79,7 @@ export default {
       main_service_pk: -1,
       slave_service_pk: -1,
       researches_list: [],
+      another_color_in_stationar_panel: false,
     };
   },
   watch: {
@@ -83,6 +96,7 @@ export default {
   methods: {
     async load() {
       this.hide = false;
+      this.another_color_in_stationar_panel = false;
       this.research = -1;
       this.main_service_pk = -1;
       this.slave_service_pk = -1;
@@ -95,6 +109,7 @@ export default {
         this.main_service_pk = data.main_service_pk;
         this.slave_service_pk = data.slave_service_pk;
         this.hide = data.hide;
+        this.another_color_in_stationar_panel = data.another_color_in_stationar_panel;
         this.loaded_pk = this.pk;
       }
       await this.$store.dispatch(actions.DEC_LOADING);
@@ -113,14 +128,14 @@ export default {
     flex: 0 0 34px;
 
     .left {
-      flex: 0 0 calc(100% - 100px);
+      flex: 0 0 calc(100% - 200px);
       ::v-deep .form-control {
         width: 100%;
       }
     }
 
     .right {
-      flex: 0 0 100px
+      flex: 0 0 200px
     }
 
     .input-group-addon {

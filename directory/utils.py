@@ -104,6 +104,7 @@ def get_researches_details(pk, templates_department_pk=None):
                         "required": field.required,
                         "not_edit": field.not_edit,
                         "operator_enter_param": field.operator_enter_param,
+                        "is_diag_table": field.is_diag_table,
                         "for_talon": field.for_talon,
                         "for_med_certificate": field.for_med_certificate,
                         "helper": field.helper,

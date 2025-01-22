@@ -4,7 +4,7 @@ from refprocessor.common import RANGE_IN, RANGE_NOT_IN
 from utils.flowable import InteractiveTextField
 from reportlab.platypus import Spacer
 from reportlab.lib.units import mm
-from reportlab.platypus import Table, TableStyle, Paragraph
+from reportlab.platypus import Table, TableStyle, Paragraph, Image
 from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
 import simplejson as json
@@ -481,6 +481,41 @@ def default_lab_form(fwb, interactive_text_field, pw, direction, styleSheet, dir
 
             t.setStyle(style_t)
             fwb.append(t)
+    last_iss = iss_list[0]
+    if last_iss.doc_confirmation.get_signature_stamp_pdf():
+        file_jpg = last_iss.doc_confirmation.get_signature_stamp_pdf()
+        img = ""
+        if file_jpg:
+            img = Image(
+                file_jpg,
+                34 * mm,
+                30 * mm,
+            )
+
+        opinion = [
+            [
+                Paragraph('', styleSheet["BodyText"]),
+                Paragraph('', styleSheet["BodyText"]),
+                Paragraph('', styleSheet["BodyText"]),
+                Paragraph('', styleSheet["BodyText"]),
+                Paragraph('', styleSheet["BodyText"]),
+                Paragraph('', styleSheet["BodyText"]),
+                img,
+            ],
+        ]
+        tbl_stamp = Table(opinion, colWidths=(62 * mm, 5 * mm, 58 * mm, 5 * mm, 15 * mm, 5 * mm, 37 * mm))
+        tbl_stamp.setStyle(
+            TableStyle(
+                [
+                    ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+                    ('LINEBELOW', (6, 0), (6, 0), 0.75, colors.black),
+                    ('BOTTOMPADDING', (-1, 0), (-1, 0), -12 * mm),
+                    ('LEFTPADDING', (-1, 0), (-1, 0), -4 * mm),
+                ]
+            )
+        )
+        fwb.append(Spacer(1, 3 * mm))
+        fwb.append(tbl_stamp)
     return fwb
 
 

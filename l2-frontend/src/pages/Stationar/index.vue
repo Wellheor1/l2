@@ -332,7 +332,7 @@
           v-for="d in list_directions"
           :key="d.pk"
           class="top-block direction-block"
-          :class="{ confirmed: Boolean(d.confirm), active: opened_form_pk === d.pk }"
+          :class="{ confirmed: Boolean(d.confirm), another_color: Boolean(d.another_color),  active: opened_form_pk === d.pk }"
           @click="open_form(d)"
         >
           <span>
@@ -2035,10 +2035,20 @@ export default {
         }
       }
 
+      &.another_color {
+        border-color: #0583b0;
+        background: linear-gradient(to bottom, #bdecfd 0%, #0583b0ba 100%);
+
+        &:hover:not(.active) {
+          box-shadow: 0 7px 14px #0583b054, 0 5px 5px #0583b0ba;
+        }
+      }
+
       &.active {
         background-image: linear-gradient(#6c7a89, #56616c) !important;
         color: #fff !important;
       }
+
     }
   }
 

@@ -30,6 +30,7 @@ from .forms_func import (
     closed_bl,
     hosp_extract_get_data_by_cda,
     primary_reception_get_data_by_cda,
+    parse_accompanement_diagnos,
 )
 from laboratory.settings import FONTS_FOLDER, BASE_DIR
 import simplejson as json
@@ -1167,12 +1168,13 @@ def form_02(request_data):
             f"профиль коек <u>{i['transfer_research_title']}</u> палата N____<br/>Дата и время перевода {i['date_transfer_value']} "
             f"время:{i['time_transfer_value']};<br/>"
         )
-
+    age_patinet = direction_obj.client.individual.age_s(direction=direction_obj)
+    space_symbol = "&nbsp;"
     title_page = [
         Indenter(left=0 * mm),
         Spacer(1, 2 * mm),
         Paragraph(
-            '<font fontname="PTAstraSerifBold" size=10>МЕДИЦИНСКАЯ КАРТА ПАЦИЕНТА,<br/>ПОЛУЧАЮЩЕГО МЕДИЦННСКУЮ ПОМОЩЬ<br/>В СТАЦИОНАРНЫХ УСЛОВНЯХ<br/> № {} <u>{}</u></font>'.format(
+            '<font fontname="PTAstraSerifBold" size=10>МЕДИЦИНСКАЯ КАРТА ПАЦИЕНТА,<br/>ПОЛУЧАЮЩЕГО МЕДИЦИНСКУЮ ПОМОЩЬ<br/>В СТАЦИОНАРНЫХ УСЛОВНЯХ<br/> № {} <u>{}</u></font>'.format(
                 p_card_num, hosp_nums
             ),
             styleCenterBold,
@@ -1180,7 +1182,7 @@ def form_02(request_data):
         Spacer(1, 2 * mm),
         Paragraph(f"Фамилия, имя, отчество:&nbsp; {patient_data['fio']}", style),
         Spacer(1, 0.2 * mm),
-        Paragraph(f"Дата рождения: {patient_data['born']} Пол: {patient_data['sex']}", style),
+        Paragraph(f"Дата рождения: {patient_data['born']} ({age_patinet}) {space_symbol * 20} Пол: {patient_data['sex']}", style),
         Spacer(1, 0.5 * mm),
         Paragraph("Поступил в: стационар - 1", style),
         Spacer(1, 0.5 * mm),
@@ -1255,7 +1257,9 @@ def form_02(request_data):
     for i in hosp_operation:
         operation_template = [""] * 4
         operation_template[0] = Paragraph(i["date"] + "<br/>" + i["time_start"] + "-" + i["time_end"], styleTO)
-        operation_template[1] = Paragraph(f"{i['name_operation']} <br/><font face=\"PTAstraSerifBold\" size=\"8.7\">({i['category_difficult']}), {i['doc_fio']}</font>", styleTO)
+        operation_template[1] = Paragraph(
+            f"{i['name_operation']} - {i['code_operation']} <br/><font face=\"PTAstraSerifBold\" size=\"8.7\">({i['category_difficult']}), {i['doc_fio']}</font>", styleTO
+        )
         operation_template[2] = Paragraph(i["anesthesia method"], styleTO)
         operation_template[3] = Paragraph(i["complications"], styleTO)
         operation_result.append(operation_template.copy())
@@ -1282,8 +1286,9 @@ def form_02(request_data):
         )
     )
 
-    table_data = {"operation": tbl_o, "transfers": transfers}
+    table_data = {"operation": tbl_o, "transfers": transfers, "Сопутствующие": ""}
     cda_data_result = {}
+
     if hosp_extract_data.get("result_by_cda"):
         cda_data_result.update(hosp_extract_data.get("result_by_cda"))
 
@@ -1302,6 +1307,22 @@ def form_02(request_data):
     if not cda_data_result.get("п.п.-Kell"):
         cda_data_result["п.п.-Kell"] = " "
 
+    if cda_data_result.get("п.п.-Сопутствующие табл"):
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Сопутствующие табл"))
+        table_data["Сопутствующие"] = accomponement_tbl
+
+    if cda_data_result.get("п.п.-Осложнения табл"):
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("п.п.-Осложнения табл"))
+        table_data["Осложнения"] = accomponement_tbl
+
+    if cda_data_result.get("в.э.-Осложнения табл"):
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Осложнения табл"))
+        table_data["в.э.-Осложнения табл"] = accomponement_tbl
+
+    if cda_data_result.get("в.э.-Сопутствующие табл"):
+        accomponement_tbl = parse_accompanement_diagnos(cda_data_result.get("в.э.-Сопутствующие табл"))
+        table_data["в.э.-Сопутствующие табл"] = accomponement_tbl
+
     if current_template_file:
         for section in body_paragraphs:
             objs = check_section_param(objs, styles_obj, section, table_data, cda_data_result)
@@ -1309,11 +1330,11 @@ def form_02(request_data):
     doc.build(objs)
     pdf = buffer.getvalue()
     buffer.close()
-
     return pdf
 
 
 def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles):
+    default_empty_table_data = Paragraph("", styles_obj[section.get("style")])
     if section.get("Spacer"):
         height_spacer = section.get("spacer_data")
         objs.append(Spacer(1, height_spacer * mm))
@@ -1324,9 +1345,23 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
             objs.append(tbl_specification.get("operation"))
         elif section.get("type") == "Движение":
             objs.append(Paragraph(tbl_specification.get("transfers"), styles_obj[section.get("style")]))
+
+        elif section.get("type") == "Сопутствующие":
+            objs.append(tbl_specification.get("Сопутствующие") if tbl_specification.get("Сопутствующие") else default_empty_table_data)
+
+        elif section.get("type") == "Осложнения":
+            objs.append(tbl_specification.get("Осложнения") if tbl_specification.get("Осложнения") else default_empty_table_data)
+
+        elif section.get("type") == "в.э.-Сопутствующие табл":
+            objs.append(tbl_specification.get("в.э.-Сопутствующие табл") if tbl_specification.get("в.э.-Сопутствующие табл") else default_empty_table_data)
+
+        elif section.get("type") == "в.э.-Осложнения табл":
+            objs.append(tbl_specification.get("в.э.-Осложнения табл") if tbl_specification.get("в.э.-Осложнения табл") else default_empty_table_data)
     elif section.get("text"):
         cda_titles_sec = section.get("cdaTitles")
         data_cda = [cda_titles.get(i) for i in cda_titles_sec if cda_titles.get(i)]
+        if section.get("joinDiagTitle"):
+            data_cda = join_diag_title_row(data_cda)
         difference = len(cda_titles_sec) - len(data_cda)
         if len(data_cda) < len(cda_titles_sec):
             data_cda = [*data_cda, *["" for count in range(difference)]]
@@ -1334,6 +1369,19 @@ def check_section_param(objs, styles_obj, section, tbl_specification, cda_titles
 
         objs.append(Paragraph(section.get("text").format(*data_cda), styles_obj[section.get("style")]))
     return objs
+
+
+def join_diag_title_row(data_cda):
+    code, title = "", ""
+    for i in data_cda:
+        if "code" in i:
+            field_json = json.loads(i)
+            code = field_json.get("code")
+            title = field_json.get("title")
+            data_cda.remove(i)
+    result = ";".join(data_cda)
+    result = f"{result}; {title}"
+    return [result, code]
 
 
 def check_diagnos_row_is_dict(data_cda):
@@ -1347,11 +1395,11 @@ def check_diagnos_row_is_dict(data_cda):
         except:
             is_dict = False
         try:
-            if is_dict and not field_json.get('columns'):
+            if is_dict and not field_json.get("columns"):
                 code = field_json.get("code")
                 title = field_json.get("title")
-                new_result = f"<u>{title}</u>, код по МКБ <u>{code}</u>"
-            elif is_dict and field_json.get('columns'):
+                new_result = f"<u>{title}</u>  код по МКБ <u>{code}</u>"
+            elif is_dict and field_json.get("columns"):
                 new_result = ""
                 rows_data = field_json.get("rows")
                 for r_data in rows_data:
@@ -1362,10 +1410,10 @@ def check_diagnos_row_is_dict(data_cda):
                             is_dict = True
                         except:
                             is_dict = False
-                        if is_dict and diag_data.get('code'):
+                        if is_dict and diag_data.get("code"):
                             title = diag_data.get("title")
                             code = diag_data.get("code")
-                            new_result = f"{new_result}<u>{title}</u>, код по МКБ <u>{code}</u><br/>"
+                            new_result = f"{new_result}<u>{title}</u> код по МКБ <u>{code}</u><br/>"
         except:
             new_result = ""
         if new_result:

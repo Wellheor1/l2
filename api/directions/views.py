@@ -9,10 +9,11 @@ from typing import Optional
 from django.core.paginator import Paginator
 
 from barcodes.views import tubes
+from cash_registers.models import Cheque
 from cda.integration import cdator_gen_xml, render_cda
 from contracts.models import PriceCategory, PriceCoast, PriceName, Company
 from ecp_integration.integration import get_ecp_time_table_list_patient, get_ecp_evn_direction, fill_slot_ecp_free_nearest
-from external_system.models import ProfessionsWorkersPositionsRefbook
+from external_system.models import ProfessionsWorkersPositionsRefbook, CdaFields
 from integration_framework.common_func import directions_pdf_result
 from l2vi.integration import gen_cda_xml, send_cda_xml, send_lab_direction_to_ecp
 import collections
@@ -222,7 +223,8 @@ def directions_generate(request):
             for pk in result["directions"]:
                 d: Napravleniya = Napravleniya.objects.get(pk=pk)
                 d.fill_acsn()
-                fill_slot_ecp_free_nearest(d)
+                if SettingManager.get('fill_slots_ecp', default='false', default_type='b'):
+                    fill_slot_ecp_free_nearest(d)
                 if SettingManager.get("auto_create_tubes_with_direction", default='false', default_type='b'):
                     resp = tubes(request, direction_implict_id=pk)
                     content_type = resp.headers.get("content-type")
@@ -288,7 +290,8 @@ def aux_directions_generate(request):
             for pk in result["directions"]:
                 d: Napravleniya = Napravleniya.objects.get(pk=pk)
                 d.fill_acsn()
-                fill_slot_ecp_free_nearest(d)
+                if SettingManager.get('fill_slots_ecp', default='false', default_type='b'):
+                    fill_slot_ecp_free_nearest(d)
     return JsonResponse(result)
 
 
@@ -358,8 +361,40 @@ def directions_history(request):
     # status: 4 - выписано пользователем, 0 - только выписанные, 1 - Материал получен лабораторией. 2 - результат подтвержден, 3 - направления пациента,  -1 - отменено,
     if req_status == 4:
         user_creater = request.user.doctorprofile.pk
-    if req_status in [0, 1, 2, 3, 5, 7, 8]:
+    if req_status in [0, 1, 2, 3, 5, 7, 8, 9]:
         patient_card = pk
+
+    if req_status == 9:
+        patient_cheque_data = Cheque.get_patient_cheque(date_start, date_end, patient_card)
+
+        final_result = [
+            {
+                "date": cheque.created_at.strftime('%d.%m.%y'),
+                "pk": cheque.id,
+                "researches": f"Смена: {cheque.shift_id}, Оплачен: {cheque.payment_at if cheque.payment_at else 'нет' }, Отменен: {'да' if cheque.cancelled else 'нет'} ",
+                "status": f"{cheque.payment_cash + cheque.payment_electronic}р",
+                "checked": False,
+                "pacs": False,
+                "has_hosp": False,
+                "has_descriptive": False,
+                "maybe_onco": False,
+                "is_application": False,
+                "lab": "",
+                "parent": parent_obj,
+                "is_expertise": False,
+                "expertise_status": False,
+                "person_contract_pk": "",
+                "person_contract_dirs": "",
+                "isComplex": False,
+                'planed_doctor': "",
+                'register_number': "",
+                'cancel': False,
+            }
+            for cheque in patient_cheque_data
+        ]
+        res['directions'] = final_result
+
+        return JsonResponse(res)
 
     if req_status == 8:
         patient_complex_data = ComplexResearchAccountPerson.get_patient_complex_research(date_start, date_end, patient_card)
@@ -1958,6 +1993,7 @@ def directions_paraclinic_form(request):
                                 "not_edit": field.not_edit,
                                 "operator_enter_param": field.operator_enter_param,
                                 "deniedGroup": field.denied_group.name if field.denied_group else "",
+                                "isDiagTable": field.is_diag_table,
                             }
                         )
                     iss["research"]["groups"].append(g)
@@ -2259,7 +2295,10 @@ def directions_paraclinic_result(request):
                     f_result = ParaclinicResult(issledovaniye=iss, field=f, value="")
                 else:
                     f_result = ParaclinicResult.objects.filter(issledovaniye=iss, field=f)[0]
-                f_result.value = field["value"]
+                if not field["value"]:
+                    f_result.value = ""
+                else:
+                    f_result.value = field["value"]
                 f_result.field_type = f.field_type
                 if f.field_type in [27, 28, 29, 32, 33, 34, 35]:
                     try:
@@ -2776,10 +2815,12 @@ def last_fraction_result(request):
 @login_required
 def last_field_result(request):
     request_data = {"fieldPk": "null", **json.loads(request.body)}
-    client_pk = request_data["clientPk"]
+    client_pk = request_data.get("clientPk")
+    if not client_pk:
+        client_pk = request_data.get("card_pk")
     logical_or, logical_and, logical_group_or = False, False, False
     field_is_link, field_is_aggregate_operation, field_is_aggregate_proto_description = False, False, False
-    field_pks, operations_data, aggregate_data = None, None, None
+    field_pks, operations_data, aggregate_data, is_diag_table = None, None, None, None
     result = None
 
     c = Card.objects.get(pk=client_pk)
@@ -2843,6 +2884,19 @@ def last_field_result(request):
         result = {"value": mother_data['patronymic']}
     elif request_data["fieldPk"].find('%patient_born') != -1:
         result = {"value": data['born']}
+    elif request_data["fieldPk"].find('%agent') != -1:
+        agent_status = False
+        p_agent = None
+        agent_person_data = {}
+        result_val = ''
+        if c.who_is_agent:
+            p_agent = getattr(c, c.who_is_agent)
+            agent_status = bool(p_agent)
+        if agent_status:
+            agent_person_data = p_agent.get_data_individual()
+            result_val = f"{agent_person_data.get('fio')}, {agent_person_data.get('phone')}"
+
+        result = {"value": result_val}
     elif request_data["fieldPk"].find('%mother_born') != -1:
         result = {"value": mother_data['born']}
     elif request_data["fieldPk"].find('%snils') != -1:
@@ -3023,6 +3077,7 @@ def last_field_result(request):
         field_pks = request_data["fieldPk"].split('|')
         if request_data["fieldPk"].find('@') > -1:
             logical_group_or = True
+        is_diag_table = request_data.get("isDiagTable")
     elif request_data["fieldPk"].find("&") > -1:
         field_is_link = True
         logical_and = True
@@ -3054,7 +3109,14 @@ def last_field_result(request):
         if len(data) < 2:
             result = {"value": ""}
         else:
-            field_pks = [data[1]]
+            if data[1] == "cda":
+                # %root_hosp#cda#code
+                cda_code = data[2]
+                cda_id = list(CdaFields.get_cda_id_by_codes([int(cda_code)]))
+                paraclinic_field = ParaclinicInputField.objects.filter(cda_option_id=cda_id[0]).first()
+                field_pks = [paraclinic_field.pk]
+            else:
+                field_pks = [data[1]]
             logical_or = True
             hosp_dirs = hosp_get_hosp_direction(num_dir)
             parent_iss = [i['issledovaniye'] for i in hosp_dirs]
@@ -3103,9 +3165,14 @@ def last_field_result(request):
         field_pks = [request_data["fieldPk"]]
         logical_or = True
         field_is_link = True
+        is_diag_table = request_data.get("isDiagTable")
 
-    if field_is_link:
+    if field_is_link and is_diag_table:
+        parent_iss = Napravleniya.objects.get(pk=num_dir).parent_id
+        result = field_get_link_diag_table(field_pks, client_pk, parent_iss=(parent_iss,))
+    elif field_is_link:
         result = field_get_link_data(field_pks, client_pk, logical_or, logical_and, logical_group_or)
+
     elif field_is_aggregate_operation:
         result = field_get_aggregate_operation_data(operations_data)
     elif field_is_aggregate_proto_description:
@@ -3163,6 +3230,28 @@ def field_get_link_data(
 
         if logical_group_or and temp_value or logical_or_inside and value:
             break
+    return result
+
+
+def field_get_link_diag_table(field_pks, client_pk, parent_iss=(-1,), use_current_year=False, months_ago='-1', use_root_hosp=False, use_current_hosp=True):
+    result = None
+    for current_field_pk in field_pks:
+        group_fields = [current_field_pk]
+        for field_pk in group_fields:
+            if field_pk.isdigit():
+                if use_current_year:
+                    c_year = current_year()
+                    c_year = f"{c_year}-01-01 00:00:00"
+                else:
+                    c_year = "1900-01-01 00:00:00"
+                use_parent_iss = '-1'
+                if use_root_hosp or use_current_hosp:
+                    use_parent_iss = '1'
+                rows = get_field_result(client_pk, int(field_pk), count=1, current_year=c_year, months_ago=months_ago, parent_iss=parent_iss, use_parent_iss=use_parent_iss)
+                if rows:
+                    row = rows[0]
+                    result = {"value": row[5]}
+                    break
     return result
 
 

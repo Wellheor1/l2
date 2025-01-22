@@ -819,10 +819,7 @@ class Napravleniya(models.Model):
 
     @property
     def services(self) -> List[directory.Researches]:
-        result = []
-        for iss in self.issledovaniya_set.all().order_by('research__title'):
-            result.append(iss.research)
-        return result
+        return [iss.research for iss in self.issledovaniya_set.all().order_by('research__title')]
 
     def __str__(self):
         return "%d для пациента %s (врач %s, выписал %s, %s, %s, %s, par: [%s])" % (

@@ -544,7 +544,7 @@ def result_print(request):
             if result_title_form:
                 t = result_title_form(temp_iss)
             else:
-                t = default_title_result_form(direction, doc, date_t, has_paraclinic, individual_birthday, number_poliklinika, logo_col, is_extract)
+                t = default_title_result_form(direction, doc, date_t, has_paraclinic, individual_birthday, number_poliklinika, logo_col, is_extract, temp_iss.research.is_form)
             if not schema_pdf_form:
                 fwb.append(t)
             fwb.append(Spacer(1, 5 * mm))

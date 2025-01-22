@@ -554,7 +554,7 @@ def form_03(request_data):
 
     styleT = deepcopy(style)
     styleT.alignment = TA_LEFT
-    styleT.fontSize = 10
+    styleT.fontSize = 11
     styleT.leading = 4.5 * mm
     styleT.face = 'PTAstraSerifReg'
 
@@ -843,8 +843,7 @@ def form_03(request_data):
     hosp_last_num = hosp_nums_obj[-1].get('direction')
     hosp_extract_data = hosp_extract_get_data(hosp_last_num)
 
-    opinion_diagnos = []
-    if hosp_extract_data:
+    if hosp_extract_data and not (hosp_extract_data.get('near_diagnos_table') or hosp_extract_data.get('other_diagnos_table')):
         opinion_diagnos = [
             [
                 Paragraph('', styleTB),
@@ -857,33 +856,59 @@ def form_03(request_data):
             ]
         ]
 
-    opinion.extend(opinion_diagnos)
-    opinion_pathologist = [
-        [
-            Paragraph('Патологоанатомический	', styleTB),
-            Paragraph('', styleTB),
-            Paragraph('', styleTB),
-            Paragraph('', styleTB),
-            Paragraph('', styleTB),
-            Paragraph('', styleTB),
-            Paragraph('', styleTB),
-        ]
-    ]
-
-    opinion.extend(opinion_pathologist)
-    tbl_act = Table(opinion, repeatRows=1, colWidths=(28 * mm, 45 * mm, 15 * mm, 30 * mm, 15 * mm, 30 * mm, 15 * mm))
-    tbl_act.setStyle(
-        TableStyle(
+        opinion.extend(opinion_diagnos)
+        opinion_pathologist = [
             [
-                ('GRID', (0, 0), (-1, -1), 1.0, colors.black),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5 * mm),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('SPAN', (0, 0), (0, 1)),
+                Paragraph('Патологоанатомический	', styleTB),
+                Paragraph('', styleTB),
+                Paragraph('', styleTB),
+                Paragraph('', styleTB),
+                Paragraph('', styleTB),
+                Paragraph('', styleTB),
+                Paragraph('', styleTB),
             ]
-        )
-    )
+        ]
 
-    objs.append(tbl_act)
+        opinion.extend(opinion_pathologist)
+        tbl_act = Table(opinion, repeatRows=1, colWidths=(28 * mm, 45 * mm, 15 * mm, 30 * mm, 15 * mm, 30 * mm, 15 * mm))
+        tbl_act.setStyle(
+            TableStyle(
+                [
+                    ('GRID', (0, 0), (-1, -1), 1.0, colors.black),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5 * mm),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('SPAN', (0, 0), (0, 1)),
+                ]
+            )
+        )
+
+        objs.append(tbl_act)
+
+    else:
+        objs.append(Paragraph('Основной', styleBold))
+        opinion_diagnos = [
+            [
+                Paragraph(hosp_extract_data['final_diagnos'], styleT),
+                Paragraph(f"код по МКБ {space_symbol * 3} {hosp_extract_data['final_diagnos_mkb']}", styleT),
+            ]
+        ]
+        tbl_act = Table(opinion_diagnos, colWidths=(138 * mm, 40 * mm))
+        tbl_act.setStyle(
+            TableStyle(
+                [
+                    ('GRID', (0, 0), (-1, -1), 1.0, colors.white),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5 * mm),
+                ]
+            )
+        )
+
+        objs.append(tbl_act)
+
+        objs.append(Paragraph('Осложнения', styleBold))
+        objs.append(hosp_extract_data.get('near_diagnos_table'))
+        objs.append(Paragraph('Сопутствующие', styleBold))
+        objs.append(hosp_extract_data.get('other_diagnos_table'))
+
     objs.append(Spacer(1, 2 * mm))
     objs.append(
         Paragraph('30.В случае смерти указать основную причину:______________________________________________________________' 'Код МКБ', style),

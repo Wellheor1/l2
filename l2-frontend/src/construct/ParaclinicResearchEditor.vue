@@ -812,7 +812,15 @@
                   <div v-else-if="row.field_type === 38">
                     <strong>Результаты процедурного листа:</strong>
                   </div>
-                  <div v-else-if="row.field_type === 27">
+                  <div v-else-if="row.field_type === 27 && row.is_diag_table">
+                    <strong>Ссылка на поле (%):</strong>
+                    <input
+                      v-model="row.default"
+                      class="form-control"
+                    >
+                    <strong>Таблица:</strong>
+                  </div>
+                  <div v-else-if="row.field_type === 27 && !row.is_diag_table">
                     <strong>Таблица:</strong>
                   </div>
                   <div v-else-if="row.field_type === 39">
@@ -965,7 +973,7 @@
                     <Treeselect
                       v-model="row.newGroupId"
                       placeholder="Группа..."
-                      :options="possibleGroupsForField"
+                      :options="findPossibleGroupForField"
                     />
                   </div>
                 </div>
@@ -997,9 +1005,9 @@
                     type="checkbox"
                   > в талон </label>
                   <label> <input
-                    v-model="row.for_extract_card"
+                    v-model="row.is_diag_table"
                     type="checkbox"
-                  > в выписку </label>
+                  > Табл.диагнозы </label>
                   <label> <input
                     v-model="row.for_med_certificate"
                     type="checkbox"
@@ -1246,6 +1254,11 @@ export default {
       required: false,
       default: false,
     },
+    another_color_in_stationar_panel: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
     direction_forms: {
       type: Array,
       required: false,
@@ -1396,6 +1409,13 @@ export default {
     expertise() {
       return this.$store.getters.modules.l2_expertise;
     },
+    findPossibleGroupForField() {
+      const filtered = this.groups.filter((group) => {
+        const newFields = group.fields.filter((field) => field.pk === -1);
+        return newFields.length < 1;
+      });
+      return filtered.map(group => ({ id: group.pk, label: group.pk }));
+    },
   },
   watch: {
     pk() {
@@ -1425,7 +1445,6 @@ export default {
     await this.loadDepartmentsForPermissions();
     await this.load_deparments();
     await this.loadDynamicDirectories();
-    this.findPossibleGroupForField();
   },
   mounted() {
     window.$(window).on('beforeunload', () => {
@@ -1638,6 +1657,7 @@ export default {
         for_talon: field.for_talon ?? false,
         for_med_certificate: field.for_med_certificate ?? false,
         operator_enter_param: field.operator_enter_param ?? false,
+        is_diag_table: field.is_diag_table ?? false,
         not_edit: field.not_edit ?? false,
         required: field.required ?? false,
         visibility: field.visibility ?? '',
@@ -1739,7 +1759,6 @@ export default {
       if (this.ex_deps.length > 0 && this.site_type === null) {
         this.site_type = this.ex_deps[0].pk;
       }
-      this.findPossibleGroupForField();
     },
     cancel() {
       // eslint-disable-next-line no-restricted-globals,no-alert
@@ -1778,6 +1797,7 @@ export default {
         'type_period',
         'not_edit',
         'operator_enter_param',
+        'is_diag_table',
         'currentNsiResearchCode',
       ];
       const moreData = {
@@ -1785,7 +1805,7 @@ export default {
         simple: this.simple,
       };
       if (this.simple) {
-        props.push('main_service_pk', 'hide_main', 'hs_pk');
+        props.push('main_service_pk', 'hide_main', 'hs_pk', 'another_color_in_stationar_panel');
       }
       constructPoint
         .updateResearch(this, props, moreData)
@@ -1832,9 +1852,6 @@ export default {
     },
     closePermissionsModal() {
       this.showPermissionsModal = false;
-    },
-    findPossibleGroupForField() {
-      this.possibleGroupsForField = this.groups.map(group => ({ id: group.pk, label: group.pk }));
     },
     openFileAddModal() {
       this.showFileAddModal = true;
@@ -2059,4 +2076,7 @@ export default {
   padding: 7px 12px;
   width: 116px !important;
 };
+.change-field-group {
+  margin: 6px 0;
+}
 </style>

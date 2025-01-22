@@ -88,7 +88,7 @@ class TypesMedicalDocuments(models.Model):
 
 
 class CdaFields(models.Model):
-    code = models.IntegerField(default=-1, blank=True, help_text='code документа', db_index=True)
+    code = models.IntegerField(default=-1, blank=True, help_text='code', db_index=True)
     title = models.CharField(max_length=255, default="", help_text='Наименование', db_index=True)
     is_doc_refferal = models.BooleanField(default=False, blank=True, help_text="Это исследование-направление к врачу", db_index=True)
     is_treatment = models.BooleanField(default=False, blank=True, help_text="Это лечение", db_index=True)
@@ -117,6 +117,11 @@ class CdaFields(models.Model):
     @staticmethod
     def get_cda_id_by_titles(cda_titles):
         result = CdaFields.objects.filter(title__in=cda_titles)
+        return result
+
+    @staticmethod
+    def get_cda_id_by_codes(cda_codes):
+        result = list(CdaFields.objects.filter(code__in=cda_codes).values_list("pk", flat=True))
         return result
 
 

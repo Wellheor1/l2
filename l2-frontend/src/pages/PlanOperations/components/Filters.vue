@@ -70,7 +70,7 @@ export default {
       required: true,
     },
     hirurgs: {
-      type: Object,
+      type: [Array, Object],
       required: true,
     },
     departments: {

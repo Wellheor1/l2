@@ -201,16 +201,21 @@ def hospital_get_direction(iss, main_research, hosp_site_type, hosp_is_paraclini
     with connection.cursor() as cursor:
         cursor.execute(
             """WITH RECURSIVE r AS (
-            SELECT nn.id,
+            SELECT 
+            nn.id,
             to_char(nn.data_sozdaniya AT TIME ZONE %(tz)s, 'DD.MM.YYYY') as date_create,
             to_char(nn.data_sozdaniya AT TIME ZONE %(tz)s, 'HH24:MI') as time_create,
-            nn.parent_id, nn.cancel,
+            nn.parent_id, 
+            nn.cancel,
             ii.napravleniye_id,
             ii.id as iss, 
             to_char(ii.time_confirmation AT TIME ZONE %(tz)s, 'DD.MM.YYYY') as date_confirm, 
             to_char(ii.time_confirmation AT TIME ZONE %(tz)s, 'HH24:MI') as time_confirm, 
-            ii.research_id, ddrr.title, ddrr.short_title,
-            ii.diagnos, 1 AS level
+            ii.research_id, 
+            ddrr.title, 
+            ddrr.short_title,
+            ii.diagnos,            
+            1 AS level
             FROM directions_issledovaniya ii 
             LEFT JOIN directions_napravleniya nn 
             ON ii.napravleniye_id=nn.id
@@ -218,15 +223,19 @@ def hospital_get_direction(iss, main_research, hosp_site_type, hosp_is_paraclini
             ON ii.research_id = ddrr.id
             WHERE ii.id = %(num_issledovaniye)s
             UNION ALL
-            SELECT n.id, 
+            SELECT 
+                  n.id, 
                   to_char(n.data_sozdaniya AT TIME ZONE %(tz)s, 'DD.MM.YYYY') as date_create,
                   to_char(n.data_sozdaniya AT TIME ZONE %(tz)s, 'HH24:MI') as time_create,
-                  n.parent_id, n.cancel,
+                  n.parent_id, 
+                  n.cancel,
                   i.napravleniye_id,
                   i.id, 
                   to_char(i.time_confirmation AT TIME ZONE %(tz)s, 'DD.MM.YYYY') as date_confirm, 
                   to_char(i.time_confirmation AT TIME ZONE %(tz)s, 'HH24:MI') as time_confirm,
-                  i.research_id, dr.title, dr.short_title,
+                  i.research_id, 
+                  dr.title, 
+                  dr.short_title,
                   i.diagnos, 
                   r.level + 1 AS level
             FROM directions_issledovaniya i 
@@ -242,7 +251,7 @@ def hospital_get_direction(iss, main_research, hosp_site_type, hosp_is_paraclini
             
             t_research AS (SELECT directory_researches.id as research_iddir, podrazdeleniye_id, is_paraclinic, is_doc_refferal, 
             is_stom, is_hospital, is_microbiology, is_slave_hospital, is_citology, is_gistology, t_podrazdeleniye.title as podr_title, 
-            t_podrazdeleniye.p_type, is_form FROM directory_researches
+            t_podrazdeleniye.p_type, is_form, another_color_in_stationar_panel FROM directory_researches
                 LEFT JOIN t_podrazdeleniye ON t_podrazdeleniye.id = directory_researches.podrazdeleniye_id),
 
             t_hospital_service AS (SELECT site_type, slave_research_id FROM directory_hospitalservice
@@ -281,7 +290,8 @@ def hospital_get_direction(iss, main_research, hosp_site_type, hosp_is_paraclini
 
             SELECT DISTINCT "id", date_create, time_create, parent_id, napravleniye_id, iss, date_confirm, time_confirm, research_id, title,
             diagnos, "level", research_iddir, podrazdeleniye_id, is_paraclinic, is_doc_refferal, is_stom, is_hospital, 
-            is_microbiology, podr_title, p_type, site_type, slave_research_id, short_title, is_slave_hospital, cancel, is_citology, is_gistology, is_form FROM t_all WHERE 
+            is_microbiology, podr_title, p_type, site_type, slave_research_id, short_title, is_slave_hospital, cancel, is_citology, is_gistology, is_form, another_color_in_stationar_panel
+            FROM t_all WHERE 
                 CASE 
                 WHEN %(hosp_level)s > -1 THEN 
                     level = %(hosp_level)s

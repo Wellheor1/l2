@@ -358,6 +358,7 @@ def researches_by_department(request):
                         "is_hospital_service": True,
                         "title": hospital_service.get_title(),
                         "hide": hospital_service.hide,
+                        "another_color_in_stationar_panel": hospital_service.slave_research.another_color_in_stationar_panel,
                     }
                 )
 
@@ -471,6 +472,7 @@ def researches_update(request):
         own_form_result = result_current_form > 0
         info = request_data.get("info", "").strip()
         hide = request_data.get("hide")
+        another_color_in_stationar_panel = request_data.get("another_color_in_stationar_panel")
         templates_by_department = request_data.get("templatesByDepartment")
         department_template_pk = request_data.get("departmentForTemplatesField")
         site_type = request_data.get("site_type", None)
@@ -509,6 +511,7 @@ def researches_update(request):
                     is_paraclinic=not desc and department.p_type == 3,
                     paraclinic_info=info,
                     hide=hide,
+                    another_color_in_stationar_panel=another_color_in_stationar_panel,
                     is_doc_refferal=department_pk == -2,
                     is_treatment=department_pk == -3,
                     is_stom=department_pk == -4,
@@ -580,6 +583,7 @@ def researches_update(request):
                 res.microbiology_tube_id = tube if department_pk == -6 else None
                 res.paraclinic_info = info
                 res.hide = hide
+                res.another_color_in_stationar_panel = another_color_in_stationar_panel
                 res.site_type_id = site_type
                 res.internal_code = internal_code
                 res.uet_refferal_doc = uet_refferal_doc
@@ -663,6 +667,7 @@ def researches_update(request):
                                     required=field.get("required", False),
                                     not_edit=field.get("not_edit", False),
                                     operator_enter_param=field.get("operator_enter_param", False),
+                                    is_diag_table=field.get("is_diag_table", False),
                                     attached=field.get("attached", ''),
                                     control_param=field.get("controlParam", ""),
                                     cda_option_id=field.get("cdaOption", -1) if field.get("cdaOption", -1) != -1 else None,
@@ -690,12 +695,16 @@ def researches_update(request):
                                 f.visibility = field.get("visibility", "")
                                 su = request.user.is_superuser or request.user.doctorprofile.all_hospitals_users_control
                                 if field_data.field_type != field.get("field_type", 0) and not su:
-                                    return JsonResponse(response)
+                                    if field_data.field_type in [0, 13, 14] and field.get("field_type", 0) in [0, 13, 14]:
+                                        pass
+                                    else:
+                                        return JsonResponse(response)
                                 f.field_type = field.get("field_type", 0)
                                 f.can_edit_computed = field.get("can_edit", False)
                                 f.required = field.get("required", False)
                                 f.not_edit = field.get("not_edit", False)
                                 f.operator_enter_param = field.get("operator_enter_param", False)
+                                f.is_diag_table = field.get("is_diag_table", False)
                                 f.for_talon = field.get("for_talon", False)
                                 f.for_med_certificate = field.get("for_med_certificate", False)
                                 f.helper = field.get("helper", '')
@@ -910,6 +919,7 @@ def hospital_service_details(request):
             "hide": hs.hide,
             "main_service_pk": hs.main_research_id,
             "slave_service_pk": hs.slave_research_id,
+            "another_color_in_stationar_panel": hs.slave_research.another_color_in_stationar_panel,
         }
     )
 
@@ -1117,6 +1127,7 @@ def group_as_json(request):
             'for_extract_card': f.for_extract_card,
             'for_talon': f.for_talon,
             'operator_enter_param': f.operator_enter_param,
+            'is_diag_table': f.is_diag_table,
             'for_med_certificate': f.for_med_certificate,
             'visibility': f.visibility,
             'not_edit': f.not_edit,

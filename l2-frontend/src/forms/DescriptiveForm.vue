@@ -319,10 +319,12 @@
                   v-model="field.value"
                   :variants="field.values_to_input"
                   :fields="research.groups.reduce((a, b) => a.concat(b.fields), [])"
+                  :field_link_pk="field.default_value"
                   :field-pk="field.pk"
                   :disabled="confirmed || field.not_edit || userGroups.includes(field.deniedGroup)"
                   :card_pk="patient.card_pk"
                   :iss_pk="pk"
+                  :is_diag_table="field.isDiagTable"
                 />
               </div>
               <div

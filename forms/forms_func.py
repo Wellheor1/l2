@@ -5,10 +5,15 @@ from copy import deepcopy
 from decimal import Decimal
 
 from django.db.models import Q
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import Paragraph, Table, TableStyle
 
 from clients.models import Document, DispensaryReg, Card
 from directions.models import Napravleniya, Issledovaniya, ParaclinicResult, IstochnikiFinansirovaniya, PersonContract
 from directory.models import Researches
+from external_system.models import CdaFields
 from external_system.sql_func import cda_data_by_title
 from laboratory import utils
 from laboratory.settings import MEDEXAM_FIN_SOURCE_TITLE, CDA_TITLES_FIELDS_PRIMARY_RESEARCH, CDA_TITLES_FIELDS_EXTRACT_RESEARCH
@@ -422,6 +427,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'Диагноз при поступлении',
         'Госпитализирован по поводу данного заболевания',
         'Общее состояние',
+        'Тяжесть состояния пациента',
         'Социальный статус',
         'Категория льготности',
         'Всего госпитализаций',
@@ -457,6 +463,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
         'Дата установления диагноза',
         'Время установления диагноза',
         'Кому доверяю',
+        'Форма оказания медицинской помощи',
     ]
 
     list_values = None
@@ -494,7 +501,9 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
             if i[3] == 'Кем направлен больной':
                 who_directed = i[2]
                 continue
-            if i[3] == 'Вид госпитализации':
+            if (i[3]).strip() == 'Вид госпитализации':
+                type_hospital = i[2]
+            if (i[3]).strip() == 'Форма оказания медицинской помощи':
                 type_hospital = i[2]
             if type_hospital.lower() == 'экстренная':
                 time_start_ill_obj = get_result_value_iss(hosp_primary_iss, primary_research_id, ['Время через, которое доставлен после начала заболевания, получения травмы'])
@@ -514,7 +523,7 @@ def primary_reception_get_data(hosp_first_num, site_type=0):
             if i[3] == 'Госпитализирован по поводу данного заболевания':
                 what_time_hospitalized = i[2]
                 continue
-            if i[3] == 'Общее состояние':
+            if i[3] == 'Общее состояние' or i[3] == 'Тяжесть состояния пациента':
                 state = i[2]
                 continue
             if i[3] == 'Социальный статус':
@@ -710,7 +719,7 @@ def primary_reception_get_data_by_cda(hosp_first_num, site_type=0):
         list_values = get_result_value_iss(hosp_primary_iss, primary_research_id, titles_field)
 
     if CDA_TITLES_FIELDS_PRIMARY_RESEARCH and list_values:
-        result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
+        result_by_cda = {cda_dict_title.get(value[4]): normalize_date(value[2]) if len(value[2]) == 10 else value[2] for value in list_values}
 
     return {
         'result_by_cda': result_by_cda,
@@ -729,6 +738,17 @@ def hosp_extract_get_data(hosp_last_num):
         if not doc_confirm:
             return {}
         extract_research_id = hosp_extract[0].get('research_id')
+
+    near_cda_id = CdaFields.objects.filter(title="в.э.-Осложнения табл").first()
+    other_cda_id = CdaFields.objects.filter(title="в.э.-Сопутствующие табл").first()
+    fields_data = get_title_fields_by_cda_relation(
+        extract_research_id,
+        (
+            near_cda_id.pk,
+            other_cda_id.pk,
+        ),
+    )
+    titles_field_diag = [i.title for i in fields_data]
 
     titles_field = [
         'Время выписки',
@@ -753,6 +773,7 @@ def hosp_extract_get_data(hosp_last_num):
         'Отметка о выдаче листка нетрудоспособности',
         'Отметка о выдаче листка нетрудоспособности через врачебную комиссию',
     ]
+    titles_field.extend(titles_field_diag)
 
     list_values = None
     if titles_field and hosp_extract:
@@ -762,6 +783,14 @@ def hosp_extract_get_data(hosp_last_num):
     days_count, result_hospital, manager_depart, room_num, transfer_to = '', '', '', '', ''
     ln_data, ln_vk_data, external_reason_mkb = '', '', ''
     final_diagnos_mkb_dict, other_diagnos_mkb_dict, near_diagnos_mkb_dict, external_reason_mkb_dict = [], [], [], []
+    near_diagnos_table, other_diagnos_table = None, None
+
+    styleSheet = getSampleStyleSheet()
+    style = styleSheet["Normal"]
+    style.fontName = "PTAstraSerifReg"
+    style.fontSize = 11
+    style.leading = 12
+    style.spaceAfter = 0.5 * mm
 
     if list_values:
         for i in list_values:
@@ -849,14 +878,19 @@ def hosp_extract_get_data(hosp_last_num):
                 ln_vk_data = i[2]
             if i[3] == 'Отметка о выдаче листка нетрудоспособности':
                 ln_data = i[2]
-
+            if i[4] == near_cda_id.pk:
+                near_diagnos_table = parse_accompanement_diagnos(i[2])
+            if i[4] == other_cda_id.pk:
+                other_diagnos_table = parse_accompanement_diagnos(i[2])
     doc_fio = doc_confirm.get_fio()
     return {
         'date_value': date_value,
         'time_value': time_value,
         'final_diagnos': final_diagnos,
         'other_diagnos': other_diagnos,
+        'other_diagnos_table': other_diagnos_table,
         'near_diagnos': near_diagnos,
+        'near_diagnos_table': near_diagnos_table,
         'outcome': outcome,
         'final_diagnos_mkb': final_diagnos_mkb,
         'other_diagnos_mkb': other_diagnos_mkb,
@@ -877,6 +911,65 @@ def hosp_extract_get_data(hosp_last_num):
         'ln_vk_data': ln_vk_data,
         'additional_data_ill': additional_data_ill,
     }
+
+
+def parse_accompanement_diagnos(accompanement_data):
+    styleSheet = getSampleStyleSheet()
+    style = styleSheet["Normal"]
+    style.fontName = "PTAstraSerifReg"
+    style.fontSize = 11
+    style.leading = 12
+    style.spaceAfter = 0.5 * mm
+    try:
+        value = json.loads(accompanement_data)
+    except:
+        return None
+
+    if not value:
+        return None
+    opinion = []
+    table_rows = value["rows"]
+    accomponement_result = []
+    space_symbol = "&nbsp;"
+    for t in table_rows:
+        result = ""
+        result_mkb_code = ""
+        result_mkb_title = ""
+        clinic_diag_text = ""
+        for value_raw in t:
+            try:
+                row_data = json.loads(value_raw)
+                if isinstance(row_data, dict):
+                    if row_data.get("code", None):
+                        result_mkb_code = f"{row_data.get('code')}"
+                    if row_data.get("title", None):
+                        result_mkb_title = f"{row_data.get('title')}"
+            except:
+                clinic_diag_text = value_raw
+            result = f"{result_mkb_title}; {clinic_diag_text}"
+        accomponement_result.append([Paragraph(f"<u>{result}</u>", style), Paragraph(f"код по МКБ {space_symbol * 3}<u>{result_mkb_code}</u>", style)])
+        accomponement_result.append([Paragraph("", style), Paragraph("", style)])
+    opinion.extend(accomponement_result)
+    if len(opinion) < 1:
+        opinion = [[Paragraph("", style), Paragraph("", style)]]
+
+    tbl_o = Table(
+        opinion,
+        colWidths=(
+            138 * mm,
+            40 * mm,
+        ),
+    )
+    tbl_o.setStyle(
+        TableStyle(
+            [
+                ("GRID", (0, 0), (-1, -1), 1.0, colors.white),
+                ("TOPPADDING", (0, 0), (-1, -1), 1 * mm),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
+    return tbl_o
 
 
 def hosp_extract_get_data_by_cda(hosp_last_num):
@@ -907,7 +1000,7 @@ def hosp_extract_get_data_by_cda(hosp_last_num):
         list_values = get_result_value_iss(hosp_extract_iss, extract_research_id, titles_field)
 
     if CDA_TITLES_FIELDS_EXTRACT_RESEARCH and list_values:
-        result_by_cda = {cda_dict_title.get(value[4]): value[2] for value in list_values}
+        result_by_cda = {cda_dict_title.get(value[4]): normalize_date(value[2]) if len(value[2]) == 10 else value[2] for value in list_values}
 
     if list_values:
         pass
@@ -1009,7 +1102,6 @@ def hosp_get_transfers_data(hosp_nums_obj):
 def hosp_patient_movement(hosp_nums_obj):
     titles_field = ['Дата перевода']
     patient_movement = []
-    list_values = None
 
     for i in range(len(hosp_nums_obj)):
         date_out, diagnos_mkb, doc_confirm_code = '', '', ''
@@ -1090,6 +1182,11 @@ def hosp_get_operation_data(num_dir):
         'Фенотип донора:',
         'Наименование компонента донорской крови',
         '№ единицы компонентов крови:',
+        'Наименование оперативного вмешательства (операции)',
+        'Дата начала оперативного вмешательства',
+        'Вид анестезиологического пособия',
+        'Осложнения, возникшие в ходе оперативного вмешательства (операции)',
+        'Оперирующий врач'
     ]
     list_values = []
 
@@ -1134,10 +1231,10 @@ def hosp_get_operation_data(num_dir):
                 operation_data['doc_code'] = ''
             category_difficult = ''
             for field in fields_operation:
-                if field[3] == 'Название операции' or field[3] == 'Название манипуляции':
+                if field[3] == 'Название операции' or field[3] == 'Название манипуляции' or field[3] == 'Наименование оперативного вмешательства (операции)' :
                     operation_data['name_operation'] = field[2]
                     continue
-                if field[3] == 'Дата проведения':
+                if field[3] == 'Дата проведения' or field[3] == 'Дата начала оперативного вмешательства':
                     operation_data['date'] = normalize_date(field[2])
                     continue
                 if field[3] == 'Время начала':
@@ -1146,10 +1243,10 @@ def hosp_get_operation_data(num_dir):
                 if field[3] == 'Время окончания':
                     operation_data['time_end'] = field[2]
                     continue
-                if field[3] == 'Метод обезболивания':
+                if field[3] == 'Метод обезболивания' or field[3] == 'Вид анестезиологического пособия':
                     operation_data['anesthesia method'] = field[2]
                     continue
-                if field[3] == 'Осложнения' or field[3] == 'Реакции и осложнения:':
+                if field[3] == 'Осложнения' or field[3] == 'Реакции и осложнения:' or field[3] == 'Осложнения, возникшие в ходе оперативного вмешательства (операции)':
                     operation_data['complications'] = field[2]
                     continue
                 if field[3] == 'Код операции':
@@ -1176,7 +1273,7 @@ def hosp_get_operation_data(num_dir):
                 if field[3] == 'МКБ 10':
                     operation_data['mkb10'] = field[2]
                     continue
-                if field[3] == 'Оперировал':
+                if field[3] == 'Оперировал' or field[3] =='Оперирующий врач':
                     if field[2]:
                         operation_data['doc_fio'] = field[2]
                     continue

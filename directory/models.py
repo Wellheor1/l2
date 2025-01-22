@@ -63,8 +63,8 @@ class ReleationsFT(models.Model):
 
     @staticmethod
     def get_all_relation():
-        relations = ReleationsFT.objects.all()
-        data = [{"id": i.pk, "label": f"{i.tube.title}-({i.pk})"} for i in relations]
+        relations = ReleationsFT.objects.all().select_related('tube').order_by('tube__title')
+        data = [{"id": i.pk, "label": f"{i.tube.title} ({i.pk})", "color": i.tube.color} for i in relations]
         return data
 
 
@@ -394,6 +394,7 @@ class Researches(models.Model):
     count_volume_material_for_tube = models.FloatField(default=0, verbose_name="Количество материала для емкости в долях", blank=True)
     templates_by_department = models.BooleanField(default=None, help_text="Искать шаблоны заполнения по подразделению", null=True, blank=True)
     schema_pdf = models.FileField(upload_to=get_file_path_to_schemas, default=None, null=True, blank=True)
+    another_color_in_stationar_panel = models.BooleanField(default=None, help_text="Другой цвет на ленте стационарных услуг", null=True, blank=True)
 
     @staticmethod
     def save_plan_performer(tb_data):
@@ -584,10 +585,10 @@ class Researches(models.Model):
         return self.site_type_id
 
     @staticmethod
-    def as_json(research):
+    def as_json(research, pk_in_title=False):
         result = {
             "pk": research.pk,
-            "title": research.title,
+            "title": research.title if not pk_in_title else f"{research.title} ({research.pk})",
             "internalCode": research.internal_code,
             "code": research.code,
             "hide": research.hide,
@@ -658,10 +659,10 @@ class Researches(models.Model):
             tubes_info = [value for _, value in research_tubes.items()]
             tubes_keys = tuple(research_tubes.keys())
             if tubes.get(tubes_keys):
-                tubes[tubes_keys]["researches"].append(research.as_json(research))
+                tubes[tubes_keys]["researches"].append(research.as_json(research, True))
             else:
                 tubes[tubes_keys] = {
-                    "researches": [research.as_json(research)],
+                    "researches": [research.as_json(research, True)],
                     "tubes": tubes_info,
                 }
 
@@ -1267,6 +1268,7 @@ class ParaclinicInputField(models.Model):
     visibility = models.TextField(default="", blank=True)
     helper = models.CharField(max_length=999, blank=True, default="")
     for_extract_card = models.BooleanField(default=False, help_text="В выписку", blank=True)
+    is_diag_table = models.BooleanField(default=False, help_text="Таблица диагнозов", blank=True)
     for_med_certificate = models.BooleanField(default=False, help_text="В справку", blank=True)
     attached = models.CharField(max_length=20, help_text="Скреплено с полем другой услуги", blank=True, default=None, null=True, db_index=True)
     not_edit = models.BooleanField(default=False, help_text="Не редактируемое", blank=True)
